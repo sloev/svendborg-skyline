@@ -149,6 +149,13 @@
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   }
 
+  // Dato: EXIF-datoen fra filen først, og den dato personen selv skrev i parentes (hvis den findes).
+  function dateText(c, it) {
+    const taken = it ? formatTaken(it.takenAt) : '';
+    if (taken && c.period) return `${taken} (${c.period})`;
+    return taken || c.period || '';
+  }
+
   function formatTaken(v) {
     if (!v) return '';
     const d = new Date(v);
@@ -597,7 +604,7 @@
   function tile(c) {
     const first = c.items.find((i) => i.thumb) || c.items[0];
     const excerpt = c.story ? c.story.slice(0, 400) : '';
-    const byline = [c.credit, relLabel(c.relation), c.period].filter(Boolean).join(' · ');
+    const byline = [c.credit, relLabel(c.relation), dateText(c, c.items.find((i) => i.takenAt))].filter(Boolean).join(' · ');
     let media = null;
     let body;
     if (first && first.thumb) {
@@ -710,8 +717,7 @@
     const facts = $('#viewer-facts');
     facts.textContent = '';
     const add = (k, v) => v && facts.append(el('dt', { text: k }), el('dd', { text: v }));
-    add(t('f.when'), c.period);
-    if (it) add(t('f.taken'), formatTaken(it.takenAt));
+    add(t('f.when'), dateText(c, it));
     add(t('f.where'), c.place);
     add(t('f.persp'), perLabel(c.perspective));
     add(t('f.relation'), relLabel(c.relation));

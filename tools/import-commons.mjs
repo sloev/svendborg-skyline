@@ -81,7 +81,8 @@ for (const page of candidates.values()) {
   const name = page.title.replace(/^File:/, '');
   const artist = v('Artist') || 'Ukendt';
   const date = v('DateTimeOriginal') || v('DateTime');
-  const year = (date.match(/\b(18|19|20)\d{2}\b/) || [])[0] || '';
+  // Den skrevne dato fra Commons (f.eks. "1956", "circa 1900", "2019-06-21"), som den står.
+  const written = truncate(date.replace(/\s*\d{2}:\d{2}(:\d{2})?$/, ''), 60);
   const description = v('ImageDescription');
   const title = truncate(name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' '), 120);
   const story = truncate(description, 8000);
@@ -105,7 +106,7 @@ for (const page of candidates.values()) {
   const created = await admin('POST', '/api/admin/import', {
     title,
     story,
-    period: year,
+    period: written,
     place: '',
     credit: truncate(`Foto: ${artist} / Wikimedia Commons`, 120),
     sourceUrl: info.descriptionurl,
