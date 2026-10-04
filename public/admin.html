@@ -24,6 +24,16 @@
       <div class="admin-bar">
         <h1 class="admin-title">Bidrag</h1>
         <div class="actions">
+          <select id="view" aria-label="Visning">
+            <option value="subs">Bidrag</option>
+            <option value="comments">Kommentarer</option>
+          </select>
+          <select id="cstatus" hidden aria-label="Kommentarer">
+            <option value="pending">Afventer godkendelse</option>
+            <option value="published">Offentlige</option>
+            <option value="hidden">Skjulte</option>
+            <option value="">Alle</option>
+          </select>
           <select id="status">
             <option value="">Alle</option>
             <option value="review">Afventer godkendelse</option>

@@ -318,3 +318,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 /* Hele arkivet som PDF */
 .archive-dl { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line, rgba(0, 0, 0, 0.12)); }
 .archive-dl p { margin: 0.6rem auto 0; max-width: 38rem; font-size: 0.9rem; }
+
+/* Kommentarer i fremviseren */
+.comments { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.comments h4 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+.comment-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.75rem; }
+.comment { background: rgba(0, 0, 0, 0.035); border-radius: 10px; padding: 0.7rem 0.85rem; }
+.comment-head { font-size: 0.9rem; display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.comment-head time { font-size: 0.8rem; }
+.comment-body { margin: 0.3rem 0 0.2rem; white-space: pre-line; overflow-wrap: anywhere; }
+.comment .link.small, .muted.small, .comments .small { font-size: 0.8rem; }
+.comment-form { display: grid; gap: 0.6rem; }
+.comment-form textarea { resize: vertical; }
+.comment-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }

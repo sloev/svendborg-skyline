@@ -141,6 +141,38 @@ try {
   const fb = await view.getAttribute('#viewer-sharebar .facebook', 'href');
   check(fb && decodeURIComponent(fb).includes(`/s/${subId}`), 'delelinks peger på forhåndsvisningssiden');
 
+  step('Kommentarer');
+  await view.waitForSelector('#comments:not([hidden])');
+  const said = `Testkommentar ${randomUUID().slice(0, 8)}: kranerne stod her i 1962.`;
+  await view.fill('#comment-form input[name=name]', 'Automatisk test');
+  await view.fill('#comment-form textarea[name=body]', 'Se www.example.com');
+  await view.click('#comment-send');
+  await view.waitForFunction(() => !document.querySelector('#comment-error').hidden, null, { timeout: 60_000 });
+  check(/[Ll]inks/.test(await view.textContent('#comment-error')), 'kommentarer med links afvises');
+  await view.fill('#comment-form textarea[name=body]', said);
+  await view.click('#comment-send');
+  await view.waitForFunction(() => /Tak/.test(document.querySelector('#comment-status').textContent), null, { timeout: 60_000 });
+  ok('kommentaren sendes (billet, proof of work og grænser bestået)');
+  const before = await (await fetch(`${WORKER}/api/contributions/${subId}/comments`, { headers: { 'x-e2e-token': E2E } })).json();
+  check(!before.comments.some((c) => c.body === said), 'kommentaren venter på godkendelse');
+  const pending = await (await fetch(`${WORKER}/api/admin/comments?status=pending`, { headers: { authorization: `Bearer ${ADMIN}` } })).json();
+  const mine = pending.comments.find((c) => c.body === said);
+  check(mine && mine.is_test === 1, 'kommentaren står i admin som afventende testkommentar');
+  const appr = await fetch(`${WORKER}/api/admin/comments/${mine.id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${ADMIN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ status: 'published' }),
+  });
+  check(appr.ok, 'admin kan godkende kommentaren');
+  const after = await (await fetch(`${WORKER}/api/contributions/${subId}/comments`, { headers: { 'x-e2e-token': E2E } })).json();
+  check(after.comments.some((c) => c.body === said && c.name === 'Automatisk test'), 'den godkendte kommentar vises');
+  const bot = await fetch(`${WORKER}/api/contributions/${subId}/comments`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: new URL(SITE).origin, 'x-e2e-token': E2E },
+    body: JSON.stringify({ name: 'Bot', body: 'Hej', ticket: 'x.1.y', nonce: '1' }),
+  });
+  check(bot.status === 400 && (await bot.json()).code === 'comment_ticket', 'kommentarer uden gyldig billet afvises');
+
   step('Delelink og forhåndsvisning');
   const share = await fetch(`${WORKER}/s/${subId}`, { headers: { 'x-e2e-token': E2E }, redirect: 'manual' });
   const html = await share.text();

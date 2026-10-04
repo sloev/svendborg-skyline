@@ -967,6 +967,7 @@
     }
     showItem(i);
     renderShare(c);
+    loadComments(c);
     if (!viewer.open) viewer.showModal();
     history.replaceState(null, '', `#bidrag/${c.id}`);
   }
@@ -1071,6 +1072,169 @@
       alert(t('report.thanks'));
     } catch (err) {
       alert(err.message);
+    }
+  });
+
+  // ------------------------------------------------------------------ kommentarer
+  //
+  // Spambeskyttelse (se også workeren): når man begynder at skrive, hentes en billet fra serveren,
+  // og browseren løser en lille regneopgave (proof of work) i baggrunden. Turnstile vises først nu.
+  // Kommentarer vises, når en admin har godkendt dem.
+
+  const cForm = $('#comment-form');
+  let cState = null; // { subId, ticket, minAgeMs, issuedAt, nonce: Promise<string> }
+  let cWidget = null;
+  let cToken = '';
+
+  async function loadComments(c) {
+    const box = $('#comments');
+    box.hidden = !config.comments || config.comments === 'closed';
+    if (box.hidden) return;
+    if (!cState || cState.subId !== c.id) {
+      cState = { subId: c.id };
+      cForm.elements.body.value = '';
+      showCommentError('');
+      $('#comment-status').textContent = '';
+    }
+    try {
+      cForm.elements.name.value ||= localStorage.getItem('silo-navn') || '';
+    } catch {}
+    const list = $('#comment-list');
+    try {
+      const { comments } = await getJson(`/api/contributions/${c.id}/comments`, { cache: 'no-store' });
+      if (current !== c) return;
+      list.textContent = '';
+      for (const cm of comments) list.append(commentItem(cm));
+      $('#comment-count').textContent = comments.length ? `(${fmtNum.format(comments.length)})` : '';
+      $('#comment-empty').hidden = comments.length > 0;
+    } catch {
+      list.textContent = '';
+    }
+  }
+
+  function commentItem(cm) {
+    return el(
+      'li',
+      { class: 'comment' },
+      el('div', { class: 'comment-head' }, el('strong', { text: cm.name }), ' ', el('time', { datetime: cm.createdAt, class: 'muted', text: formatTaken(cm.createdAt) })),
+      el('p', { class: 'comment-body', text: cm.body }),
+      el('button', {
+        type: 'button',
+        class: 'link danger small',
+        text: t('cm.report'),
+        onclick: async (e) => {
+          if (!confirm(t('cm.reportConfirm'))) return;
+          try {
+            await getJson(`/api/comments/${cm.id}/report`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+            e.target.replaceWith(el('span', { class: 'muted small', text: t('report.thanks') }));
+          } catch (err) {
+            alert(err.message);
+          }
+        },
+      }),
+    );
+  }
+
+  function showCommentError(msg) {
+    $('#comment-error').textContent = msg || '';
+    $('#comment-error').hidden = !msg;
+  }
+
+  // Billet + proof of work startes, så snart man går i gang med at skrive.
+  function startCommentWork() {
+    if (!cState || cState.nonce) return;
+    const st = cState;
+    st.nonce = (async () => {
+      const tk = await getJson(`/api/comments/ticket?submission=${encodeURIComponent(st.subId)}`, { cache: 'no-store' });
+      Object.assign(st, { ticket: tk.ticket, minAgeMs: tk.minAgeMs, issuedAt: Date.now() });
+      return solvePow(tk.ticket, tk.zeros, st);
+    })();
+    st.nonce.catch(() => {});
+    renderCommentTurnstile();
+  }
+
+  async function solvePow(ticket, zeros, st) {
+    const enc = new TextEncoder();
+    const full = Math.floor(zeros / 2);
+    const ok = (b) => {
+      for (let i = 0; i < full; i++) if (b[i] !== 0) return false;
+      return zeros % 2 === 0 || b[full] >> 4 === 0;
+    };
+    for (let n = 0; n < 1e9; n += 256) {
+      if (cState !== st) throw new Error('cancelled');
+      const batch = await Promise.all(Array.from({ length: 256 }, (_, k) => crypto.subtle.digest('SHA-256', enc.encode(`${ticket}:${n + k}`))));
+      const hit = batch.findIndex((buf) => ok(new Uint8Array(buf)));
+      if (hit >= 0) return String(n + hit);
+    }
+    throw new Error('pow');
+  }
+
+  function renderCommentTurnstile(tries = 0) {
+    if (!config.turnstileSiteKey || cWidget !== null) return;
+    if (!window.turnstile) {
+      if (tries < 100) setTimeout(() => renderCommentTurnstile(tries + 1), 150);
+      return;
+    }
+    cWidget = window.turnstile.render('#comment-turnstile', {
+      sitekey: config.turnstileSiteKey,
+      action: 'kommentar',
+      language: lang,
+      appearance: 'interaction-only',
+      callback: (tok) => (cToken = tok),
+      'expired-callback': () => (cToken = ''),
+      'error-callback': () => (cToken = ''),
+    });
+  }
+
+  cForm.addEventListener('focusin', startCommentWork);
+  cForm.addEventListener('input', startCommentWork);
+
+  cForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showCommentError('');
+    const name = cForm.elements.name.value.trim();
+    const body = cForm.elements.body.value.trim();
+    if (name.length < 2) return showCommentError(t('e.name_missing'));
+    if (body.length < 3) return showCommentError(t('e.comment_short'));
+    if (config.turnstileSiteKey && !cToken && !window.SILO_E2E) return showCommentError(t('v.turnstile'));
+    startCommentWork();
+    const st = cState;
+    const btn = $('#comment-send');
+    btn.disabled = true;
+    $('#comment-status').textContent = t('cm.checking');
+    try {
+      const nonce = await st.nonce;
+      // Billetten skal have en vis alder (bots sender med det samme).
+      const wait = st.issuedAt + st.minAgeMs + 300 - Date.now();
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      const res = await getJson(`/api/contributions/${st.subId}/comments`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          body,
+          ticket: st.ticket,
+          nonce,
+          turnstileToken: cToken,
+          website: cForm.elements.website.value,
+          email: cForm.elements.email.value,
+        }),
+      });
+      try {
+        localStorage.setItem('silo-navn', name);
+      } catch {}
+      cForm.elements.body.value = '';
+      $('#comment-status').textContent = res.status === 'published' ? t('cm.thanks') : t('cm.thanksPending');
+      if (res.status === 'published' && current) loadComments(current);
+    } catch (err) {
+      $('#comment-status').textContent = '';
+      showCommentError(err.message === 'cancelled' ? '' : err.message);
+    } finally {
+      btn.disabled = false;
+      // Hver billet og hvert Turnstile-svar kan kun bruges én gang.
+      if (cState === st) cState = { subId: st.subId };
+      cToken = '';
+      if (cWidget !== null && window.turnstile) window.turnstile.reset(cWidget);
     }
   });
 

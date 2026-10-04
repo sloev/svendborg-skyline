@@ -7,6 +7,10 @@
 //   GET  /api/contributions/:id              one published contribution
 //   GET  /api/map                            published media with a GPS location
 //   POST /api/contributions/:id/report       flag a contribution
+//   GET  /api/contributions/:id/comments     approved comments on a contribution
+//   GET  /api/comments/ticket?submission=ID  signed, IP-bound ticket + proof-of-work difficulty
+//   POST /api/contributions/:id/comments     add a comment (ticket + proof of work + Turnstile)
+//   POST /api/comments/:id/report            flag a comment
 //   POST /api/submissions                    start a contribution (Turnstile protected)
 //   PUT  /api/upload/:itemId/:part           upload one chunk of a file (R2 multipart)
 //   POST /api/upload/:itemId/complete        finish a file
@@ -24,6 +28,9 @@
 //   GET|PUT|DELETE /api/admin/object/<key>   raw R2 access
 //   POST   /api/admin/mpu/create|part|complete  multipart upload of large derivatives
 //   GET    /api/admin/export                 full JSON export (for the Google Drive backup)
+//   GET    /api/admin/comments               comments (filter by status)
+//   PATCH  /api/admin/comments/:id           { status }
+//   DELETE /api/admin/comments/:id           delete a comment
 
 const CHUNK_SIZE = 16 * 1024 * 1024; // R2 multipart part size (min 5 MiB, max ~95 MiB on Workers)
 
@@ -52,8 +59,8 @@ const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'am
 const DOC_EXT = ['pdf'];
 
 // Max længde på alle tekstfelter (tegn). Sendes også til siden via /api/config.
-const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200 };
-const FIELD_NAMES = { title: 'Overskrift', story: 'Historie', period: 'Hvornår', place: 'Hvor fra', credit: 'Kreditering', email: 'E-mail' };
+const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200, commentName: 60, comment: 1000 };
+const FIELD_NAMES = { title: 'Overskrift', story: 'Historie', period: 'Hvornår', place: 'Hvor fra', credit: 'Kreditering', email: 'E-mail', commentName: 'Navn', comment: 'Kommentar' };
 
 // Grove spam-ord. Rammer de, afvises bidraget (siden handler om siloerne i Svendborg).
 const SPAM_WORDS =
@@ -63,6 +70,15 @@ const SPAM_WORDS =
 // (bruges af admin-siden og som reserve).
 const ERRORS = {
   admin_not_configured: 'ADMIN_TOKEN er ikke sat op (mindst 32 tegn).',
+  comment_links: 'Links, e-mailadresser og telefonnumre er ikke tilladt i kommentarer.',
+  comment_pow: 'Spam-tjekket blev ikke færdigt. Prøv igen.',
+  comment_rate: 'Du har skrevet mange kommentarer på kort tid. Prøv igen senere.',
+  comment_short: 'Kommentaren er for kort.',
+  comment_ticket: 'Formularen er udløbet. Prøv igen.',
+  comments_busy: 'Der kommer usædvanligt mange kommentarer lige nu. Prøv igen senere.',
+  comments_closed: 'Der er lukket for kommentarer.',
+  duplicate_comment: 'Den kommentar er allerede skrevet.',
+  name_missing: 'Skriv dit navn.',
   archive_full: 'Arkivet er desværre fyldt op lige nu. Skriv til os, så finder vi en løsning.',
   consent_missing: 'Du skal give tilladelse til at vi må vise og gemme dit bidrag.',
   contribution_gone: 'Bidraget findes ikke (længere).',
@@ -146,6 +162,8 @@ export default {
   // so their parts stop taking up (billable) space.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(abandonUploads(env, `created_at < ?`, [isoAgo(48 * 3600)], 'submissions'));
+    // Kommentarer: den hashede IP-adresse bruges kun mod spam og ryddes efter 30 dage.
+    ctx.waitUntil(env.DB.prepare(`UPDATE comments SET ip_hash = '' WHERE ip_hash != '' AND created_at < ?`).bind(isoAgo(30 * 86400)).run());
   },
 };
 
@@ -300,8 +318,12 @@ async function api(request, env, ctx, url) {
   if (path === '/api/map' && method === 'GET') return getMap(env);
   if (path === '/api/archive' && method === 'GET') return getArchive(env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)$/)) && method === 'GET') return getContribution(env, m[1]);
+  if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/comments$/)) && method === 'GET') return listComments(env, m[1]);
+  if (path === '/api/comments/ticket' && method === 'GET') return commentTicket(request, env, url);
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) requireOrigin(request, env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/report$/)) && method === 'POST') return reportContribution(request, env, m[1]);
+  if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/comments$/)) && method === 'POST') return createComment(request, env, m[1]);
+  if ((m = path.match(/^\/api\/comments\/([\w-]+)\/report$/)) && method === 'POST') return reportComment(request, env, m[1]);
   if (path === '/api/submissions' && method === 'POST') return createSubmission(request, env);
   if ((m = path.match(/^\/api\/upload\/([\w-]+)\/(\d+)$/)) && method === 'PUT') return uploadPart(request, env, m[1], Number(m[2]));
   if ((m = path.match(/^\/api\/upload\/([\w-]+)\/complete$/)) && method === 'POST') return completeUpload(request, env, m[1]);
@@ -323,6 +345,11 @@ async function adminApi(request, env, url, path, method, ctx) {
   if (path === '/api/admin/queue-size' && method === 'GET') return adminQueueSize(env);
   if (path === '/api/admin/queue/claim' && method === 'POST') return adminClaim(request, env);
   if (path === '/api/admin/export' && method === 'GET') return adminExport(env);
+  if (path === '/api/admin/comments' && method === 'GET') return adminComments(env, url);
+  if ((m = path.match(/^\/api\/admin\/comments\/([\w-]+)$/))) {
+    if (method === 'PATCH') return adminCommentStatus(request, env, m[1]);
+    if (method === 'DELETE') return adminCommentDelete(env, m[1]);
+  }
   if (path === '/api/admin/import' && method === 'POST') return adminImport(request, env);
   if ((m = path.match(/^\/api\/admin\/import\/([\w-]+)$/)) && method === 'PUT') return adminImportFile(request, env, ctx, m[1]);
   if ((m = url.pathname.match(/^\/api\/admin\/object\/(.+)$/))) return adminObject(request, env, decodeURIComponent(m[1]), method);
@@ -360,6 +387,7 @@ function getConfig(env) {
       maxFiles: Number(env.MAX_FILES || 40),
       chunkSize: CHUNK_SIZE,
       moderation: env.MODERATION === 'pre' ? 'pre' : 'post',
+      comments: commentsOpen(env) ? (env.COMMENT_MODERATION === 'auto' ? 'auto' : 'pre') : 'closed',
       contactEmail: env.CONTACT_EMAIL || '',
       relations: RELATIONS,
       perspectives: PERSPECTIVES,
@@ -783,6 +811,246 @@ async function reportContribution(request, env, subId) {
   return json({ ok: true });
 }
 
+// ---------------------------------------------------------------- comments
+//
+// Hård spambeskyttelse i lag – billigste tjek først:
+//   1. kun fra hjemmesiden (Origin + Sec-Fetch, som alle indsendelser)
+//   2. honeypot-felter
+//   3. billet: hentes, når man begynder at skrive; signeret (HMAC), bundet til IP-adresse og bidrag,
+//      skal være mindst MIN_AGE gammel og højst 2 timer, og kan kun bruges én gang
+//   4. proof of work: browseren skal finde et tal, så sha256(billet:tal) starter med POW_ZEROS nuller
+//      (laves i baggrunden, mens man skriver – dyrt for spambots, gratis for mennesker)
+//   5. Cloudflare Turnstile (action "kommentar")
+//   6. grænser pr. IP, pr. bidrag og for hele siden
+//   7. indhold: ingen links/e-mails/telefonnumre, spamord, gentagelser, ikke-latinsk skrift, dubletter
+//   8. forhåndsgodkendelse: alt venter på en admin (COMMENT_MODERATION = "auto" viser rene kommentarer
+//      med det samme), og tre anmeldelser skjuler en kommentar igen
+
+const COMMENT = {
+  MIN_AGE_MS: 6000,
+  MAX_AGE_MS: 2 * 3600 * 1000,
+  POW_ZEROS: 4, // hex-nuller = 16 bit ≈ 65.000 forsøg
+  PER_IP_10MIN: 3,
+  PER_IP_DAY: 10,
+  PER_SUBMISSION_HOUR: 20,
+  SITE_DAY: 300,
+  PER_SUBMISSION_MAX: 300,
+};
+
+// Links (også uden http), e-mails og telefonnumre. Kun kendte domæneendelser, så "siloen.Det" uden
+// mellemrum ikke rammes; årstal som "1898-1900" er ikke telefonnumre.
+const COMMENT_LINK =
+  /https?:|www\.|\b[a-z0-9-]{2,}\s?(?:\.|\[\.\]|\(dot\))\s?(?:com|net|org|dk|de|se|no|eu|info|biz|io|xyz|ru|cn|top|shop|online|site|ly|co|me|app|link|click|uk|nl|fr|it|pl|us|tk|gg|to|cc|tv|ai|live|store|club|vip|win|bid|loan|work|space|fun|icu|cyou|monster|buzz|rest|bar|lol|sbs|cfd|xxx|porn|sex|cam|dating|bet|casino)\b/i;
+const COMMENT_PHONE = /\+\d{2}[\s-]?\d|\b\d{8}\b|\b\d{2}(?:[ .-]\d{2}){3}\b/;
+
+function commentsOpen(env) {
+  return env.COMMENTS !== 'off';
+}
+
+async function hmac(env, data) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(`comment-ticket:${env.ADMIN_TOKEN || ''}:${env.IP_SALT || ''}`),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function ipHashOf(request, env) {
+  return sha256(`${env.IP_SALT || ''}:${request.headers.get('cf-connecting-ip') || '0.0.0.0'}`);
+}
+
+async function publishedSubmission(env, id) {
+  return env.DB.prepare(`SELECT id FROM submissions WHERE id = ? AND status = 'published' AND (is_test = 0 OR ?)`)
+    .bind(id, env.IS_TEST ? 1 : 0)
+    .first();
+}
+
+async function listComments(env, subId) {
+  if (!(await publishedSubmission(env, subId))) throw new HttpError(404, 'contribution_gone');
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, body, created_at FROM comments
+     WHERE submission_id = ? AND status = 'published' AND (is_test = 0 OR ?)
+     ORDER BY created_at LIMIT 500`,
+  )
+    .bind(subId, env.IS_TEST ? 1 : 0)
+    .all();
+  return json(
+    { comments: results.map((c) => ({ id: c.id, name: c.name, body: c.body, createdAt: c.created_at })) },
+    200,
+    { 'cache-control': 'public, max-age=30' },
+  );
+}
+
+async function commentTicket(request, env, url) {
+  if (!commentsOpen(env)) throw new HttpError(403, 'comments_closed');
+  const subId = String(url.searchParams.get('submission') || '');
+  if (!/^[\w-]{36}$/.test(subId) || !(await publishedSubmission(env, subId))) throw new HttpError(404, 'contribution_gone');
+  const ts = Date.now();
+  const sig = await hmac(env, `${subId}.${ts}.${await ipHashOf(request, env)}`);
+  return json({ ticket: `${subId}.${ts}.${sig}`, zeros: COMMENT.POW_ZEROS, minAgeMs: COMMENT.MIN_AGE_MS }, 200, { 'cache-control': 'no-store' });
+}
+
+async function createComment(request, env, subId) {
+  if (!commentsOpen(env)) throw new HttpError(403, 'comments_closed');
+  const body = await readJson(request, 20_000);
+  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+  const ipHash = await ipHashOf(request, env);
+
+  // 2. honeypots
+  if (body.website || body.url || body.phone || body.email) throw new HttpError(400, 'rejected');
+
+  // 3. billet
+  const ticket = String(body.ticket || '');
+  const [tSub, tTs, tSig] = ticket.split('.');
+  if (tSub !== subId || !/^\d{13}$/.test(tTs || '') || !tSig) throw new HttpError(400, 'comment_ticket');
+  if (!safeEqual(tSig, await hmac(env, `${tSub}.${tTs}.${ipHash}`))) throw new HttpError(400, 'comment_ticket');
+  const age = Date.now() - Number(tTs);
+  if (age < COMMENT.MIN_AGE_MS) throw new HttpError(400, 'too_fast');
+  if (age > COMMENT.MAX_AGE_MS) throw new HttpError(400, 'comment_ticket');
+
+  // 4. proof of work
+  const nonce = String(body.nonce ?? '');
+  if (!/^\d{1,12}$/.test(nonce) || !(await sha256(`${ticket}:${nonce}`)).startsWith('0'.repeat(COMMENT.POW_ZEROS))) {
+    throw new HttpError(400, 'comment_pow');
+  }
+
+  // 5. Turnstile
+  if (!env.IS_TEST) await verifyTurnstile(env, body.turnstileToken, ip, request, 'kommentar');
+
+  // 6. grænser
+  const sub = await publishedSubmission(env, subId);
+  if (!sub) throw new HttpError(404, 'contribution_gone');
+  const counts = await env.DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM comments WHERE ip_hash = ? AND created_at > ?) AS ip10,
+       (SELECT COUNT(*) FROM comments WHERE ip_hash = ? AND created_at > ?) AS ipDay,
+       (SELECT COUNT(*) FROM comments WHERE submission_id = ? AND created_at > ?) AS subHour,
+       (SELECT COUNT(*) FROM comments WHERE submission_id = ?) AS subAll,
+       (SELECT COUNT(*) FROM comments WHERE created_at > ?) AS siteDay,
+       (SELECT COUNT(*) FROM comments WHERE ticket = ?) AS used`,
+  )
+    .bind(ipHash, isoAgo(600), ipHash, isoAgo(86400), subId, isoAgo(3600), subId, isoAgo(86400), ticket)
+    .first();
+  if (counts.used) throw new HttpError(400, 'comment_ticket');
+  if (!env.IS_TEST && (counts.ip10 >= COMMENT.PER_IP_10MIN || counts.ipDay >= COMMENT.PER_IP_DAY)) throw new HttpError(429, 'comment_rate');
+  if (counts.subHour >= COMMENT.PER_SUBMISSION_HOUR || counts.siteDay >= COMMENT.SITE_DAY || counts.subAll >= COMMENT.PER_SUBMISSION_MAX) {
+    throw new HttpError(429, 'comments_busy');
+  }
+
+  // 7. indhold
+  const name = field(body.name, 'commentName');
+  const text = field(body.body, 'comment', true);
+  if (name.length < 2) throw new HttpError(400, 'name_missing');
+  if (text.replace(/\s/g, '').length < 3) throw new HttpError(400, 'comment_short');
+  const all = `${name}\n${text}`;
+  if (COMMENT_LINK.test(all) || /[^\s@]+@[^\s@]+\.[a-z]{2,}/i.test(all) || COMMENT_PHONE.test(all)) {
+    throw new HttpError(400, 'comment_links');
+  }
+  checkSpam(all);
+  if (/(.)\1{9,}/u.test(all)) throw new HttpError(400, 'spam_repeat');
+  const textHash = await sha256(text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''));
+  const dup = await env.DB.prepare(`SELECT 1 FROM comments WHERE text_hash = ? AND created_at > ? LIMIT 1`)
+    .bind(textHash, isoAgo(30 * 86400))
+    .first();
+  if (dup && !env.IS_TEST) throw new HttpError(409, 'duplicate_comment');
+
+  // Bløde tegn på spam: kommentaren venter altid på godkendelse, også med COMMENT_MODERATION = "auto".
+  const reasons = [];
+  const letters = text.match(/\p{L}/gu) || [];
+  const upper = text.match(/\p{Lu}/gu) || [];
+  if (letters.length > 20 && upper.length / letters.length > 0.6) reasons.push('versaler');
+  if ((text.match(/[!?]/g) || []).length > 8) reasons.push('udråbstegn');
+  if (counts.ipDay >= 3) reasons.push('mange fra samme IP');
+  if (age < 15_000 && text.length > 300) reasons.push('skrevet meget hurtigt');
+  if (/(.{12,})[\s\S]*\1[\s\S]*\1/u.test(text)) reasons.push('gentagelser');
+  const status = env.COMMENT_MODERATION === 'auto' && !reasons.length ? 'published' : 'pending';
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO comments (id, submission_id, created_at, status, name, body, ip_hash, text_hash, ticket, spam_score, spam_reasons, is_test)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, subId, new Date().toISOString(), status, name, text, ipHash, textHash, ticket, reasons.length, reasons.join(', '), env.IS_TEST ? 1 : 0)
+    .run();
+  return json({ ok: true, id, status });
+}
+
+async function reportComment(request, env, id) {
+  const ipHash = await ipHashOf(request, env);
+  const c = await env.DB.prepare(`SELECT id FROM comments WHERE id = ? AND status = 'published'`).bind(id).first();
+  if (!c) throw new HttpError(404, 'not_found');
+  const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM comment_reports WHERE ip_hash = ? AND created_at > ?`)
+    .bind(ipHash, isoAgo(86400))
+    .first();
+  if (today.n >= 20) throw new HttpError(429, 'report_limit');
+  const res = await env.DB.prepare(`INSERT OR IGNORE INTO comment_reports (comment_id, ip_hash, created_at) VALUES (?, ?, ?)`)
+    .bind(id, ipHash, new Date().toISOString())
+    .run();
+  if (res.meta.changes) {
+    await env.DB.prepare(
+      `UPDATE comments SET reports = reports + 1,
+         status = CASE WHEN reports + 1 >= 3 AND status = 'published' THEN 'pending' ELSE status END
+       WHERE id = ?`,
+    )
+      .bind(id)
+      .run();
+  }
+  return json({ ok: true });
+}
+
+async function adminComments(env, url) {
+  const status = url.searchParams.get('status') || '';
+  const before = url.searchParams.get('before');
+  const where = [];
+  const params = [];
+  if (['pending', 'published', 'hidden'].includes(status)) {
+    where.push('c.status = ?');
+    params.push(status);
+  }
+  if (before) {
+    where.push('c.created_at < ?');
+    params.push(before);
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.submission_id, c.created_at, c.status, c.name, c.body, c.spam_score, c.spam_reasons, c.reports, c.is_test,
+            s.title AS submission_title
+     FROM comments c JOIN submissions s ON s.id = c.submission_id
+     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+     ORDER BY c.created_at DESC LIMIT 51`,
+  )
+    .bind(...params)
+    .all();
+  const { results: counts } = await env.DB.prepare(`SELECT status, COUNT(*) AS n FROM comments GROUP BY status`).all();
+  return json({
+    comments: results.slice(0, 50),
+    next: results.length > 50 ? results[49].created_at : null,
+    counts: Object.fromEntries(counts.map((r) => [r.status, r.n])),
+  });
+}
+
+async function adminCommentStatus(request, env, id) {
+  const { status } = await readJson(request, 1000);
+  if (!['pending', 'published', 'hidden'].includes(status)) throw new HttpError(400, 'invalid_status');
+  const res = await env.DB.prepare(`UPDATE comments SET status = ?, reports = CASE WHEN ? = 'published' THEN 0 ELSE reports END WHERE id = ?`)
+    .bind(status, status, id)
+    .run();
+  if (!res.meta.changes) throw new HttpError(404, 'not_found');
+  if (status === 'published') await env.DB.prepare(`DELETE FROM comment_reports WHERE comment_id = ?`).bind(id).run();
+  return json({ ok: true });
+}
+
+async function adminCommentDelete(env, id) {
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM comment_reports WHERE comment_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM comments WHERE id = ?`).bind(id),
+  ]);
+  return json({ ok: true });
+}
+
 async function triggerProcessing(env) {
   if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return;
   const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/dispatches`, {
@@ -798,7 +1066,7 @@ async function triggerProcessing(env) {
   if (!res.ok) console.error('GitHub dispatch failed', res.status, await res.text());
 }
 
-async function verifyTurnstile(env, token, ip, request) {
+async function verifyTurnstile(env, token, ip, request, action = 'bidrag') {
   if (env.TURNSTILE_SECRET === 'disabled') return; // local development only
   if (!env.TURNSTILE_SECRET) throw new HttpError(500, 'turnstile_not_configured');
   if (typeof token !== 'string' || !token || token.length > 2048) throw new HttpError(400, 'turnstile_missing');
@@ -811,7 +1079,7 @@ async function verifyTurnstile(env, token, ip, request) {
   // Tokenet skal være udstedt til vores egen side og til netop denne formular.
   const hosts = allowedOrigins(env).map((o) => new URL(o).hostname);
   if (!out.hostname || !hosts.includes(out.hostname)) throw new HttpError(400, 'turnstile_wrong_site');
-  if (out.action !== 'bidrag') throw new HttpError(400, 'turnstile_failed');
+  if (out.action !== action) throw new HttpError(400, 'turnstile_failed');
 }
 
 // ---------------------------------------------------------------- delelinks med forhåndsvisning
@@ -1073,6 +1341,8 @@ async function adminDelete(env, id) {
   await env.DB.batch([
     env.DB.prepare(`DELETE FROM items WHERE submission_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM reports WHERE submission_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM comment_reports WHERE comment_id IN (SELECT id FROM comments WHERE submission_id = ?)`).bind(id),
+    env.DB.prepare(`DELETE FROM comments WHERE submission_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM submissions WHERE id = ?`).bind(id),
   ]);
   return json({ ok: true, note: 'Kopier i Google Drive skal slettes manuelt der.' });

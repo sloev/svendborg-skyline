@@ -254,8 +254,77 @@
     $('#panel').hidden = false;
   }
 
+  // ---------------------------------------------------------------- kommentarer
+
+  const C_STATUS = { pending: 'Afventer', published: 'Offentlig', hidden: 'Skjult' };
+  let ccursor = null;
+  const commentsView = () => $('#view').value === 'comments';
+
+  async function loadComments(reset) {
+    if (reset) {
+      ccursor = null;
+      $('#list').textContent = '';
+    }
+    const qs = new URLSearchParams();
+    if ($('#cstatus').value) qs.set('status', $('#cstatus').value);
+    if (ccursor) qs.set('before', ccursor);
+    const data = await api('GET', `/api/admin/comments?${qs}`);
+    $('#counts').textContent = Object.entries(data.counts).map(([k, v]) => `${C_STATUS[k] || k}: ${v}`).join(' · ') || 'Ingen kommentarer endnu.';
+    for (const c of data.comments) $('#list').append(commentRow(c));
+    ccursor = data.next;
+    $('#more').hidden = !ccursor;
+    if (!$('#list').children.length) $('#list').append(el('p', { class: 'meta', text: 'Ingen kommentarer.' }));
+  }
+
+  function commentRow(c) {
+    const set = (status) => actC(() => api('PATCH', `/api/admin/comments/${c.id}`, { status }));
+    return el(
+      'article',
+      { class: `row st-${c.status === 'pending' ? 'review' : c.status}` },
+      el(
+        'header',
+        {},
+        el('h3', { text: c.name }),
+        el(
+          'span',
+          {},
+          el('span', { class: `pill ${c.status === 'pending' ? 'review' : c.status}`, text: C_STATUS[c.status] || c.status }),
+          c.reports ? el('span', { class: 'pill hidden', text: ` ${c.reports} anmeldelse(r)` }) : null,
+          c.spam_reasons ? el('span', { class: 'pill hidden', text: ` mistænkelig: ${c.spam_reasons}` }) : null,
+          c.is_test ? el('span', { class: 'pill', text: ' test' }) : null,
+        ),
+      ),
+      el('p', { class: 'meta' }, new Date(c.created_at).toLocaleString('da-DK'), ' · på ', el('a', { href: `./#bidrag/${c.submission_id}`, target: '_blank', text: c.submission_title || '(uden titel)' })),
+      el('div', { class: 'story', text: c.body }),
+      el(
+        'div',
+        { class: 'actions' },
+        c.status !== 'published' ? el('button', { type: 'button', text: 'Godkend', onclick: () => set('published') }) : null,
+        c.status !== 'hidden' ? el('button', { type: 'button', text: 'Skjul', onclick: () => set('hidden') }) : null,
+        el('button', { type: 'button', class: 'danger', text: 'Slet', onclick: () => confirm('Slet kommentaren permanent?') && actC(() => api('DELETE', `/api/admin/comments/${c.id}`)) }),
+      ),
+    );
+  }
+
+  async function actC(fn) {
+    try {
+      await fn();
+      await loadComments(true);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  const reload = (reset) => (commentsView() ? loadComments(reset) : load(reset));
+  $('#view').addEventListener('change', () => {
+    $('#cstatus').hidden = !commentsView();
+    $('#status').hidden = commentsView();
+    $('.admin-title').textContent = commentsView() ? 'Kommentarer' : 'Bidrag';
+    reload(true).catch((e) => alert(e.message));
+  });
+  $('#cstatus').addEventListener('change', () => loadComments(true).catch((e) => alert(e.message)));
   $('#status').addEventListener('change', () => load(true).catch((e) => alert(e.message)));
-  $('#more').addEventListener('click', () => load(false).catch((e) => alert(e.message)));
+  $('#more').addEventListener('click', () => reload(false).catch((e) => alert(e.message)));
   $('#logout').addEventListener('click', logout);
   $('#export').addEventListener('click', async () => {
     try {

@@ -249,6 +249,7 @@
             <li data-i18n="privacy.li1">Vi gemmer ikke dine originale filer. De omkodes til almindelige formater i høj kvalitet: billeder som JPEG i op til A3-printstørrelse, video som MP4 i op til 1080p, lyd som M4A og dokumenter som PDF. Derefter slettes originalen.</li>
             <li data-i18n="privacy.li2"><strong>Alle skjulte oplysninger fjernes fra filerne</strong>, når de omkodes på serveren: EXIF, XMP og IPTC, GPS, kameraets serienummer, forfatter- og programnavne i dokumenter, kommentarer og indlejrede filer. Kun dato, kameramodel og <strong>GPS-placering</strong> læses først og gemmes ved bidraget. <strong>Placeringen vises offentligt på kortet</strong>, men står ikke længere i selve filen.</li>
             <li data-i18n="privacy.li3">Din e-mail vises aldrig og bruges kun, hvis du har sagt ja til at blive kontaktet.</li>
+            <li data-i18n="privacy.li9">Kommentarer vises med det navn, du skriver, når vi har godkendt dem. For at stoppe spam gemmer vi en krypteret (hashet) udgave af din IP-adresse ved kommentaren i 30 dage.</li>
             <li data-i18n="privacy.li4">For at beskytte mod spam gemmer vi en krypteret (hashet) udgave af din IP-adresse i kort tid. Spambeskyttelsen leveres af Cloudflare Turnstile.</li>
           </ul>
         </div>
@@ -287,6 +288,26 @@
           <button class="link" type="button" id="viewer-share" data-i18n="viewer.share">Kopiér link</button>
           <button class="link danger" type="button" id="viewer-report" data-i18n="viewer.report">Anmeld</button>
         </div>
+        <section class="comments" id="comments" hidden>
+          <h4><span data-i18n="cm.h">Kommentarer</span> <span class="muted" id="comment-count"></span></h4>
+          <ol class="comment-list" id="comment-list"></ol>
+          <p class="muted" id="comment-empty" hidden data-i18n="cm.empty">Ingen kommentarer endnu. Kender du stedet, folkene eller historien? Skriv gerne.</p>
+          <form class="comment-form" id="comment-form" novalidate>
+            <label class="field"><span data-i18n="cm.name">Dit navn</span><input type="text" name="name" maxlength="60" autocomplete="name" required></label>
+            <label class="field"><span data-i18n="cm.body">Kommentar</span><textarea name="body" rows="3" maxlength="1000" required data-i18n-ph="cm.ph" placeholder="Hvad husker du? Ved du hvem eller hvad der er på billedet?"></textarea></label>
+            <div class="hp" aria-hidden="true">
+              <label>Lad dette felt være tomt <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+              <label>Lad dette felt være tomt <input type="email" name="email" tabindex="-1" autocomplete="off"></label>
+            </div>
+            <div id="comment-turnstile"></div>
+            <p class="muted small" data-i18n="cm.note">Kommentarer vises, når vi har godkendt dem. Links, e-mailadresser og telefonnumre er ikke tilladt.</p>
+            <p class="form-error" id="comment-error" role="alert" hidden></p>
+            <div class="comment-actions">
+              <button class="btn btn-primary" type="submit" id="comment-send" data-i18n="cm.send">Send kommentar</button>
+              <span class="muted" id="comment-status" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
       </article>
     </div>
   </dialog>
