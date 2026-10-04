@@ -105,12 +105,21 @@
         <ul class="upload-list" id="upload-list" aria-live="polite"></ul>
       </div>
 
+      <div class="drafts" id="drafts" hidden>
+        <h3 data-i18n="drafts.h">Kladder på denne enhed</h3>
+        <ul class="upload-list" id="draft-list"></ul>
+      </div>
+
       <div class="new-item-row" id="new-item-row">
         <button class="btn btn-primary btn-large" type="button" id="new-item" data-i18n="btn.new">＋ Nyt bidrag</button>
         <p class="hint" data-i18n="new.hint">Ét billede, én video, én lydoptagelse, ét dokument eller én historie ad gangen. Du kan tilføje lige så mange, du vil.</p>
       </div>
 
       <form id="share-form" class="card form" novalidate hidden>
+        <div class="form-top">
+          <p class="draft-status" id="draft-status" role="status" hidden></p>
+          <button class="link" type="button" data-cancel data-i18n="btn.saveClose">Gem som kladde og luk</button>
+        </div>
         <ol class="steps" aria-label="Trin">
           <li data-step="1"><span>1</span> <b data-i18n="step.file">Fil</b></li>
           <li data-step="2"><span>2</span> <b data-i18n="step.fields">Oplysninger</b></li>
@@ -126,12 +135,13 @@
           </label>
           <p class="center"><button class="link" type="button" id="story-only" data-i18n="btn.storyOnly">Jeg har ingen fil – kun en historie</button></p>
           <div class="step-nav">
-            <button class="btn btn-ghost" type="button" data-cancel data-i18n="btn.cancel">Annullér</button>
+            <button class="btn btn-ghost" type="button" data-cancel data-i18n="btn.saveClose">Gem som kladde og luk</button>
           </div>
         </section>
 
         <section class="step" data-step="2" hidden>
           <div class="picked" id="picked"></div>
+          <p class="hint prefill-note" id="prefill-note" hidden data-i18n="prefill.note">✨ Vi har foreslået overskrift og beskrivelse ud fra filen. Ret dem gerne.</p>
           <p class="req-legend"><span class="req-star">*</span> <span data-i18n="req.legend">skal udfyldes</span></p>
           <label class="field" data-field="title">
             <span><span data-label></span><span class="req-star" hidden>*</span></span>
@@ -280,6 +290,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="config.js?v=20261004c"></script>
   <script src="i18n.js?v=20261004c"></script>
+  <script src="editor.js?v=20261004c"></script>
   <script src="app.js?v=20261004c" defer></script>
 </body>
 </html>

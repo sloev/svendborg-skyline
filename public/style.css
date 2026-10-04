@@ -284,3 +284,33 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .upload-item.done .upload-status { color: var(--teal-dark); font-weight: 600; }
 .upload-item.failed .upload-status { color: var(--danger); font-weight: 600; }
 .upload-item .bar { height: 6px; }
+
+/* ---------- tekst-editor */
+.editor { border: 1.5px solid var(--line); border-radius: 10px; background: #fbfaf7; overflow: hidden; }
+.editor:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(29, 138, 116, .18); }
+.editor-bar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); background: #f3efe8; }
+.editor-bar button { min-width: 36px; height: 34px; border: 0; border-radius: 6px; background: transparent; font: 600 .95rem var(--sans); color: var(--ink); cursor: pointer; }
+.editor-bar button:hover, .editor-bar button:focus-visible { background: #e3dccf; }
+.editor-area { min-height: 150px; max-height: 50vh; overflow-y: auto; padding: 11px 13px; outline: none; overflow-wrap: anywhere; }
+.editor-area.empty::before { content: attr(data-placeholder); color: #8a949b; pointer-events: none; display: block; }
+.editor-area p, .editor-area div { margin: 0 0 .5em; }
+.editor-area h3 { font-size: 1.1rem; margin: .4em 0; }
+.editor-area ul, .editor-area ol { margin: .3em 0 .6em; padding-left: 1.4em; }
+.counter { margin-top: 4px; }
+
+/* ---------- formateret historie i fremviseren */
+.viewer-story { white-space: normal; }
+.viewer-story p { margin: 0 0 .7em; }
+.viewer-story h4 { font-family: var(--serif); color: var(--navy); margin: .8em 0 .3em; font-size: 1.05rem; }
+.viewer-story ul, .viewer-story ol { padding-left: 1.3em; margin: 0 0 .7em; }
+
+/* ---------- kladder og autosave */
+.drafts { margin: 0 0 18px; }
+.drafts h3 { font-size: 1rem; font-family: var(--sans); color: var(--muted); margin: 0 0 8px; }
+.draft-item { display: flex; align-items: center; gap: 12px; background: #fffdf8; border: 1.5px dashed #d6ccbb; border-radius: 12px; padding: 10px 14px; }
+.draft-item .btn-small { flex: none; }
+.draft-item .link { flex: none; font-size: .85rem; }
+.form-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: -6px 0 12px; min-height: 22px; }
+.form-top .link { margin-left: auto; font-size: .9rem; }
+.draft-status { margin: 0; font-size: .85rem; color: var(--teal-dark); }
+.prefill-note { background: #f1f7f5; border-radius: 8px; padding: 8px 12px; margin: -6px 0 14px; }

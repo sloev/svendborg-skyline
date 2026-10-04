@@ -828,9 +828,10 @@ async function sharePage(env, id) {
     counts.video && `${counts.video} ${counts.video === 1 ? 'video' : 'videoer'}`,
     counts.audio && `${counts.audio} lydoptagelse${counts.audio === 1 ? '' : 'r'}`,
   ].filter(Boolean).join(', ');
-  const title = sub.title || (sub.story ? truncate(sub.story, 70) : 'Et bidrag om siloerne');
+  const story = plainText(sub.story);
+  const title = sub.title || (story ? truncate(story, 70) : 'Et bidrag om siloerne');
   const desc = truncate(
-    [sub.story, what && `(${what})`, sub.show_credit && sub.credit ? `– ${sub.credit}` : ''].filter(Boolean).join(' ') ||
+    [story, what && `(${what})`, sub.show_credit && sub.credit ? `– ${sub.credit}` : ''].filter(Boolean).join(' ') ||
       'Billeder, videoer og historier om siloerne på Østre Kaj i Svendborg.',
     200,
   );
@@ -869,6 +870,16 @@ ${video ? `<meta property="og:video" content="${e(video)}">\n<meta property="og:
       'referrer-policy': 'strict-origin-when-cross-origin',
     },
   });
+}
+
+// Historier gemmes som simpel Markdown (fed, kursiv, overskrifter, lister, links). Uden tegnene:
+function plainText(md) {
+  return String(md || '')
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(?!\s)(.+?)\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^([-*•]|\d+[.)])\s+/gm, '');
 }
 
 function truncate(str, max) {

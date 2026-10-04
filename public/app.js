@@ -100,6 +100,8 @@
     loadStats();
     loadFeed(true);
     updateGpsHint();
+    if (storyEditor) storyEditor.labels();
+    renderDrafts();
     if (viewer.open && current) openViewer(current, index);
     if (turnstileWidget !== null && window.turnstile) {
       window.turnstile.remove(turnstileWidget);
@@ -109,6 +111,7 @@
     }
   }
 
+  let storyEditor = null;
   let config = { maxFiles: 40, maxFileMb: 2048, chunkSize: 16 * 1024 * 1024, relations: {}, perspectives: {} };
 
   // ------------------------------------------------------------------ helpers
@@ -198,7 +201,9 @@
       counter.addEventListener('refresh', upd);
       upd();
     }
+    storyEditor = Kit.editor(form.elements.story, t);
     applyStatic();
+    renderDrafts();
     $('#lang').addEventListener('change', (e) => setLang(e.target.value));
     renderTurnstile();
     loadStats();
@@ -278,28 +283,152 @@
     } catch {}
   }
 
-  function openForm() {
+  // Åbn formularen – tom, eller med en gemt kladde.
+  function openForm(saved = null) {
     resetDraft();
     form.reset();
     loadRemembered();
+    storyEditor.setMarkdown('');
     formOpenedAt = Date.now();
+    draftId = saved ? saved.id : newId();
+    if (saved) {
+      for (const k of DRAFT_FIELDS) {
+        const input = form.elements[k];
+        if (!input || saved.fields[k] === undefined) continue;
+        // Tomme felter i kladden overskriver ikke den huskede kreditering/e-mail.
+        if (REMEMBER.includes(k) && input.type !== 'checkbox' && !saved.fields[k]) continue;
+        if (input.type === 'checkbox') input.checked = !!saved.fields[k];
+        else input.value = saved.fields[k];
+      }
+      storyEditor.setMarkdown(saved.fields.story || '');
+      if (saved.kind) {
+        draft = { kind: saved.kind };
+        if (saved.file) {
+          const file = saved.file instanceof File ? saved.file : new File([saved.file], saved.fileName || 'fil', { type: saved.fileType || '', lastModified: saved.fileLastModified || Date.now() });
+          setDraftFile(file, saved.kind);
+        } else if (saved.fileName) {
+          draft.missing = { name: saved.fileName, size: saved.fileSize };
+        }
+      }
+    }
     $('#new-item-row').hidden = true;
     form.hidden = false;
-    goStep(1);
+    renderDrafts();
+    goStep(saved ? (saved.kind && (!draft.missing || saved.kind === 'story') ? Math.max(2, saved.step || 2) : 1) : 1);
+    if (draft && draft.missing) showError(t('drafts.fileMissing'));
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function closeForm() {
+  // Luk formularen. Arbejdet er allerede gemt som kladde.
+  async function closeForm() {
+    await saveDraftNow();
     resetDraft();
+    draftId = null;
     form.hidden = true;
     $('#new-item-row').hidden = false;
     showError('');
+    renderDrafts();
   }
 
   function resetDraft() {
     if (draft && draft.url) URL.revokeObjectURL(draft.url);
     draft = null;
     fileInput.value = '';
+  }
+
+  // ------------------------------------------------------------------ kladder på enheden
+
+  const Kit = window.SiloKit;
+  const DRAFT_FIELDS = ['title', 'story', 'period', 'place', 'perspective', 'relation', 'credit', 'showCredit', 'email', 'contactOk'];
+  let draftId = null;
+  let saveTimer = null;
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+  function collectDraft() {
+    const fields = {};
+    for (const k of DRAFT_FIELDS) {
+      const input = form.elements[k];
+      fields[k] = input.type === 'checkbox' ? input.checked : input.value;
+    }
+    const file = draft && draft.file;
+    return {
+      id: draftId,
+      kind: draft ? draft.kind : null,
+      step,
+      fields,
+      file: file || null,
+      fileName: file ? file.name : draft && draft.missing ? draft.missing.name : '',
+      fileType: file ? file.type : '',
+      fileSize: file ? file.size : draft && draft.missing ? draft.missing.size : 0,
+      fileLastModified: file ? file.lastModified : 0,
+      status: 'draft',
+    };
+  }
+
+  // Er der noget værd at gemme? (Ophavsret alene tæller ikke – den huskes i forvejen.)
+  const worthSaving = (d) => d.kind || ['title', 'story', 'period', 'place'].some((k) => String(d.fields[k] || '').trim());
+
+  async function saveDraftNow() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    if (form.hidden || !draftId) return;
+    const d = collectDraft();
+    if (!worthSaving(d)) return;
+    await Kit.drafts.save(d);
+    const note = $('#draft-status');
+    note.textContent = t('drafts.autosaved');
+    note.hidden = false;
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraftNow, 600);
+  }
+  form.addEventListener('input', scheduleSave);
+  form.addEventListener('change', scheduleSave);
+  // Gem også når siden skjules (fanen lukkes, telefonen låses osv.).
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && saveDraftNow());
+  window.addEventListener('pagehide', () => saveDraftNow());
+
+  async function renderDrafts() {
+    const list = (await Kit.drafts.all()).filter((d) => d.id !== draftId && !uploads.some((u) => u.draftId === d.id && (u.state === 'queued' || u.state === 'uploading')));
+    const box = $('#drafts');
+    const ul = $('#draft-list');
+    ul.textContent = '';
+    box.hidden = list.length === 0;
+    for (const d of list) {
+      const name = d.fields.title || d.fileName || Kit.plain(d.fields.story).slice(0, 60) || t('drafts.untitled');
+      const notes = [t('drafts.saved', { time: new Date(d.updatedAt).toLocaleString(I.LOCALE[lang], { dateStyle: 'short', timeStyle: 'short' }) })];
+      if (d.status === 'sending' || d.status === 'failed') notes.push(t('drafts.unsent'));
+      if (d.fileMissing) notes.push(t('drafts.fileMissingShort'));
+      ul.append(
+        el(
+          'li',
+          { class: 'draft-item' },
+          el('span', { class: 'upload-icon', text: d.kind === 'story' || !d.kind ? '✍️' : KIND_ICON[d.kind] }),
+          el('div', { class: 'upload-main' }, el('strong', { text: name }), el('span', { class: 'upload-status', text: notes.join(' · ') })),
+          el('button', {
+            type: 'button',
+            class: 'btn btn-small',
+            text: t('drafts.continue'),
+            onclick: async () => {
+              if (!form.hidden) await closeForm();
+              openForm(await Kit.drafts.get(d.id));
+            },
+          }),
+          el('button', {
+            type: 'button',
+            class: 'link danger',
+            text: t('drafts.delete'),
+            onclick: async () => {
+              if (!confirm(t('drafts.deleteConfirm'))) return;
+              await Kit.drafts.remove(d.id);
+              renderDrafts();
+            },
+          }),
+        ),
+      );
+    }
   }
 
   function goStep(n) {
@@ -312,6 +441,8 @@
       li.classList.toggle('done', k < n);
     }
     if (n === 2) renderFields();
+    else $('#prefill-note').hidden = true;
+    if (draftId) scheduleSave();
     if (n === 3) {
       if (turnstileWidget === null) renderTurnstile();
       const credit = form.elements.credit;
@@ -325,6 +456,13 @@
     if (file.size === 0) return showError(t('file.empty', { name: file.name }));
     if (file.size > config.maxFileMb * 1024 * 1024) return showError(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
     resetDraft();
+    setDraftFile(file, kind);
+    prefill(file, kind);
+    goStep(2);
+    saveDraftNow();
+  }
+
+  function setDraftFile(file, kind) {
     draft = { kind, file };
     if ((kind === 'image' && /^image\/(jpeg|png|gif|webp|avif)$/.test(file.type)) || (kind === 'video' && file.size < 600 * 1024 * 1024)) {
       draft.url = URL.createObjectURL(file);
@@ -337,7 +475,21 @@
         }
       });
     }
-    goStep(2);
+  }
+
+  // Foreslå overskrift og beskrivelse ud fra filnavnet og filens egne oplysninger (EXIF/XMP, ID3,
+  // MP4, PDF). Udfylder kun tomme felter – det, man selv har skrevet, overskrives aldrig.
+  async function prefill(file, kind) {
+    const meta = await Kit.readMeta(file, kind);
+    if (!draft || draft.file !== file) return;
+    const title = form.elements.title;
+    if (meta.title && !title.value.trim()) title.value = meta.title;
+    if (meta.description && !form.elements.story.value.trim()) storyEditor.setMarkdown(meta.description);
+    if (meta.title || meta.description) {
+      const note = $('#prefill-note');
+      note.hidden = false;
+      scheduleSave();
+    }
   }
 
   function renderPicked() {
@@ -377,6 +529,7 @@
       const input = $('input, textarea, select', box);
       input.required = required;
     }
+    storyEditor.labels();
   }
 
   // Tjek felterne i et trin. Returnerer en fejltekst eller ''.
@@ -386,7 +539,7 @@
       for (const name of REQUIRED[kind]) {
         const input = form.elements[name];
         const v = input.value.trim();
-        if (name === 'story' && v.length < 20) return (input.focus(), t('v.storyShort'));
+        if (name === 'story' && v.length < 20) return (storyEditor.focus(), t('v.storyShort'));
         if (!v) return (input.focus(), t('v.required'));
       }
       for (const [name, max] of Object.entries(config.limits || {})) {
@@ -403,7 +556,7 @@
     return '';
   }
 
-  $('#new-item').addEventListener('click', openForm);
+  $('#new-item').addEventListener('click', () => openForm());
   for (const b of $$('[data-cancel]', form)) b.addEventListener('click', closeForm);
   for (const b of $$('[data-back]', form)) b.addEventListener('click', () => goStep(step - 1));
   for (const b of $$('[data-next]', form)) {
@@ -417,6 +570,8 @@
     resetDraft();
     draft = { kind: 'story' };
     goStep(2);
+    setTimeout(() => storyEditor.focus(), 50);
+    saveDraftNow();
   });
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) pickFile(fileInput.files[0]);
@@ -524,6 +679,9 @@
       // Bidraget oprettes med det samme (Turnstile-tokenet gælder kun kort); filen sendes i baggrunden.
       const sub = await getJson('/api/submissions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
       saveRemembered();
+      // Kladden beholdes, indtil filen er helt sendt – så går intet tabt, hvis siden lukkes undervejs.
+      const sentDraft = { ...collectDraft(), status: 'sending' };
+      await Kit.drafts.save(sentDraft);
       const entry = {
         title: payload.title || (draft && draft.file ? draft.file.name : payload.story.slice(0, 60)),
         kind,
@@ -533,12 +691,16 @@
         state: 'queued',
         error: '',
         id: sub.id,
+        draftId,
       };
       uploads.unshift(entry);
       queue = queue.then(() => runUpload(entry, sub));
       draft = null; // filen ejes nu af upload-køen
       fileInput.value = '';
-      closeForm();
+      draftId = null;
+      form.hidden = true;
+      $('#new-item-row').hidden = false;
+      renderDrafts();
       renderUploads();
       $('#uploads').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (err) {
@@ -573,13 +735,17 @@
       entry.state = 'done';
       entry.review = done.status === 'review';
       entry.file = null;
+      await Kit.drafts.remove(entry.draftId);
       loadStats(true);
       loadFeed(true, true);
     } catch (err) {
       console.error(err);
       entry.state = 'failed';
       entry.error = err.message || t('err.generic');
+      const saved = await Kit.drafts.get(entry.draftId);
+      if (saved) await Kit.drafts.save({ ...saved, status: 'failed' });
     }
+    renderDrafts();
     if (!busy() && wakeLock) {
       wakeLock.release().catch(() => {});
       wakeLock = null;
@@ -704,7 +870,7 @@
 
   function tile(c) {
     const first = c.items.find((i) => i.thumb) || c.items[0];
-    const excerpt = c.story ? c.story.slice(0, 400) : '';
+    const excerpt = c.story ? window.SiloKit.plain(c.story).slice(0, 400) : '';
     const byline = [c.credit, relLabel(c.relation), dateText(c, c.items.find((i) => i.takenAt))].filter(Boolean).join(' · ');
     let media = null;
     let body;
@@ -777,7 +943,7 @@
     current = c;
     $('#viewer-title').textContent = c.title || (c.items.length ? t('v.contribution') : t('v.story'));
     $('#viewer-meta').textContent = [c.credit ? t('v.credit', { credit: c.credit }) : t('v.creditHidden'), c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
-    $('#viewer-story').textContent = c.story || '';
+    window.SiloKit.render(c.story || '', $('#viewer-story'));
     const strip = $('#viewer-strip');
     strip.textContent = '';
     if (c.items.length > 1) {
