@@ -47,6 +47,11 @@ window.SiloKit = (() => {
         const h = document.createElement('h4');
         inline(m[1], h);
         container.append(h);
+      } else if ((m = /^>\s?(.*)$/.exec(line))) {
+        list = null;
+        const q = document.createElement('blockquote');
+        inline(m[1], q);
+        container.append(q);
       } else if ((m = /^[-*•]\s+(.*)$/.exec(line))) {
         if (!list || list.tagName !== 'UL') container.append((list = document.createElement('ul')));
         const li = document.createElement('li');
@@ -75,6 +80,7 @@ window.SiloKit = (() => {
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/\*(?!\s)(.+?)\*/g, '$1')
       .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^>\s?/gm, '')
       .replace(/^[-*•]\s+/gm, '• ')
       .replace(/^(\d+)[.)]\s+/gm, '$1. ');
   }

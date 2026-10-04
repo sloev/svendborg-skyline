@@ -303,6 +303,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .viewer-story p { margin: 0 0 .7em; }
 .viewer-story h4 { font-family: var(--serif); color: var(--navy); margin: .8em 0 .3em; font-size: 1.05rem; }
 .viewer-story ul, .viewer-story ol { padding-left: 1.3em; margin: 0 0 .7em; }
+.viewer-story blockquote { margin: 0 0 .8em; padding: .2em 0 .2em 1em; border-left: 3px solid var(--line); font-style: italic; color: var(--navy); }
 
 /* ---------- kladder og autosave */
 .drafts { margin: 0 0 18px; }

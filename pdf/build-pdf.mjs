@@ -252,6 +252,7 @@ function html() {
   .story { margin: 0 0 4mm; }
   .story p { margin: 0 0 2.5mm; }
   .story h3, .story h4 { font-size: 11.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+  .story blockquote { margin: 0 0 2.5mm; padding-left: 4mm; border-left: 1.5pt solid #c9c2b6; font-style: italic; }
   .story ul, .story ol { margin: 0 0 2.5mm; padding-left: 6mm; }
   figure { margin: 0 0 5mm; break-inside: avoid; }
   figure img { display: block; max-width: 100%; max-height: 190mm; margin: 0 auto; }
