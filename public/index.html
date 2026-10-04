@@ -220,7 +220,8 @@
     </section>
 
     <section class="section privacy" id="privatliv">
-      <h2 data-i18n="privacy.h2">Privatliv og rettigheder</h2>
+      <details id="privacy-details">
+        <summary><h2 data-i18n="privacy.h2">Privatliv og rettigheder</h2></summary>
       <div class="grid-2">
         <div>
           <h3 data-i18n="privacy.h3a">Hvad vi gemmer</h3>
@@ -241,12 +242,14 @@
           </ul>
         </div>
       </div>
+      </details>
     </section>
   </main>
 
   <footer class="footer">
     <p data-i18n="footer.p1">Siloerne på Østre Kaj · et fælles arkiv for Svendborg</p>
     <p class="muted" data-i18n="footer.p2">Kortdata © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bidragydere</p>
+    <p class="made-with">made with <span id="made-with" aria-hidden="true">❤️</span> by <a href="https://supernihil.github.io" target="_blank" rel="noopener">supernihil</a> – <a href="https://www.buymeacoffee.com/sloev" target="_blank" rel="noopener">donate</a></p>
   </footer>
 
   <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">

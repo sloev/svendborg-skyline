@@ -830,5 +830,20 @@
     io.observe($('#map'));
   } else startMap();
 
+  // Links til #privatliv (f.eks. "Læs mere" ved samtykket) folder afsnittet ud.
+  function openPrivacy() {
+    if (location.hash === '#privatliv') $('#privacy-details').open = true;
+  }
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href="#privatliv"]');
+    if (a) $('#privacy-details').open = true;
+  });
+  window.addEventListener('hashchange', openPrivacy);
+  openPrivacy();
+
+  // "made with …": en tilfældig emoji hver gang (samme liste som gifshooter).
+  const FUN = ['❤️', '💖', '💘', '💝', '💜', '🧡', '💛', '💚', '💙', '🩷', '✨', '🌈', '🦄', '🍩', '🪐', '🔥', '👾', '🎉', '🍄', '🌀', '🚀', '🛸', '🎨', '🍕', '🐙', '🦖', '🍭', '💾', '🕹️', '🪩'];
+  $('#made-with').textContent = FUN[Math.floor(Math.random() * FUN.length)];
+
   init();
 })();

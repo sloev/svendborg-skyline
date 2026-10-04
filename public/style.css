@@ -237,3 +237,15 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .share-btn.whatsapp { background: #1fa855; }
 .share-btn.email { background: var(--navy-2); }
 .share-btn:hover { filter: brightness(1.1); }
+
+/* ---------- privatliv (fold ud) og "made with" */
+.privacy details { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0 clamp(16px, 3vw, 28px); }
+.privacy summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0; }
+.privacy summary::-webkit-details-marker { display: none; }
+.privacy summary h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.7rem); }
+.privacy summary::after { content: '+'; font: 600 1.8rem/1 var(--sans); color: var(--teal); transition: transform .2s; }
+.privacy details[open] summary::after { transform: rotate(45deg); }
+.privacy details[open] { padding-bottom: 18px; }
+.privacy summary:focus-visible { outline: 3px solid var(--teal); outline-offset: 4px; border-radius: 6px; }
+.made-with { margin-top: 14px !important; font-size: .85rem; color: #9fb2bd; }
+.made-with a { color: #bfe6dc; }
