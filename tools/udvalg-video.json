@@ -65,9 +65,134 @@
    "uploadDate": "2015-01-28",
    "description": "Film fra 1973 om en korn og foderstofvirksomhed.",
    "period": "1973",
-   "dateFrom": "beskrivelse",
-   "credit": "Hans Jørgen Hansen (YouTube)",
-   "items": []
+   "dateFrom": "beskrivelse (»Film fra 1973«) og titelkortet",
+   "credit": "ORION-FILM / Magica Film Production for FAF, 1973 · digitaliseret af Hans Jørgen Hansen (YouTube)",
+   "items": [
+    {
+     "type": "still",
+     "t": 113,
+     "crop": "1440:1076:240:2",
+     "title": "FAF-siloen i Svendborg, 1973",
+     "perspective": "vandet",
+     "story": "Den store FAF-silo med firmanavnet på toppen. I filmen fortæller speakeren netop her, at FAF er »et moderne andelsselskab med hovedkontor i Svendborg«, og siloen er den samme som på filmens titelkort. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 109,
+     "crop": "1440:1076:240:2",
+     "title": "Luftfoto over Svendborgsund, 1973",
+     "perspective": "luften",
+     "story": "Filmen åbner med luftbilleder af Fyn – her formentlig Svendborg og havnen set fra Tåsinge-siden, med siloerne i bybilledet. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 203,
+     "crop": "1440:1076:240:2",
+     "title": "Korn i sække tømmes ved indleveringen",
+     "perspective": "indefra",
+     "story": "Mænd tømmer kornsække ved FAF's indlevering. Speakeren fortæller, at det er »en meget arbejds- og tidskrævende måde« i forhold til løs transport. Det er ikke oplyst, hvilken FAF-afdeling det er. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 209,
+     "crop": "1440:1076:240:2",
+     "title": "FAF-tankbil ved siloen",
+     "perspective": "kajen",
+     "story": "En af FAF's tankbiler læsser ved en silo. Ifølge filmen havde FAF 41 lastbiler og 26 tankbiler. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 392,
+     "crop": "1440:1076:240:2",
+     "title": "FAF-tankbil ved Svendborg Bryghus, 1973",
+     "perspective": "byen",
+     "story": "En FAF-tankbil med foder kører forbi porten til Svendborg Bryghus. Levering af løst foder i tankbil blev »mere og mere almindelig«, fortæller speakeren. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 326,
+     "crop": "1440:1076:240:2",
+     "title": "Sædekornsrensning, 1973",
+     "perspective": "indefra",
+     "story": "En medarbejder kontrollerer sædekornsrensningen. Ifølge speakeren lå FAF's sædekornsrenseri i Odense; herfra blev der hvert år udleveret omkring 12.000 tons sædekorn, kontrolleret af Statsfrøkontrollen. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 428,
+     "crop": "1440:1076:240:2",
+     "title": "FAF's fodersække: C8 og A6",
+     "perspective": "indefra",
+     "story": "FAF's fodersække med de karakteristiske dyretegninger. FAF lavede knap 200.000 tons foder om året i over 40 forskellige blandinger til svin, kvæg og fjerkræ. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 440,
+     "crop": "1440:1076:240:2",
+     "title": "Hønsefoder og kyllingefoder fra FAF",
+     "perspective": "indefra",
+     "story": "Sække med Extra Hønsefoder og Kaloriefoder fra Fyens Andels-Foderstofforretning. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 470,
+     "crop": "1440:1076:240:2",
+     "title": "Sækkelageret, 1973",
+     "perspective": "indefra",
+     "story": "Gaffeltruck i FAF's lager, hvor sækkene stables til loftet. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 745,
+     "crop": "1440:1076:240:2",
+     "title": "FAF's laboratorium, 1973",
+     "perspective": "indefra",
+     "story": "I FAF's laboratorium blev der lavet foderstofanalyser og løbende kontrol af de blandinger, fabrikken producerede. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "still",
+     "t": 990,
+     "crop": "1440:1076:240:2",
+     "title": "Fodersække lastes til Island",
+     "perspective": "kajen",
+     "story": "Omkring 15 procent af FAF's produktion blev eksporteret til Island – i sække eller løst. Islandske Samband importerede foderblandingerne og stod ifølge filmen for næsten halvdelen af landets foderimport. Hvilken havn optagelsen er fra, siges ikke – genkender du kajen? Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014)."
+    },
+    {
+     "type": "clip",
+     "start": 104,
+     "end": 132,
+     "crop": "1440:1076:240:2",
+     "scale": "1440:-2",
+     "audio": true,
+     "title": "Fra høst til FAF-siloen i Svendborg, 1973 (klip med speak)",
+     "perspective": "luften",
+     "story": "Klip med den originale speak: høsten på Fyn, luftbilleder over Svendborg og FAF-siloen, mens speakeren fortæller om FAF med hovedkontor i Svendborg. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014).",
+     "crf": 24
+    },
+    {
+     "type": "clip",
+     "start": 404,
+     "end": 480,
+     "crop": "1440:1076:240:2",
+     "scale": "1440:-2",
+     "audio": true,
+     "title": "Foderproduktion og sækkelager, 1973 (klip med speak)",
+     "perspective": "indefra",
+     "story": "Produktion og pakning af foder, FAF's sække med dyretegninger og lageret, med filmens originale speak. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014).",
+     "crf": 24
+    },
+    {
+     "type": "clip",
+     "start": 970,
+     "end": 1012,
+     "crop": "1440:1076:240:2",
+     "scale": "1440:-2",
+     "audio": true,
+     "title": "FAF lastet til Island, 1973 (klip med speak)",
+     "perspective": "kajen",
+     "story": "FAF's jernbanevogne ved kajen og fodersække, der lastes på et islandsk skib. Om eksporten til Island fortæller speakeren, at ca. 15 procent af produktionen gik dertil. Fra FAF's egen film fra 1973 (produceret af ORION-FILM / Magica Film Production A/S, reddet og digitaliseret af Hans Jørgen Hansen i 2014).",
+     "crf": 24
+    }
+   ]
   },
   {
    "id": "0Bbc8m0AIms",
@@ -188,7 +313,40 @@
    "title": "SVENDBORG.  FREDERIKSØEN",
    "channel": "ESKILD TV",
    "channelUrl": "https://www.youtube.com/@ASKETILL",
-   "items": []
+   "items": [
+    {
+     "type": "still",
+     "t": 155,
+     "title": "Den hvide FAF-silo bag de gamle sejlskibe",
+     "perspective": "vandet",
+     "story": "Den hvide silo med de store FAF-bogstaver rager op bag skonnerterne i havnen ved Frederiksø. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "still",
+     "t": 168,
+     "title": "Siloerne og skonnerterne i Svendborg Havn",
+     "perspective": "vandet",
+     "story": "Gamle sejlskibe ved kajen med den hvide FAF-silo bagved. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "still",
+     "t": 189,
+     "title": "Den hvide og den røde silo set fra Frederiksø",
+     "perspective": "vandet",
+     "story": "Lystbådehavnen med den hvide FAF-silo og den røde silo i baggrunden. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "clip",
+     "start": 138,
+     "end": 190,
+     "title": "Havnen ved Frederiksø med siloerne (klip)",
+     "perspective": "vandet",
+     "story": "En sundbåd og de gamle sejlskibe i havnen med den hvide FAF-silo og den røde silo i baggrunden. Optagelsesdatoen kendes ikke."
+    }
+   ],
+   "period": "",
+   "dateFrom": "ukendt (ikke i titel eller beskrivelse; upload-dato kunne ikke hentes)",
+   "credit": "ESKILD TV (YouTube)"
   },
   {
    "id": "_qY5j1PHEqw",

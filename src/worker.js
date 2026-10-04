@@ -403,6 +403,9 @@ async function getStats(env) {
   const row = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM submissions WHERE status = 'published' AND is_test = 0) AS contributions,
+       -- Historier: tekstbidrag uden filer og folks egne bidrag med en egentlig tekst (ikke billedtekster til importerede billeder).
+       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND length(x.story) >= 80
+          AND (coalesce(x.source_url, '') = '' OR NOT EXISTS (SELECT 1 FROM items WHERE submission_id = x.id))) AS stories,
        COUNT(CASE WHEN i.kind = 'image' THEN 1 END) AS images,
        COUNT(CASE WHEN i.kind = 'video' THEN 1 END) AS videos,
        COUNT(CASE WHEN i.kind = 'audio' THEN 1 END) AS audio,
@@ -1236,7 +1239,8 @@ async function requireAdmin(request, env) {
 
 async function adminList(env, url) {
   const status = url.searchParams.get('status');
-  const limit = clamp(Number(url.searchParams.get('limit')) || 50, 1, 200);
+  // Højst 100: filerne hentes med én IN (...) og D1 tillader højst 100 parametre.
+  const limit = clamp(Number(url.searchParams.get('limit')) || 50, 1, 100);
   const before = url.searchParams.get('before');
   const where = [];
   const params = [];

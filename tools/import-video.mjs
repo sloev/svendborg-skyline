@@ -66,7 +66,7 @@ for (const v of videos) {
       ffmpeg([
         '-ss', String(it.start), '-i', input, '-t', String(it.end - it.start),
         ...(it.crop || it.scale ? ['-vf', [it.crop && `crop=${it.crop}`, it.scale && `scale=${it.scale}`].filter(Boolean).join(',')] : []),
-        '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-pix_fmt', 'yuv420p',
+        '-c:v', 'libx264', '-crf', String(it.crf || 16), '-preset', 'slow', '-pix_fmt', 'yuv420p',
         ...(it.audio ? ['-c:a', 'aac', '-b:a', '160k'] : ['-an']), '-movflags', '+faststart', file,
       ]);
     }

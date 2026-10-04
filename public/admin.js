@@ -67,6 +67,15 @@
     if (!$('#list').children.length) $('#list').append(el('p', { class: 'meta', text: 'Ingen bidrag.' }));
   }
 
+  // Historien vises formateret (fed, links, lister, citater) som på siden.
+  function storyBox(md) {
+    const box = el('div', { class: 'story viewer-story' });
+    if (window.SiloKit) window.SiloKit.render(md, box);
+    else box.textContent = md;
+    for (const a of box.querySelectorAll('a')) a.target = '_blank';
+    return box;
+  }
+
   function row(s) {
     const node = el(
       'article',
@@ -95,7 +104,7 @@
       s.source_url
         ? el('p', { class: 'meta' }, el('span', { class: 'pill', text: 'Import' }), ' ', el('a', { href: s.source_url, target: '_blank', rel: 'noopener', text: 'Kilde' }), ` · Licens: ${s.license || '?'}`)
         : null,
-      s.story ? el('div', { class: 'story', text: s.story }) : null,
+      s.story ? storyBox(s.story) : null,
       el(
         'div',
         { class: 'items' },

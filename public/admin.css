@@ -34,3 +34,5 @@
   width: 100%; font: inherit; color: inherit; background: #fbfaf7; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px;
 }
 .edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rgba(29, 138, 116, .18); }
+.story.viewer-story { white-space: normal; max-height: 22em; }
+.story.viewer-story p { margin: 0 0 .5em; }

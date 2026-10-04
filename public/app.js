@@ -218,7 +218,9 @@
       set('contributions', s.contributions);
       set('images', s.images);
       set('videos', s.videos);
-      set('other', (s.audio || 0) + (s.documents || 0));
+      set('audio', s.audio);
+      set('stories', s.stories);
+      set('documents', s.documents);
     } catch {}
     loadArchive();
   }
