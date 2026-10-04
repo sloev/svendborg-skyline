@@ -1,6 +1,9 @@
-# Kopiér til .dev.vars til lokal udvikling (commit aldrig .dev.vars)
+# Kopiér til .dev.vars til lokal udvikling (commit aldrig .dev.vars).
+# Siden køres separat, f.eks.: mkdir -p /tmp/site && ln -s $PWD/public /tmp/site/svendborg-skyline && python3 -m http.server 8080 -d /tmp/site
+# og public/config.js sættes til apiBase: 'http://localhost:8787'.
 TURNSTILE_SECRET=disabled
 TURNSTILE_SITE_KEY=
 ADMIN_TOKEN=lokal-udvikling-0000000000000000000000
 IP_SALT=lokal-salt
-ALLOWED_ORIGINS=http://localhost:8787
+ALLOWED_ORIGINS=http://localhost:8080
+SITE_URL=http://localhost:8080/svendborg-skyline/

@@ -2,13 +2,6 @@ name = "silo-arkiv"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 
-# Den statiske side (public/) serveres gratis; /api/* og /media/* går til workeren.
-[assets]
-directory = "./public"
-binding = "ASSETS"
-not_found_handling = "404-page"
-run_worker_first = ["/api/*", "/media/*"]
-
 # Daglig oprydning i uploads, der aldrig blev gjort færdige.
 [triggers]
 crons = ["23 3 * * *"]
@@ -43,8 +36,10 @@ GITHUB_REPO = "sloev/svendborg-skyline"
 # Udgiftsloft (se src/worker.js). Værst tænkelige: (250 − 10) GB × $0,015 ≈ $3,60 pr. måned.
 STORAGE_LIMIT_GB = "250"
 CLASS_A_MONTHLY_LIMIT = "900000"
-# Sider der må kalde API'et fra browseren (CORS og afsender-tjek), kommasepareret.
+# Den eneste side der må sende bidrag (CORS, afsender-tjek og Turnstile-hostname), kommasepareret.
 ALLOWED_ORIGINS = "https://sloev.github.io"
+# Hjemmesidens adresse (delelinks og alt der ikke er API sendes hertil).
+SITE_URL = "https://sloev.github.io/svendborg-skyline/"
 # Vises i afsnittet om privatliv.
 CONTACT_EMAIL = "fremmedartet@gmail.com"
 

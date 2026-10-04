@@ -227,3 +227,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .lang-picker select { width: auto; padding: 6px 8px; border-radius: 999px; font-size: .9rem; font-weight: 600; background: var(--card); cursor: pointer; }
 @media (max-width: 480px) { .brand span { display: none; } }
+
+/* ---------- deleknapper */
+.sharebar { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.share-btn { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; font: 600 .85rem var(--sans); text-decoration: none; color: #fff; border: 0; cursor: pointer; }
+.share-btn.native { background: var(--teal); }
+.share-btn.facebook { background: #1877f2; }
+.share-btn.x { background: #111; }
+.share-btn.whatsapp { background: #1fa855; }
+.share-btn.email { background: var(--navy-2); }
+.share-btn:hover { filter: brightness(1.1); }

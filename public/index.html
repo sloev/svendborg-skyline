@@ -2,15 +2,28 @@
 <html lang="da">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev; connect-src 'self' https://*.workers.dev; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev http://localhost:8787 https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev http://localhost:8787; connect-src 'self' https://*.workers.dev http://localhost:8787; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Siloerne på Østre Kaj – del dine billeder og minder</title>
   <meta name="description" content="Siloerne på Østre Kaj i Svendborg skal rives ned. Del dine billeder, videoer, historier og minder om siloerne, før de forsvinder fra byens skyline.">
   <meta property="og:title" content="Siloerne på Østre Kaj – del dine billeder og minder">
   <meta property="og:description" content="Hjælp med at samle billeder, videoer og historier om siloerne på Svendborg Havn, før de rives ned.">
-  <meta property="og:image" content="img/havnen-luftfoto.webp">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Siloerne på Østre Kaj">
+  <meta property="og:url" content="https://sloev.github.io/svendborg-skyline/">
+  <meta property="og:image" content="https://sloev.github.io/svendborg-skyline/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Siloerne på Østre Kaj set fra luften">
   <meta property="og:locale" content="da_DK">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:locale:alternate" content="de_DE">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Siloerne på Østre Kaj – del dine billeder og minder">
+  <meta name="twitter:description" content="Hjælp med at samle billeder, videoer og historier om siloerne på Svendborg Havn, før de rives ned.">
+  <meta name="twitter:image" content="https://sloev.github.io/svendborg-skyline/og.jpg">
+  <link rel="canonical" href="https://sloev.github.io/svendborg-skyline/">
   <meta name="theme-color" content="#14324a">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -246,6 +259,7 @@
         <p class="viewer-meta" id="viewer-meta"></p>
         <div class="viewer-story" id="viewer-story"></div>
         <dl class="viewer-facts" id="viewer-facts"></dl>
+        <div class="sharebar" id="viewer-sharebar" aria-label="Del" data-i18n-aria="share.label"></div>
         <div class="viewer-actions">
           <button class="link" type="button" id="viewer-share" data-i18n="viewer.share">Kopiér link</button>
           <button class="link danger" type="button" id="viewer-report" data-i18n="viewer.report">Anmeld</button>

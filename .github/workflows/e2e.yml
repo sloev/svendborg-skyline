@@ -1,0 +1,60 @@
+name: Test af upload (headless browser)
+
+# Uploader et testbillede gennem den rigtige hjemmeside i en headless Chromium, venter på
+# omkodningen, tjekker visning, sprog, delelink, forhåndsbillede og sikkerhed, og sletter
+# derefter testbidraget igen. Testbidrag vises aldrig offentligt.
+#
+# Kører efter hver udgivelse af hjemmesiden, hver mandag, og i hånden fra Actions-fanen.
+# Hemmeligheder: ADMIN_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (eller variablen WORKER_URL).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_run:
+    workflows: ['Udgiv hjemmeside (GitHub Pages)']
+    types: [completed]
+
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find workeren
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          url=$(.github/scripts/worker-url.sh)
+          [ -n "$url" ] || { echo "::error::Kunne ikke finde workerens adresse"; exit 1; }
+          echo "WORKER_URL=$url" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      - name: Installer Playwright og Chromium
+        working-directory: tests
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Kør testen
+        working-directory: tests
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: node e2e.mjs

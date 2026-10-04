@@ -28,7 +28,15 @@
   }
   const relLabel = (k) => (k ? t(`rel.${k}`) : '');
   const perLabel = (k) => (k ? t(`per.${k}`) : '');
-  const errText = (msg) => I.translateError(msg, lang);
+  // Workeren sender { code, params, error }. Oversæt ud fra code; brug den danske tekst som reserve.
+  function errText(data) {
+    if (!data || !data.code) return data && data.error;
+    const key = `e.${data.code}`;
+    if (!I.TEXT.da[key]) return data.error;
+    const params = { ...(data.params || {}) };
+    if (params.field) params.field = t(`field.${params.field}`);
+    return t(key, params);
+  }
 
   // Faste tekster: den danske udgave står i HTML'en og gemmes første gang, så vi kan skifte tilbage.
   const ORIGINAL = new Map();
@@ -124,7 +132,7 @@
   async function getJson(url, opts = {}) {
     const res = await fetch(API + url, opts);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(errText(data.error) || t('err.http', { status: res.status }));
+    if (!res.ok) throw new Error(errText(data) || t('err.http', { status: res.status }));
     return data;
   }
 
@@ -380,7 +388,8 @@
       if (v.length > max) return showError(t('v.tooLong', { max }));
     }
     if (!data.get('consent')) return showError(t('v.consent'));
-    if (config.turnstileSiteKey && !turnstileToken) return showError(t('v.turnstile'));
+    // window.SILO_E2E sættes kun af den automatiske test (som serveren genkender på et hemmeligt token).
+    if (config.turnstileSiteKey && !turnstileToken && !window.SILO_E2E) return showError(t('v.turnstile'));
 
     const btn = $('#submit');
     btn.disabled = true;
@@ -540,7 +549,7 @@
           data = JSON.parse(xhr.responseText);
         } catch {}
         if (xhr.status >= 200 && xhr.status < 300) resolve(data);
-        else reject(Object.assign(new Error(errText(data.error) || t('err.http', { status: xhr.status })), { fatal: xhr.status >= 400 && xhr.status < 500 && xhr.status !== 408 && xhr.status !== 429 }));
+        else reject(Object.assign(new Error(errText(data) || t('err.http', { status: xhr.status })), { fatal: xhr.status >= 400 && xhr.status < 500 && xhr.status !== 408 && xhr.status !== 429 }));
       };
       xhr.onerror = () => reject(new Error(t('err.network')));
       xhr.ontimeout = () => reject(new Error(t('err.timeout')));
@@ -671,6 +680,7 @@
       );
     }
     showItem(i);
+    renderShare(c);
     if (!viewer.open) viewer.showModal();
     history.replaceState(null, '', `#bidrag/${c.id}`);
   }
@@ -729,15 +739,32 @@
     if (e.key === 'ArrowRight') showItem((index + 1) % current.items.length);
     if (e.key === 'ArrowLeft') showItem((index - 1 + current.items.length) % current.items.length);
   });
+  // Delelinket peger på workerens /s/<id>, som giver et pænt forhåndsvisningskort på sociale medier.
+  const shareUrl = (c) => (config.shareBase ? `${config.shareBase}${c.id}` : `${location.origin}${location.pathname}#bidrag/${c.id}`);
+
+  function renderShare(c) {
+    const box = $('#viewer-sharebar');
+    box.textContent = '';
+    const url = shareUrl(c);
+    const title = c.title || t('share.title');
+    const enc = encodeURIComponent;
+    const link = (cls, label, href) => el('a', { class: `share-btn ${cls}`, href, target: '_blank', rel: 'noopener noreferrer', text: label });
+    if (navigator.share) {
+      box.append(el('button', { type: 'button', class: 'share-btn native', text: t('share.native'), onclick: () => navigator.share({ title, url }).catch(() => {}) }));
+    }
+    box.append(
+      link('facebook', t('share.facebook'), `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`),
+      link('x', t('share.x'), `https://twitter.com/intent/tweet?url=${enc(url)}&text=${enc(title)}`),
+      link('whatsapp', t('share.whatsapp'), `https://wa.me/?text=${enc(`${title} ${url}`)}`),
+      el('a', { class: 'share-btn email', href: `mailto:?subject=${enc(t('share.mailSubject'))}&body=${enc(`${title}\n${url}`)}`, text: t('share.email') }),
+    );
+  }
+
   $('#viewer-share').addEventListener('click', async (e) => {
-    const url = `${location.origin}${location.pathname}#bidrag/${current.id}`;
     try {
-      if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: current.title || t('share.title'), url });
-      else {
-        await navigator.clipboard.writeText(url);
-        e.target.textContent = t('share.copied');
-        setTimeout(() => (e.target.textContent = t('share.copy')), 2000);
-      }
+      await navigator.clipboard.writeText(shareUrl(current));
+      e.target.textContent = t('share.copied');
+      setTimeout(() => (e.target.textContent = t('share.copy')), 2000);
     } catch {}
   });
   $('#viewer-report').addEventListener('click', async () => {
@@ -755,7 +782,9 @@
     const m = location.hash.match(/^#bidrag\/([\w-]+)/);
     if (!m) return;
     try {
-      const c = known.get(m[1]) || (await getJson(`/api/contributions/${m[1]}`));
+      const cached = known.get(m[1]);
+      // Brug ikke en gammel kopi, hvis filerne stadig var ved at blive gjort klar.
+      const c = cached && !cached.processing ? cached : await getJson(`/api/contributions/${m[1]}`, { cache: 'reload' });
       openViewer(c, 0);
     } catch (err) {
       console.warn(err);

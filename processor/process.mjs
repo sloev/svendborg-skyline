@@ -135,6 +135,7 @@ async function convert(item, original, dir) {
       .toFile(photo);
     await img.clone().resize({ width: WEB_PX, height: WEB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(WEB).toFile(web);
     await img.clone().resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
+    await makeShareImage(img.clone(), dir, base);
     await copyMetadata(original, photo, item.credit);
     await copyMetadata(original, web, item.credit);
     await upload(photo, `${base}/photo.jpg`, 'image/jpeg');
@@ -179,6 +180,7 @@ async function convert(item, original, dir) {
     const duration = Number(info.format.duration) || 0;
     await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(Math.min(1, duration / 2)), '-i', video, '-frames:v', '1', '-q:v', '3', poster]);
     await sharp(poster).resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
+    await makeShareImage(sharp(poster), dir, base);
     await upload(video, `${base}/video.mp4`, 'video/mp4');
     await upload(poster, `${base}/poster.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
@@ -222,6 +224,14 @@ async function convert(item, original, dir) {
   }
 
   throw new Error(`Ukendt type: ${item.kind}`);
+}
+
+// Forhåndsbillede til sociale medier (Open Graph): 1200 × 630, beskåret om det mest interessante
+// område. Uden metadata (ingen GPS), da det deles bredt.
+async function makeShareImage(pipeline, dir, base) {
+  const og = path.join(dir, 'og.jpg');
+  await pipeline.resize({ width: 1200, height: 630, fit: 'cover', position: sharp.strategy.attention }).jpeg({ quality: 82, mozjpeg: true }).toFile(og);
+  await upload(og, `${base}/og.jpg`, 'image/jpeg');
 }
 
 // ---------------------------------------------------------------- metadata
