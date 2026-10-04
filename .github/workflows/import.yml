@@ -1,12 +1,20 @@
-name: Importér åbent materiale (Wikimedia Commons)
+name: Importér materiale til godkendelse
 
 # Henter åbent licenserede billeder/videoer af siloerne og havnen fra Wikimedia Commons
 # (CC0, Public Domain, CC BY, CC BY-SA) og lægger dem i arkivet som "afventer godkendelse",
 # med fotograf, kilde og licens. Godkend eller slet dem i /admin.html.
+#
+# Kilde "udvalg": det håndplukkede udvalg i tools/udvalg-oestre-kaj.json (billeder fra rapporter og
+# sider om Østre Kaj). Ophavsretten er ikke afklaret – afklar den, før de godkendes.
 
 on:
   workflow_dispatch:
     inputs:
+      kilde:
+        description: 'Hvad skal importeres?'
+        type: choice
+        options: [commons, udvalg]
+        default: commons
       dry_run:
         description: 'Prøvekørsel: vis kun hvad der ville blive importeret'
         type: boolean
@@ -36,7 +44,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Hent billederne til udvalget
+        if: inputs.kilde == 'udvalg'
+        run: |
+          repo=$(jq -r .repo tools/udvalg-oestre-kaj.json)
+          git clone --depth 1 --quiet "$repo" "$RUNNER_TEMP/udvalg"
+      - name: Importér udvalget
+        if: inputs.kilde == 'udvalg'
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          PHOTO_ROOT: ${{ runner.temp }}/udvalg
+        run: node tools/import-udvalg.mjs
       - name: Importér
+        if: inputs.kilde != 'udvalg'
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run }}

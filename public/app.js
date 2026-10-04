@@ -1093,6 +1093,7 @@
     if (!cState || cState.subId !== c.id) {
       cState = { subId: c.id };
       cForm.elements.body.value = '';
+      cForm.elements.body.dispatchEvent(new Event('input'));
       showCommentError('');
       $('#comment-status').textContent = '';
     }
@@ -1186,8 +1187,9 @@
     });
   }
 
-  cForm.addEventListener('focusin', startCommentWork);
-  cForm.addEventListener('input', startCommentWork);
+  // Kun rigtige tastetryk/fokus (ikke når siden selv nulstiller feltet).
+  cForm.addEventListener('focusin', (e) => e.isTrusted && startCommentWork());
+  cForm.addEventListener('input', (e) => e.isTrusted && startCommentWork());
 
   cForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1224,6 +1226,7 @@
         localStorage.setItem('silo-navn', name);
       } catch {}
       cForm.elements.body.value = '';
+      cForm.elements.body.dispatchEvent(new Event('input'));
       $('#comment-status').textContent = res.status === 'published' ? t('cm.thanks') : t('cm.thanksPending');
       if (res.status === 'published' && current) loadComments(current);
     } catch (err) {

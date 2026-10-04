@@ -59,7 +59,7 @@ const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'am
 const DOC_EXT = ['pdf'];
 
 // Max længde på alle tekstfelter (tegn). Sendes også til siden via /api/config.
-const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200, commentName: 60, comment: 1000 };
+const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200, commentName: 60, comment: 300 };
 const FIELD_NAMES = { title: 'Overskrift', story: 'Historie', period: 'Hvornår', place: 'Hvor fra', credit: 'Kreditering', email: 'E-mail', commentName: 'Navn', comment: 'Kommentar' };
 
 // Grove spam-ord. Rammer de, afvises bidraget (siden handler om siloerne i Svendborg).
@@ -965,7 +965,7 @@ async function createComment(request, env, subId) {
   if (letters.length > 20 && upper.length / letters.length > 0.6) reasons.push('versaler');
   if ((text.match(/[!?]/g) || []).length > 8) reasons.push('udråbstegn');
   if (counts.ipDay >= 3) reasons.push('mange fra samme IP');
-  if (age < 15_000 && text.length > 300) reasons.push('skrevet meget hurtigt');
+  if (age < 10_000 && text.length > 150) reasons.push('skrevet meget hurtigt');
   if (/(.{12,})[\s\S]*\1[\s\S]*\1/u.test(text)) reasons.push('gentagelser');
   const status = env.COMMENT_MODERATION === 'auto' && !reasons.length ? 'published' : 'pending';
 
@@ -1458,7 +1458,7 @@ async function adminImport(request, env) {
     env.DB.prepare(
       `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, credit, show_credit,
          email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test, source_url, license, license_url)
-       VALUES (?, ?, 'review', ?, ?, ?, ?, ?, 'andet', ?, 1, '', 1, 0, ?, 'import', 'import', '', 0, ?, ?, ?)`,
+       VALUES (?, ?, 'review', ?, ?, ?, ?, ?, '', ?, 1, '', 1, 0, ?, 'import', 'import', '', 0, ?, ?, ?)`,
     ).bind(
       subId, now, clean(b.title, LIMITS.title), clean(b.story, LIMITS.story, true), clean(b.period, LIMITS.period),
       clean(b.place, LIMITS.place), Object.hasOwn(PERSPECTIVES, b.perspective) ? b.perspective : '',
