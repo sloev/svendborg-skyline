@@ -78,9 +78,41 @@
    "uploadDate": "2021-01-22",
    "description": "Svendborg har en charmerende havn med plads til både erhverv og fritidsaktiviteter blandet mellem hinanden.",
    "period": "januar 2021",
-   "dateFrom": "upload",
+   "dateFrom": "upload-dato (22. januar 2021); titel og beskrivelse har ingen dato",
    "credit": "Propagandakontoret (YouTube)",
-   "items": []
+   "items": [
+    {
+     "type": "still",
+     "t": 2,
+     "title": "Siloerne i sne, januar 2021",
+     "perspective": "luften",
+     "story": "Den hvide og den røde silo på Østre Kaj en klar vinterdag med sne på kajen og spejlblankt vand i havnen. Droneoptagelse."
+    },
+    {
+     "type": "still",
+     "t": 12,
+     "title": "Østre Kaj og havnebassinet i vinterlys",
+     "perspective": "luften",
+     "story": "Siloerne, kajen og skibene i havnebassinet en stille vinterdag. Droneoptagelse."
+    },
+    {
+     "type": "still",
+     "t": 21,
+     "title": "Den røde silo og havnen i sne",
+     "perspective": "luften",
+     "story": "Dronen glider ud over havnen, så den røde silo og pakhusene ved siden af den hvide silo kommer til syne. Snedækkede kajer og spejlblankt vand."
+    },
+    {
+     "type": "clip",
+     "start": 0,
+     "end": 32.8,
+     "scale": "1920:-2",
+     "audio": false,
+     "title": "Droneflyvning langs siloerne i sne, januar 2021 (klip)",
+     "perspective": "luften",
+     "story": "Hele den 33 sekunder lange droneflyvning forbi den hvide og den røde silo på Østre Kaj en vinterdag med sne. Optaget i 4K, gemt i 1080p."
+    }
+   ]
   },
   {
    "id": "54Igi6B6GVY",

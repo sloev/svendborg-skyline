@@ -9,7 +9,9 @@
 // Ophavsretten er ikke afklaret, så licensen sættes til "Ophavsret ikke afklaret".
 //
 // Miljø: WORKER_URL, ADMIN_TOKEN, VIDEO_DIR, MANIFEST (valgfri), DRY_RUN=true (udtræk kun, ingen upload),
-//        OUT_DIR (valgfri: behold de udtrukne filer her)
+//        OUT_DIR (valgfri: behold de udtrukne filer her), ONLY=<id>[,<id>] (kun disse videoer)
+//
+// Kør kun nye videoer med ONLY: et bidrag, som en admin har slettet, ville ellers blive importeret igen.
 
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -34,7 +36,9 @@ let imported = 0;
 let duplicates = 0;
 let missing = 0;
 
+const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 for (const v of videos) {
+  if (ONLY.length && !ONLY.includes(v.id)) continue;
   const src = readdirSync(VIDEO_DIR).find((f) => f.startsWith(`${v.id}.`) || f.includes(v.id));
   if (!src) {
     console.log(`– ${v.title}: videofilen mangler i ${VIDEO_DIR} (navngiv den ${v.id}.mp4/.mkv)`);
@@ -61,7 +65,7 @@ for (const v of videos) {
       // prettier-ignore
       ffmpeg([
         '-ss', String(it.start), '-i', input, '-t', String(it.end - it.start),
-        ...(it.crop ? ['-vf', `crop=${it.crop}`] : []),
+        ...(it.crop || it.scale ? ['-vf', [it.crop && `crop=${it.crop}`, it.scale && `scale=${it.scale}`].filter(Boolean).join(',')] : []),
         '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-pix_fmt', 'yuv420p',
         ...(it.audio ? ['-c:a', 'aac', '-b:a', '160k'] : ['-an']), '-movflags', '+faststart', file,
       ]);
