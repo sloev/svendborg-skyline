@@ -196,7 +196,40 @@
    "title": "Svendborg Værft kæmpe skib",
    "channel": "Drone Fyn",
    "channelUrl": "https://www.youtube.com/@dronefyn8373",
-   "items": []
+   "items": [
+    {
+     "type": "still",
+     "t": 10,
+     "title": "Svendborg Havn med siloerne, december 2015",
+     "perspective": "luften",
+     "story": "Overblik over Svendborg Havn i vinterlys med den hvide og den røde silo på Østre Kaj til højre og værftets flydedok med BBC Bergen i forgrunden."
+    },
+    {
+     "type": "still",
+     "t": 55,
+     "title": "Siloerne bag værftet, december 2015",
+     "perspective": "luften",
+     "story": "Den hvide, den røde og den grå silo på Østre Kaj rager op bag Svendborg Værft, hvor BBC Bergen ligger i flydedok."
+    },
+    {
+     "type": "still",
+     "t": 61,
+     "title": "Den hvide, den røde og den grå silo, december 2015",
+     "perspective": "luften",
+     "story": "Tæt på siloerne på Østre Kaj set hen over værftets kajer og skibe en klar vinterdag."
+    },
+    {
+     "type": "clip",
+     "start": 44,
+     "end": 62,
+     "title": "Siloerne bag Svendborg Værft, december 2015 (klip)",
+     "perspective": "luften",
+     "story": "Dronen flyver langs værftets flydedok, mens siloerne på Østre Kaj står i baggrunden."
+    }
+   ],
+   "period": "december 2015",
+   "dateFrom": "titelkort i videoen (»BBC Bergen i dock Svendborg værft, December 2015«)",
+   "credit": "Drone Fyn / DroneFyn.dk (YouTube)"
   },
   {
    "id": "illCdGiI6uw",
