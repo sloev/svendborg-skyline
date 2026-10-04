@@ -31,6 +31,8 @@ const SEARCHES = [
 ];
 const CATEGORIES = ['Category:Port of Svendborg', 'Category:Svendborg Havn', 'Category:Harbours in Svendborg', 'Category:Silos in Denmark'];
 const RELEVANT = /silo|dlg|østre\s*kaj|oestre\s*kaj|havn|harbou?r|port\b|hafen|kaj\b|quay/i;
+// Tydeligt uden for emnet (skibsportrætter, andre havne/øer osv.).
+const EXCLUDE = /tallinn|hjortø|hjortoe|postbaad|postbåd|mailboat|vester\s*åby|skibsportræt|ship portrait|marstal|ærøfærge|aeroefaerge|ærøskøbing|sundance|tugboat|polar nuka|helle saj|vindeby|taasinge\s*set|tåsinge\s*set|laura 1886/i;
 const ALLOWED_LICENSE = /^(cc0|public domain|pd(-|\b)|cc[ -]by(-sa)?[ -]?\d|cc[ -]by(-sa)?$)/i;
 const MIME = /^(image\/(jpeg|png|tiff|webp)|video\/(webm|ogg|mp4))$/;
 
@@ -65,6 +67,7 @@ for (const page of candidates.values()) {
   const why =
     !/svendborg/i.test(text) ? 'ikke Svendborg' :
     !RELEVANT.test(text) ? 'ikke havn/silo' :
+    EXCLUDE.test(page.title) ? 'uden for emnet' :
     !MIME.test(info.mime) ? `filtype ${info.mime}` :
     !ALLOWED_LICENSE.test(license) || /\bnc\b|\bnd\b|non-?commercial|no-?deriv/i.test(license) ? `licens "${license || 'ukendt'}"` :
     null;
