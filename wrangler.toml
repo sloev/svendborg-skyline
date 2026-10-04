@@ -16,7 +16,7 @@ crons = ["23 3 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "silo-arkiv"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"   # filled in automatically by .github/workflows/deploy.yml
+database_id = "REPLACE_WITH_D1_DATABASE_ID"   # see README → "Updating the worker later"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
