@@ -86,7 +86,6 @@
           s.perspective,
           s.period,
           s.place,
-          s.share_location ? 'deler placering' : '',
         ]
           .filter(Boolean)
           .join(' · '),
@@ -101,7 +100,7 @@
             {},
             i.thumb ? el('a', { href: i.src || i.thumb, target: '_blank' }, el('img', { src: i.thumb, alt: '', loading: 'lazy' })) : el('div', { class: 'noimg', text: ICON[i.kind] }),
             el('figcaption', {}, el('span', { class: `pill ${i.status}`, text: STATUS[i.status] || i.status }), ' ', i.original_name, i.error ? el('div', { style: 'color:var(--danger)', text: i.error }) : null,
-              ['failed', 'ready'].includes(i.status) ? el('button', { class: 'link', type: 'button', text: 'Behandl igen', onclick: () => act(() => api('POST', `/api/admin/items/${i.id}/retry`)) }) : null),
+              i.status === 'failed' && !i.original_deleted ? el('button', { class: 'link', type: 'button', text: 'Behandl igen', onclick: () => act(() => api('POST', `/api/admin/items/${i.id}/retry`)) }) : null),
           ),
         ),
       ),

@@ -1,16 +1,25 @@
 #!/usr/bin/env node
-// Converts uploaded originals into web-friendly files, keeps their metadata and
-// archives the untouched originals in Google Drive (via rclone).
+// Re-encodes uploads into one archive format per media type, keeps their metadata
+// (including GPS), deletes the originals and optionally backs the results up to
+// Google Drive (via rclone).
+//
+//   photos    → JPEG (mozjpeg q90, 4:2:0, sRGB), max A3 @ 300 dpi = 3508 × 4961 px
+//               + 2048 px screen version and 640 px thumbnail (also JPEG)
+//   video     → MP4: H.264 High (CRF 21, preset medium, ≤ 1080p, ≤ 60 fps, HDR tone-mapped to SDR)
+//               + AAC-LC 128 kb/s, faststart; poster + thumbnail JPEG
+//   sound     → M4A: AAC-LC 128 kb/s
+//   documents → PDF rewritten by Ghostscript (/printer: images at 300 dpi) + thumbnail JPEG
+//
+// See README.md ("Formater og kvalitet") for how these settings were chosen.
 //
 // Runs in GitHub Actions (.github/workflows/process.yml) but works anywhere with
-// ffmpeg, exiftool, heif-convert, pdftoppm and (optionally) rclone installed.
+// ffmpeg, exiftool, heif-convert, ghostscript, pdftoppm and (optionally) rclone installed.
 //
 // Environment:
-//   WORKER_URL                       e.g. https://silo-arkiv.example.workers.dev
-//   ADMIN_TOKEN                      same as the worker secret
-//   RCLONE_REMOTE                    e.g. "gdrive:Siloerne på Østre Kaj" (optional – no Drive backup without it)
-//   DELETE_ORIGINALS_AFTER_ARCHIVE   "true" to remove originals from R2 once they are safely in Drive
-//   TIME_BUDGET_MINUTES              stop claiming new work after this long (default 50)
+//   WORKER_URL            e.g. https://silo-arkiv.example.workers.dev
+//   ADMIN_TOKEN           same as the worker secret
+//   RCLONE_REMOTE         e.g. "gdrive:Siloerne på Østre Kaj" (optional backup of the re-encoded files)
+//   TIME_BUDGET_MINUTES   stop claiming new work after this long (default 50)
 
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
@@ -24,14 +33,23 @@ import sharp from 'sharp';
 const WORKER_URL = (process.env.WORKER_URL || '').replace(/\/+$/, '');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const RCLONE_REMOTE = process.env.RCLONE_REMOTE || '';
-const DELETE_ORIGINALS = process.env.DELETE_ORIGINALS_AFTER_ARCHIVE === 'true';
 const BUDGET_MS = Number(process.env.TIME_BUDGET_MINUTES || 50) * 60_000;
 const WORK = path.resolve(process.env.WORK_DIR || path.join(os.tmpdir(), 'silo-work'));
-const PART = 64 * 1024 * 1024; // multipart size for large derivatives (worker limit is 100 MB per request)
+const PART = 64 * 1024 * 1024; // multipart size for large files (worker limit is 100 MB per request)
 
-const DISPLAY_PX = 2560;
-const THUMB_PX = 800;
-const VIDEO_PX = 1920;
+// A3 (297 × 420 mm) at 300 dpi.
+const PRINT_SHORT = 3508;
+const PRINT_LONG = 4961;
+const PHOTO = { quality: 90, mozjpeg: true, chromaSubsampling: '4:2:0' };
+const WEB_PX = 2048;
+const WEB = { quality: 82, mozjpeg: true, chromaSubsampling: '4:2:0' };
+const THUMB_PX = 640;
+const THUMB = { quality: 75, mozjpeg: true, chromaSubsampling: '4:2:0' };
+// 1080p: long side ≤ 1920, short side ≤ 1080 (works for portrait video too).
+const VIDEO_LONG = 1920;
+const VIDEO_SHORT = 1080;
+const VIDEO_CRF = '21';
+const AUDIO_BITRATE = '128k';
 
 if (!WORKER_URL || !ADMIN_TOKEN) {
   console.error('WORKER_URL and ADMIN_TOKEN must be set');
@@ -77,46 +95,30 @@ async function handle(item) {
   await mkdir(dir, { recursive: true });
   const ext = path.extname(item.original_key).toLowerCase() || '.bin';
   const original = path.join(dir, `original${ext}`);
-  let archivePath = item.archive_path || null;
   console.log(`→ ${item.id} (${item.kind}, ${item.original_name}, ${mb(item.original_size)} MB)`);
 
   try {
     await download(item.original_key, original);
-
     const meta = await exif(original);
     const facts = extractFacts(meta, item);
+    const out = await convert(item, original, dir);
 
-    // Archive the untouched original first – it is the most valuable thing we have.
-    if (RCLONE_REMOTE && !archivePath) archivePath = await archiveOriginal(item, sub, original, meta, dir);
+    let archivePath = null;
+    if (RCLONE_REMOTE) archivePath = await archive(item, sub, out.archiveFile, meta, dir);
 
-    const out = await convert(item, original, dir, !!sub.share_location, facts);
+    const { archiveFile, ...keys } = out;
+    const result = { ok: true, ...facts, ...keys, metadata: meta, archivePath };
+    // Prefer dimensions/duration of what we actually store.
+    for (const k of ['width', 'height', 'duration']) result[k] = out[k] || facts[k];
 
-    const result = {
-      ok: true,
-      ...out,
-      ...facts,
-      lat: sub.share_location ? facts.lat : null,
-      lon: sub.share_location ? facts.lon : null,
-      metadata: meta,
-      archivePath,
-      originalDeleted: false,
-    };
-    // Prefer dimensions/duration of what we actually serve.
-    if (out.width) result.width = out.width;
-    if (out.height) result.height = out.height;
-    if (out.duration) result.duration = out.duration;
-
-    if (DELETE_ORIGINALS && archivePath) {
-      await api('DELETE', `/api/admin/object/${item.original_key}`);
-      result.originalDeleted = true;
-    }
+    // The worker deletes the original from R2 when it receives the result.
     await api('POST', `/api/admin/items/${item.id}/result`, result);
-    console.log(`  ✓ klar${archivePath ? ` (arkiveret: ${archivePath})` : ''}`);
+    console.log(`  ✓ klar${archivePath ? ` (backup: ${archivePath})` : ''}`);
     return true;
   } catch (err) {
     console.error(`  ✗ ${err.stack || err.message}`);
-    await api('POST', `/api/admin/items/${item.id}/result`, { ok: false, error: String(err.message).slice(0, 1500), archivePath }).catch(
-      (e) => console.error('  kunne ikke rapportere fejl:', e.message),
+    await api('POST', `/api/admin/items/${item.id}/result`, { ok: false, error: String(err.message).slice(0, 1500) }).catch((e) =>
+      console.error('  kunne ikke rapportere fejl:', e.message),
     );
     return false;
   } finally {
@@ -124,88 +126,118 @@ async function handle(item) {
   }
 }
 
-async function convert(item, original, dir, shareLocation, facts) {
+async function convert(item, original, dir) {
   const base = `media/${item.id}`;
   if (item.kind === 'image') {
     let source = original;
     if (/\.(heic|heif)$/i.test(original)) {
-      source = path.join(dir, 'decoded.jpg');
-      await run('heif-convert', ['-q', '95', original, source]);
+      // Decode at (near) lossless quality; the real encode happens below.
+      source = path.join(dir, 'decoded.png');
+      await run('heif-convert', [original, source]);
     }
-    const display = path.join(dir, 'display.jpg');
+    const photo = path.join(dir, 'photo.jpg');
+    const web = path.join(dir, 'web.jpg');
     const thumb = path.join(dir, 'thumb.jpg');
-    const img = sharp(source, { failOn: 'none', limitInputPixels: false }).rotate();
+    // .rotate() applies the EXIF orientation; everything is converted to sRGB with an embedded profile.
+    const img = sharp(source, { failOn: 'none', limitInputPixels: false }).rotate().withIccProfile('srgb');
+    const meta = await sharp(source, { failOn: 'none', limitInputPixels: false }).metadata();
+    const swap = (meta.orientation || 1) >= 5;
+    const w = swap ? meta.height : meta.width;
+    const h = swap ? meta.width : meta.height;
+    const landscape = w >= h;
     const info = await img
       .clone()
-      .resize({ width: DISPLAY_PX, height: DISPLAY_PX, fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85, mozjpeg: true })
-      .toFile(display);
-    await img.clone().resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 72, mozjpeg: true }).toFile(thumb);
-    await copyMetadata(original, display, shareLocation);
-    await upload(display, `${base}/display.jpg`, 'image/jpeg');
+      .resize({ width: landscape ? PRINT_LONG : PRINT_SHORT, height: landscape ? PRINT_SHORT : PRINT_LONG, fit: 'inside', withoutEnlargement: true })
+      .jpeg(PHOTO)
+      .toFile(photo);
+    await img.clone().resize({ width: WEB_PX, height: WEB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(WEB).toFile(web);
+    await img.clone().resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
+    await copyMetadata(original, photo);
+    await copyMetadata(original, web);
+    await upload(photo, `${base}/photo.jpg`, 'image/jpeg');
+    await upload(web, `${base}/web.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
-    return { displayKey: `${base}/display.jpg`, thumbKey: `${base}/thumb.jpg`, width: info.width, height: info.height };
+    return {
+      fullKey: `${base}/photo.jpg`,
+      displayKey: `${base}/web.jpg`,
+      thumbKey: `${base}/thumb.jpg`,
+      width: info.width,
+      height: info.height,
+      archiveFile: photo,
+    };
   }
 
   if (item.kind === 'video') {
     const video = path.join(dir, 'video.mp4');
     const poster = path.join(dir, 'poster.jpg');
     const thumb = path.join(dir, 'thumb.jpg');
-    const hasAudio = (await probe(original)).streams.some((s) => s.codec_type === 'audio');
+    const src = await probe(original);
+    const vs = src.streams.find((s) => s.codec_type === 'video') || {};
+    const hasAudio = src.streams.some((s) => s.codec_type === 'audio');
+    // iPhones and many Androids record HDR (HLG / PQ). Tone-map to SDR BT.709 so it looks right everywhere.
+    const hdr = ['arib-std-b67', 'smpte2084'].includes(vs.color_transfer);
+    const tonemap = hdr ? 'zscale=t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,' : '';
+    // ffmpeg auto-rotates before the filters, so iw/ih are the displayed width/height here.
+    const scale =
+      `scale=w='if(gte(iw,ih),min(${VIDEO_LONG},iw),min(${VIDEO_SHORT},iw))':h='if(gte(iw,ih),min(${VIDEO_SHORT},ih),min(${VIDEO_LONG},ih))'` +
+      ':force_original_aspect_ratio=decrease:force_divisible_by=2';
     // prettier-ignore
     await run('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y', '-i', original,
       '-map', '0:v:0', ...(hasAudio ? ['-map', '0:a:0'] : []),
-      '-vf', `scale=w='min(${VIDEO_PX},iw)':h='min(${VIDEO_PX},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuv420p`,
-      '-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-maxrate', '8M', '-bufsize', '16M', '-profile:v', 'high',
-      ...(hasAudio ? ['-c:a', 'aac', '-b:a', '160k', '-ac', '2'] : []),
+      '-vf', `${tonemap}${scale},format=yuv420p`, '-fpsmax', '60',
+      '-c:v', 'libx264', '-preset', 'medium', '-crf', VIDEO_CRF, '-maxrate', '12M', '-bufsize', '24M',
+      '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
+      ...(hasAudio ? ['-c:a', 'aac', '-b:a', AUDIO_BITRATE, '-ac', '2'] : []),
       '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags',
-      ...(shareLocation ? [] : ['-metadata', 'location=', '-metadata', 'location-eng=', '-metadata', 'com.apple.quicktime.location.ISO6709=']),
       video,
     ]);
-    if (!shareLocation) await stripLocation(video);
     const info = await probe(video);
     const v = info.streams.find((s) => s.codec_type === 'video') || {};
     const duration = Number(info.format.duration) || 0;
     await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(Math.min(1, duration / 2)), '-i', video, '-frames:v', '1', '-q:v', '3', poster]);
-    await sharp(poster).resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 72 }).toFile(thumb);
+    await sharp(poster).resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
     await upload(video, `${base}/video.mp4`, 'video/mp4');
     await upload(poster, `${base}/poster.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
     return {
+      fullKey: `${base}/video.mp4`,
       displayKey: `${base}/video.mp4`,
       posterKey: `${base}/poster.jpg`,
       thumbKey: `${base}/thumb.jpg`,
       width: v.width,
       height: v.height,
       duration,
+      archiveFile: video,
     };
   }
 
   if (item.kind === 'audio') {
     const audio = path.join(dir, 'audio.m4a');
+    const channels = Math.min(2, (await probe(original)).streams.find((s) => s.codec_type === 'audio')?.channels || 2);
     // prettier-ignore
     await run('ffmpeg', [
-      '-hide_banner', '-loglevel', 'error', '-y', '-i', original, '-vn', '-c:a', 'aac', '-b:a', '160k',
-      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags',
-      ...(shareLocation ? [] : ['-metadata', 'location=', '-metadata', 'com.apple.quicktime.location.ISO6709=']),
-      audio,
+      '-hide_banner', '-loglevel', 'error', '-y', '-i', original, '-vn',
+      '-c:a', 'aac', '-b:a', channels === 1 ? '96k' : AUDIO_BITRATE, '-ac', String(channels),
+      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', audio,
     ]);
-    if (!shareLocation) await stripLocation(audio);
     const info = await probe(audio);
     await upload(audio, `${base}/audio.m4a`, 'audio/mp4');
-    return { displayKey: `${base}/audio.m4a`, duration: Number(info.format.duration) || facts.duration };
+    return { fullKey: `${base}/audio.m4a`, displayKey: `${base}/audio.m4a`, duration: Number(info.format.duration) || null, archiveFile: audio };
   }
 
   if (item.kind === 'document') {
     const pdf = path.join(dir, 'document.pdf');
     const thumbBase = path.join(dir, 'thumb');
-    await run('cp', [original, pdf]);
-    if (!shareLocation) await stripLocation(pdf);
-    await run('pdftoppm', ['-jpeg', '-jpegopt', 'quality=75', '-f', '1', '-l', '1', '-scale-to', String(THUMB_PX), '-singlefile', original, thumbBase]);
+    // prettier-ignore
+    await run('gs', [
+      '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.7',
+      '-dPDFSETTINGS=/printer', '-dDetectDuplicateImages=true', `-sOutputFile=${pdf}`, original,
+    ]);
+    await run('pdftoppm', ['-jpeg', '-jpegopt', 'quality=75', '-f', '1', '-l', '1', '-scale-to', String(THUMB_PX), '-singlefile', pdf, thumbBase]);
     await upload(pdf, `${base}/document.pdf`, 'application/pdf');
     await upload(`${thumbBase}.jpg`, `${base}/thumb.jpg`, 'image/jpeg');
-    return { displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg` };
+    return { fullKey: `${base}/document.pdf`, displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg`, archiveFile: pdf };
   }
 
   throw new Error(`Ukendt type: ${item.kind}`);
@@ -260,36 +292,25 @@ function parseExifDate(v) {
   return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
 }
 
-// Copy every tag from the original into the converted file (except orientation, which
-// is already applied to the pixels, and embedded previews). GPS is removed unless the
-// contributor agreed to share the location.
-async function copyMetadata(from, to, shareLocation) {
+// Copy every tag from the original into the re-encoded file (date, camera, GPS, …) except
+// orientation (already applied to the pixels), colour profile (pixels are converted to sRGB)
+// and embedded preview images.
+async function copyMetadata(from, to) {
   // prettier-ignore
   await run('exiftool', [
-    '-overwrite_original', '-q', '-q', '-m', '-tagsFromFile', from, '-all:all', '-unsafe',
-    '--Orientation', '--ThumbnailImage', '--PreviewImage', '--JpgFromRaw', '--MPImage*', '--ImageWidth', '--ImageHeight',
-    '--ExifImageWidth', '--ExifImageHeight', '-Orientation=1', '-n', to,
+    '-overwrite_original', '-q', '-q', '-m', '-api', 'LargeFileSupport=1', '-tagsFromFile', from, '-all:all', '-unsafe',
+    '--Orientation', '--ICC_Profile:all', '--ThumbnailImage', '--PreviewImage', '--JpgFromRaw', '--MPImage*',
+    '--ImageWidth', '--ImageHeight', '--ExifImageWidth', '--ExifImageHeight', '-Orientation=1', '-n', to,
   ]).catch((err) => console.warn('  kunne ikke kopiere metadata:', err.message));
-  if (!shareLocation) await stripLocation(to);
-}
-
-async function stripLocation(file) {
-  // prettier-ignore
-  await run('exiftool', [
-    '-overwrite_original', '-q', '-q', '-m', '-api', 'LargeFileSupport=1',
-    '-gps:all=', '-xmp-exif:GPS*=', '-xmp:Location*=', '-xmp-photoshop:City=', '-xmp-iptcCore:Location=',
-    '-Keys:GPSCoordinates=', '-UserData:GPSCoordinates=', '-Keys:LocationName=', '-Keys:LocationBody=',
-    '-ItemList:GPSCoordinates=', file,
-  ]).catch((err) => console.warn('  kunne ikke fjerne GPS:', err.message));
 }
 
 // ---------------------------------------------------------------- Google Drive
 
-async function archiveOriginal(item, sub, original, meta, dir) {
+async function archive(item, sub, file, meta, dir) {
   const day = (sub.created_at || new Date().toISOString()).slice(0, 10);
   const who = slug(sub.name || 'anonym');
-  const folder = `${RCLONE_REMOTE}/originaler/${day}_${who}_${item.submission_id.slice(0, 8)}`;
-  const safeName = `${String(item.position + 1).padStart(2, '0')}_${slug(item.original_name.replace(/\.[^.]+$/, ''))}${path.extname(item.original_key)}`;
+  const folder = `${RCLONE_REMOTE}/arkiv/${day}_${who}_${item.submission_id.slice(0, 8)}`;
+  const safeName = `${String(item.position + 1).padStart(2, '0')}_${slug(item.original_name.replace(/\.[^.]+$/, ''))}${path.extname(file)}`;
   const sidecar = path.join(dir, 'info.json');
   await writeFile(
     sidecar,
@@ -323,7 +344,7 @@ async function archiveOriginal(item, sub, original, meta, dir) {
       2,
     ),
   );
-  await run('rclone', ['copyto', '--retries', '5', original, `${folder}/${safeName}`]);
+  await run('rclone', ['copyto', '--retries', '5', file, `${folder}/${safeName}`]);
   await run('rclone', ['copyto', '--retries', '5', sidecar, `${folder}/${safeName}.json`]);
   if (sub.story) {
     const story = path.join(dir, 'historie.txt');

@@ -171,8 +171,51 @@
       );
       picked.push(entry);
       fileList.append(entry.li);
+      if (kind === 'image' || kind === 'video') checkGps(entry);
     }
     showError(errors.join(' '));
+  }
+
+  // Tell the uploader right away which files carry a GPS position (it will be public).
+  async function checkGps(entry) {
+    if (!(await hasGps(entry.file, entry.kind))) return;
+    entry.gps = true;
+    $('.size', entry.li).textContent += ' · 📍 GPS';
+    const n = picked.filter((p) => p.gps).length;
+    const hint = $('#gps-hint');
+    hint.textContent = `📍 ${n === 1 ? '1 fil har' : `${n} filer har`} GPS-placering, som vil blive vist på kortet.`;
+    hint.hidden = false;
+  }
+
+  // Cheap check, good enough for a heads-up (the server reads the real values):
+  //   photos (JPEG/HEIC/…): parse the EXIF/TIFF header and look for the GPS IFD pointer (tag 0x8825)
+  //   videos (MOV/MP4):     look for an ISO 6709 position string, e.g. "+55.0612+010.6160/",
+  //                         in the first and last megabyte (where the metadata box lives)
+  async function hasGps(file, kind) {
+    try {
+      const span = 1024 * 1024;
+      const head = new Uint8Array(await file.slice(0, span).arrayBuffer());
+      if (kind === 'image') return exifHasGps(head);
+      const tail = file.size > 2 * span ? new Uint8Array(await file.slice(file.size - span).arrayBuffer()) : new Uint8Array();
+      return [head, tail].some((buf) => /[+-]\d{2}\.\d{3,}[+-]\d{3}\.\d{3,}/.test(new TextDecoder('latin1').decode(buf)));
+    } catch {
+      return false;
+    }
+  }
+
+  function exifHasGps(buf) {
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    for (let i = 0; i + 8 < buf.length; i++) {
+      const le = buf[i] === 0x49 && buf[i + 1] === 0x49 && buf[i + 2] === 0x2a && buf[i + 3] === 0x00; // "II*\0"
+      const be = buf[i] === 0x4d && buf[i + 1] === 0x4d && buf[i + 2] === 0x00 && buf[i + 3] === 0x2a; // "MM\0*"
+      if (!le && !be) continue;
+      const ifd = i + dv.getUint32(i + 4, le);
+      if (ifd + 2 > buf.length) continue;
+      const count = dv.getUint16(ifd, le);
+      if (count === 0 || count > 300 || ifd + 2 + count * 12 > buf.length) continue;
+      for (let e = 0; e < count; e++) if (dv.getUint16(ifd + 2 + e * 12, le) === 0x8825) return true;
+    }
+    return false;
   }
 
   function removeFile(entry) {
@@ -239,7 +282,6 @@
         email: data.get('email'),
         showName: !!data.get('showName'),
         contactOk: !!data.get('contactOk'),
-        shareLocation: !!data.get('shareLocation'),
         consent: !!data.get('consent'),
         website: data.get('website'),
         elapsedMs: Date.now() - formLoadedAt,
@@ -287,6 +329,7 @@
     for (const p of picked) if (p.url) URL.revokeObjectURL(p.url);
     picked = [];
     fileList.textContent = '';
+    $('#gps-hint').hidden = true;
   }
 
   $('#again').addEventListener('click', () => {
@@ -544,7 +587,7 @@
       add('Kamera', it.camera);
       if (it.duration) add('Længde', formatDuration(it.duration));
       if (it.kind !== 'audio' && it.kind !== 'document') {
-        const full = el('a', { href: it.src, target: '_blank', rel: 'noopener', text: 'Åbn i fuld størrelse' });
+        const full = el('a', { href: it.full || it.src, target: '_blank', rel: 'noopener', text: it.kind === 'image' ? 'Åbn i fuld størrelse' : 'Åbn video' });
         facts.append(el('dt', { text: 'Fil' }), el('dd', {}, full));
       }
     }

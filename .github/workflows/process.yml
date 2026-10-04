@@ -1,7 +1,8 @@
 name: Behandl uploads
 
-# Converts new uploads (photos → JPEG, video → MP4/H.264, sound → M4A), keeps their
-# metadata and archives the originals in Google Drive.
+# Re-encodes new uploads (photos → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, sound → M4A,
+# PDF → Ghostscript), keeps their metadata incl. GPS, deletes the originals and backs the
+# re-encoded files up to Google Drive.
 #
 # Started by the worker right after an upload (repository_dispatch), every hour as a
 # fallback, or by hand from the Actions tab.
@@ -9,7 +10,6 @@ name: Behandl uploads
 # Repository settings → Secrets and variables → Actions:
 #   variables: WORKER_URL                        https://<your worker>
 #              RCLONE_REMOTE                     e.g. gdrive:Siloerne   (optional)
-#              DELETE_ORIGINALS_AFTER_ARCHIVE    true | false           (optional)
 #   secrets:   ADMIN_TOKEN                       same value as the worker secret
 #              RCLONE_CONFIG                     contents of rclone.conf (optional)
 
@@ -35,12 +35,11 @@ permissions:
 jobs:
   process:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 150
     env:
       WORKER_URL: ${{ vars.WORKER_URL }}
       ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
       RCLONE_REMOTE: ${{ secrets.RCLONE_CONFIG != '' && vars.RCLONE_REMOTE || '' }}
-      DELETE_ORIGINALS_AFTER_ARCHIVE: ${{ vars.DELETE_ORIGINALS_AFTER_ARCHIVE }}
       FORCE_EXPORT: ${{ github.event_name == 'repository_dispatch' || inputs.export }}
     steps:
       - name: Er der noget at lave?
@@ -63,11 +62,11 @@ jobs:
           cache: npm
           cache-dependency-path: processor/package-lock.json
 
-      - name: Installer ffmpeg, exiftool, libheif, poppler, rclone
+      - name: Installer ffmpeg, exiftool, libheif, ghostscript, poppler, rclone
         if: steps.queue.outputs.run == 'true'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends ffmpeg libimage-exiftool-perl libheif-examples poppler-utils rclone
+          sudo apt-get install -y -qq --no-install-recommends ffmpeg libimage-exiftool-perl libheif-examples ghostscript poppler-utils rclone
 
       - name: Rclone-konfiguration
         if: steps.queue.outputs.run == 'true' && env.RCLONE_REMOTE != ''

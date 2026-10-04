@@ -75,7 +75,7 @@
     <section class="section share" id="del">
       <div class="share-head">
         <h2>Del dit bidrag</h2>
-        <p>Det tager et par minutter. Du kan sende mange filer på én gang, også store videoer direkte fra telefonen. Filerne gemmes i fuld kvalitet med deres oprindelige oplysninger, f.eks. hvornår billedet blev taget.</p>
+        <p>Det tager et par minutter. Du kan sende mange filer på én gang, også store videoer direkte fra telefonen. Vi gemmer billeder i printkvalitet (op til A3) og videoer i op til 1080p, sammen med oplysningerne i filerne, f.eks. hvornår og hvor de er taget.</p>
       </div>
 
       <form id="share-form" class="card form" novalidate>
@@ -88,6 +88,11 @@
             <span class="drop-hint">eller træk dem herind · op til <span data-cfg="maxFiles">40</span> filer, max <span data-cfg="maxFileGb">2</span> GB pr. fil</span>
           </label>
           <ul class="file-list" id="file-list" aria-live="polite"></ul>
+          <div class="notice" role="note">
+            <strong>📍 Placeringen bliver vist offentligt</strong>
+            <p>Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
+          </div>
+          <p class="hint" id="gps-hint" hidden></p>
           <p class="hint">Har du kun en historie? Det er også fint. Så kan du springe filerne over.</p>
         </fieldset>
 
@@ -135,8 +140,7 @@
           </div>
           <label class="check"><input type="checkbox" name="showName"> <span>Vis mit navn ved bidraget</span></label>
           <label class="check"><input type="checkbox" name="contactOk"> <span>I må gerne kontakte mig, hvis I vil høre mere</span></label>
-          <label class="check"><input type="checkbox" name="shareLocation"> <span>Vis på kortet, hvor billederne og videoerne er taget <span class="muted">(bruger GPS-oplysninger fra filerne; ellers fjerner vi dem fra de offentlige kopier)</span></span></label>
-          <label class="check required"><input type="checkbox" name="consent" required> <span>Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. <a href="#privatliv">Læs mere</a></span></label>
+          <label class="check required"><input type="checkbox" name="consent" required> <span>Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span></label>
         </fieldset>
 
         <div class="hp" aria-hidden="true">
@@ -188,7 +192,7 @@
 
     <section class="section map-section" id="kort">
       <h2>Hvor er billederne taget?</h2>
-      <p class="muted">Billeder og videoer, hvor fotografen har valgt at dele placeringen.</p>
+      <p class="muted">Alle billeder og videoer med GPS-placering. Jo flere vinkler og afstande, jo bedre.</p>
       <div id="map" class="map" role="region" aria-label="Kort over hvor billederne er taget"></div>
     </section>
 
@@ -198,8 +202,8 @@
         <div>
           <h3>Hvad vi gemmer</h3>
           <ul>
-            <li>Dine filer i original kvalitet, med de oplysninger kameraet eller telefonen har gemt i dem (f.eks. dato og kameramodel). De gemmes i et lukket arkiv.</li>
-            <li>På siden viser vi kopier i almindelige formater (JPEG, MP4, M4A). <strong>GPS-placeringen fjernes fra de offentlige kopier</strong>, medmindre du har sagt ja til at vise den på kortet.</li>
+            <li>Vi gemmer ikke dine originale filer. De omkodes til almindelige formater i høj kvalitet: billeder som JPEG i op til A3-printstørrelse, video som MP4 i op til 1080p, lyd som M4A og dokumenter som PDF. Derefter slettes originalen.</li>
+            <li>Oplysningerne i filerne bevares, f.eks. dato, kameramodel og <strong>GPS-placering. Placeringen vises offentligt på kortet</strong>, og den kan også læses af alle, der henter filen.</li>
             <li>Din e-mail vises aldrig og bruges kun, hvis du har sagt ja til at blive kontaktet.</li>
             <li>For at beskytte mod spam gemmer vi en krypteret (hashet) udgave af din IP-adresse i kort tid. Spambeskyttelsen leveres af Cloudflare Turnstile.</li>
           </ul>

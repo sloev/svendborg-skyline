@@ -5,7 +5,7 @@
 //   GET  /api/stats                          counters for the front page
 //   GET  /api/contributions                  published contributions (paginated, filterable)
 //   GET  /api/contributions/:id              one published contribution
-//   GET  /api/map                            published media with a shared location
+//   GET  /api/map                            published media with a GPS location
 //   POST /api/contributions/:id/report       flag a contribution
 //   POST /api/submissions                    start a contribution (Turnstile protected)
 //   PUT  /api/upload/:itemId/:part           upload one chunk of a file (R2 multipart)
@@ -250,7 +250,7 @@ async function getContribution(env, id) {
 async function getMap(env) {
   const { results } = await env.DB.prepare(
     `SELECT i.*, s.title AS s_title FROM items i JOIN submissions s ON s.id = i.submission_id
-     WHERE s.status = 'published' AND s.share_location = 1 AND i.status = 'ready'
+     WHERE s.status = 'published' AND i.status = 'ready'
        AND i.lat IS NOT NULL AND i.lon IS NOT NULL
      ORDER BY s.published_at DESC LIMIT 2000`,
   ).all();
@@ -298,16 +298,17 @@ function publicSubmission(env, s, items) {
     relation: s.relation,
     relationLabel: RELATIONS[s.relation] || '',
     name: s.show_name ? s.name : '',
-    items: items.filter((i) => i.status === 'ready').map((i) => publicItem(env, i, !!s.share_location)),
+    items: items.filter((i) => i.status === 'ready').map((i) => publicItem(env, i)),
     processing: items.filter((i) => ['pending', 'processing'].includes(i.status)).length,
   };
 }
 
-function publicItem(env, i, shareLocation) {
+function publicItem(env, i) {
   return {
     id: i.id,
     kind: i.kind,
     src: mediaUrl(env, i.display_key),
+    full: mediaUrl(env, i.full_key || i.display_key),
     thumb: mediaUrl(env, i.thumb_key),
     poster: mediaUrl(env, i.poster_key),
     width: i.width,
@@ -315,8 +316,8 @@ function publicItem(env, i, shareLocation) {
     duration: i.duration,
     takenAt: i.taken_at,
     camera: i.camera,
-    lat: shareLocation ? i.lat : null,
-    lon: shareLocation ? i.lon : null,
+    lat: i.lat,
+    lon: i.lon,
   };
 }
 
@@ -413,7 +414,7 @@ async function createSubmission(request, env) {
        VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       subId, now, title, story, period, place, perspective, relation, name, email,
-      body.showName && name ? 1 : 0, body.shareLocation ? 1 : 0, body.contactOk && email ? 1 : 0,
+      body.showName && name ? 1 : 0, 1 /* GPS location is always shown */, body.contactOk && email ? 1 : 0,
       uploadToken, ipHash, text(request.headers.get('user-agent'), 300),
     ),
     ...items.map((it) =>
@@ -622,7 +623,7 @@ async function adminList(env, url) {
   if (page.length) {
     ({ results: items } = await env.DB.prepare(
       `SELECT id, submission_id, position, kind, original_name, original_type, original_size, status, attempts, error,
-              display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted
+              full_key, display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted
        FROM items WHERE submission_id IN (${page.map(() => '?').join(',')}) ORDER BY position`,
     )
       .bind(...page.map((s) => s.id))
@@ -660,7 +661,7 @@ async function adminDelete(env, id) {
   const keys = [];
   for (const i of items) {
     if (i.upload_id) await env.BUCKET.resumeMultipartUpload(i.original_key, i.upload_id).abort().catch(() => {});
-    keys.push(i.original_key, i.display_key, i.thumb_key, i.poster_key);
+    keys.push(i.original_key, i.full_key, i.display_key, i.thumb_key, i.poster_key);
   }
   const existing = keys.filter(Boolean);
   for (let n = 0; n < existing.length; n += 1000) await env.BUCKET.delete(existing.slice(n, n + 1000));
@@ -669,14 +670,26 @@ async function adminDelete(env, id) {
     env.DB.prepare(`DELETE FROM reports WHERE submission_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM submissions WHERE id = ?`).bind(id),
   ]);
-  return json({ ok: true, note: 'Originaler arkiveret i Google Drive skal slettes manuelt der.' });
+  return json({ ok: true, note: 'Kopier i Google Drive skal slettes manuelt der.' });
 }
 
 async function adminRetry(env, id) {
-  await env.DB.prepare(`UPDATE items SET status = 'pending', attempts = 0, error = '' WHERE id = ? AND status IN ('failed', 'ready', 'processing')`)
+  const res = await env.DB.prepare(
+    `UPDATE items SET status = 'pending', attempts = 0, error = '' WHERE id = ? AND status IN ('failed', 'processing') AND original_deleted = 0`,
+  )
     .bind(id)
     .run();
+  if (!res.meta.changes) throw new HttpError(409, 'Originalen er slettet, så filen kan ikke behandles igen.');
   return json({ ok: true });
+}
+
+// Originals are never kept: they are deleted as soon as the re-encoded files exist,
+// or when processing has failed for good.
+async function deleteOriginal(env, id) {
+  const item = await env.DB.prepare(`SELECT original_key FROM items WHERE id = ?`).bind(id).first();
+  if (!item) return;
+  await env.BUCKET.delete(item.original_key);
+  await env.DB.prepare(`UPDATE items SET original_deleted = 1 WHERE id = ?`).bind(id).run();
 }
 
 const CLAIMABLE = `(status = 'pending' OR (status = 'processing' AND claimed_at < ?)) AND attempts < 3`;
@@ -707,26 +720,28 @@ async function adminClaim(request, env) {
 async function adminResult(request, env, id) {
   const b = await request.json();
   if (!b.ok) {
-    await env.DB.prepare(
-      `UPDATE items SET status = CASE WHEN attempts >= 3 THEN 'failed' ELSE 'pending' END, error = ?, archive_path = COALESCE(?, archive_path) WHERE id = ?`,
+    const row = await env.DB.prepare(
+      `UPDATE items SET status = CASE WHEN attempts >= 3 THEN 'failed' ELSE 'pending' END, error = ? WHERE id = ? RETURNING status`,
     )
-      .bind(text(b.error, 2000), b.archivePath || null, id)
-      .run();
+      .bind(text(b.error, 2000), id)
+      .first();
+    if (row && row.status === 'failed') await deleteOriginal(env, id);
     return json({ ok: true });
   }
   await env.DB.prepare(
-    `UPDATE items SET status = 'ready', error = '', display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
+    `UPDATE items SET status = 'ready', error = '', full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
        duration = ?, taken_at = ?, camera = ?, lat = ?, lon = ?, metadata = ?, archive_path = COALESCE(?, archive_path),
-       original_deleted = ?, processed_at = ?
+       processed_at = ?
      WHERE id = ?`,
   )
     .bind(
-      b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
+      b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
       b.takenAt || null, text(b.camera, 200) || null, num(b.lat), num(b.lon),
-      b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null, b.originalDeleted ? 1 : 0,
+      b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null,
       new Date().toISOString(), id,
     )
     .run();
+  await deleteOriginal(env, id);
   return json({ ok: true });
 }
 

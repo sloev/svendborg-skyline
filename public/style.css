@@ -106,6 +106,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .check input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--teal); }
 .check.required { background: #f1f7f5; border-radius: 10px; padding: 12px; }
 .hint { color: var(--muted); font-size: .92rem; margin: 10px 0 0; }
+.notice { margin: 14px 0 0; padding: 12px 14px; border-radius: 10px; background: #fff6e0; border: 1.5px solid #ecc76a; font-size: .93rem; }
+.notice strong { color: #6b4b00; }
+.notice p { margin: 4px 0 0; }
+#gps-hint { color: #6b4b00; font-weight: 600; }
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
 .drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 34px 16px;
