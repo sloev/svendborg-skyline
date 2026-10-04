@@ -724,6 +724,17 @@
       }
     }
     if (c.processing) add(t('f.note'), t('f.stillProcessing', { n: c.processing }));
+    if (c.source) {
+      // Krav i Creative Commons-licenser: kilde, licens (med link) og at materialet er ændret.
+      const dd = el('dd', {});
+      if (/^https:\/\//.test(c.source.url)) dd.append(el('a', { href: c.source.url, target: '_blank', rel: 'noopener', text: new URL(c.source.url).hostname.replace(/^www\./, '') }));
+      facts.append(el('dt', { text: t('f.source') }), dd);
+      const lic = el('dd', {});
+      if (/^https?:\/\//.test(c.source.licenseUrl || '')) lic.append(el('a', { href: c.source.licenseUrl, target: '_blank', rel: 'noopener license', text: c.source.license }));
+      else lic.textContent = c.source.license;
+      lic.append(` · ${t('f.changed')}`);
+      facts.append(el('dt', { text: t('f.license') }), lic);
+    }
   }
 
   viewer.addEventListener('close', () => {

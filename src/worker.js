@@ -291,7 +291,7 @@ async function api(request, env, ctx, url) {
 
   if (path.startsWith('/api/admin/')) {
     await requireAdmin(request, env);
-    return adminApi(request, env, url, path, method);
+    return adminApi(request, env, url, path, method, ctx);
   }
 
   if (path === '/api/config' && method === 'GET') return getConfig(env);
@@ -309,7 +309,7 @@ async function api(request, env, ctx, url) {
   throw new HttpError(404, 'not_found');
 }
 
-async function adminApi(request, env, url, path, method) {
+async function adminApi(request, env, url, path, method, ctx) {
   let m;
   if (path === '/api/admin/submissions' && method === 'GET') return adminList(env, url);
   if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)$/))) {
@@ -321,6 +321,8 @@ async function adminApi(request, env, url, path, method) {
   if (path === '/api/admin/queue-size' && method === 'GET') return adminQueueSize(env);
   if (path === '/api/admin/queue/claim' && method === 'POST') return adminClaim(request, env);
   if (path === '/api/admin/export' && method === 'GET') return adminExport(env);
+  if (path === '/api/admin/import' && method === 'POST') return adminImport(request, env);
+  if ((m = path.match(/^\/api\/admin\/import\/([\w-]+)$/)) && method === 'PUT') return adminImportFile(request, env, ctx, m[1]);
   if ((m = url.pathname.match(/^\/api\/admin\/object\/(.+)$/))) return adminObject(request, env, decodeURIComponent(m[1]), method);
   if (path === '/api/admin/mpu/create' && method === 'POST') {
     const key = requireKey(url.searchParams.get('key'));
@@ -484,6 +486,7 @@ function publicSubmission(env, s, items) {
     relation: s.relation,
     relationLabel: RELATIONS[s.relation] || '',
     credit: s.show_credit ? s.credit : '',
+    source: s.source_url ? { url: s.source_url, license: s.license, licenseUrl: s.license_url } : null,
     items: items.filter((i) => i.status === 'ready').map((i) => publicItem(env, i)),
     processing: items.filter((i) => ['pending', 'processing'].includes(i.status)).length,
   };
@@ -1087,6 +1090,63 @@ async function adminResult(request, env, id) {
     )
     .run();
   await deleteOriginal(env, id);
+  return json({ ok: true });
+}
+
+// Import af åbent licenseret materiale (f.eks. Wikimedia Commons). Bidraget oprettes altid som
+// "afventer godkendelse", så det først bliver offentligt, når en administrator har godkendt det.
+async function adminImport(request, env) {
+  const b = await readJson(request, 100_000);
+  const sourceUrl = clean(b.sourceUrl, 500);
+  if (!/^https:\/\//.test(sourceUrl)) throw new HttpError(400, 'invalid_data');
+  const license = clean(b.license, 80);
+  const licenseUrl = /^https?:\/\//.test(String(b.licenseUrl || '')) ? clean(b.licenseUrl, 300) : '';
+  if (!license) throw new HttpError(400, 'invalid_data');
+  const dup = await env.DB.prepare(`SELECT id FROM submissions WHERE source_url = ? LIMIT 1`).bind(sourceUrl).first();
+  if (dup) return json({ duplicate: true, id: dup.id });
+  const files = Array.isArray(b.files) ? b.files.slice(0, 10) : [];
+  if (!files.length) throw new HttpError(400, 'nothing');
+  const subId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const items = files.map((f, idx) => {
+    const name = clean(f.name, LIMITS.fileName).replace(/[\\/:*?"<>|]/g, '_') || 'fil';
+    const kind = kindOf(name, f.type);
+    const size = Number(f.size);
+    if (!kind || !Number.isInteger(size) || size <= 0 || size > 95 * 1024 * 1024) throw new HttpError(400, 'file_type', { name });
+    const id = crypto.randomUUID();
+    return { id, idx, name, kind, size, type: String(f.type || ''), key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
+  });
+  await checkStorage(env, items.reduce((n, it) => n + it.size, 0));
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, credit, show_credit,
+         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test, source_url, license, license_url)
+       VALUES (?, ?, 'review', ?, ?, ?, ?, ?, 'andet', ?, 1, '', 1, 0, ?, 'import', 'import', '', 0, ?, ?, ?)`,
+    ).bind(
+      subId, now, clean(b.title, LIMITS.title), clean(b.story, LIMITS.story, true), clean(b.period, LIMITS.period),
+      clean(b.place, LIMITS.place), Object.hasOwn(PERSPECTIVES, b.perspective) ? b.perspective : '',
+      clean(b.credit, LIMITS.credit) || 'Ukendt', randomHex(24), sourceUrl, license, licenseUrl,
+    ),
+    ...items.map((it) =>
+      env.DB.prepare(
+        `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'uploading')`,
+      ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size),
+    ),
+  ]);
+  return json({ id: subId, items: items.map((it) => ({ id: it.id, name: it.name })) });
+}
+
+async function adminImportFile(request, env, ctx, itemId) {
+  const item = await env.DB.prepare(`SELECT * FROM items WHERE id = ? AND status = 'uploading'`).bind(itemId).first();
+  if (!item) throw new HttpError(404, 'not_found');
+  const data = await request.arrayBuffer();
+  if (data.byteLength !== item.original_size) throw new HttpError(400, 'part_size');
+  if (!sniffOk(new Uint8Array(data, 0, Math.min(64, data.byteLength)), item.kind)) throw new HttpError(415, 'file_not_media');
+  await chargeClassA(env, 1);
+  await env.BUCKET.put(item.original_key, data, { httpMetadata: { contentType: item.original_type || 'application/octet-stream' } });
+  await env.DB.prepare(`UPDATE items SET status = 'pending' WHERE id = ?`).bind(itemId).run();
+  ctx.waitUntil(triggerProcessing(env));
   return json({ ok: true });
 }
 

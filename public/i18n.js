@@ -204,6 +204,7 @@ window.I18N = (() => {
   // Tekster der laves i app.js. {n}, {name} osv. udfyldes af t().
   const TEXT = {
     da: {
+      'f.source': 'Kilde', 'f.license': 'Licens', 'f.changed': 'omkodet og nedskaleret',
       'e.origin': "Indsendelser skal komme fra hjemmesiden.",
       'e.rejected': "Indsendelsen blev afvist.",
       'e.too_fast': "Det gik lidt for hurtigt – prøv igen om et øjeblik.",
@@ -295,6 +296,7 @@ window.I18N = (() => {
       'report.thanks': 'Tak – vi kigger på det.', 'map.open': 'Se bidraget', 'lang.label': 'Sprog',
     },
     en: {
+      'f.source': 'Source', 'f.license': 'Licence', 'f.changed': 're-encoded and resized',
       'e.origin': "Submissions must come from the website.",
       'e.rejected': "The submission was rejected.",
       'e.too_fast': "That was a bit too fast – please try again in a moment.",
@@ -386,6 +388,7 @@ window.I18N = (() => {
       'report.thanks': 'Thank you – we will look into it.', 'map.open': 'See the contribution', 'lang.label': 'Language',
     },
     de: {
+      'f.source': 'Quelle', 'f.license': 'Lizenz', 'f.changed': 'umkodiert und verkleinert',
       'e.origin': "Einsendungen müssen über die Website erfolgen.",
       'e.rejected': "Die Einsendung wurde abgelehnt.",
       'e.too_fast': "Das ging etwas zu schnell – versuche es gleich noch einmal.",

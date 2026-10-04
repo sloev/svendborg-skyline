@@ -92,6 +92,9 @@
           .filter(Boolean)
           .join(' · '),
       ),
+      s.source_url
+        ? el('p', { class: 'meta' }, el('span', { class: 'pill', text: 'Import' }), ' ', el('a', { href: s.source_url, target: '_blank', rel: 'noopener', text: 'Kilde' }), ` · Licens: ${s.license || '?'}`)
+        : null,
       s.story ? el('div', { class: 'story', text: s.story }) : null,
       el(
         'div',
