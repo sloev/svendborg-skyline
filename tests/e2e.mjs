@@ -66,9 +66,15 @@ try {
     g.fillText('E2E-TEST', 420, 540);
     return c.toDataURL('image/jpeg', 0.9).split(',')[1];
   });
-  await page.setInputFiles('#files', { name: 'e2e-test.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(jpeg, 'base64') });
-  await page.fill('textarea[name=story]', marker);
+  await page.click('#new-item');
+  await page.setInputFiles('#file', { name: 'e2e-test.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(jpeg, 'base64') });
+  await page.waitForSelector('.step[data-step="2"]:not([hidden])');
+  check((await page.textContent('#picked')).includes('Billede'), 'filtypen genkendes som billede');
+  check(await page.isVisible('[data-field="place"]'), 'billeder får feltet "Hvorfra er det set?"');
   await page.fill('input[name=title]', 'Automatisk test');
+  await page.fill('textarea[name=story]', marker);
+  await page.click('.step[data-step="2"] [data-next]');
+  await page.waitForSelector('.step[data-step="3"]:not([hidden])');
   await page.fill('input[name=credit]', 'Automatisk test (GitHub Actions)');
   await page.check('input[name=showCredit]');
   await page.check('input[name=consent]');
@@ -80,8 +86,12 @@ try {
   check(res.status() === 200 && body.id, `bidraget oprettes (${res.status()}${body.code ? ` ${body.code}` : ''})`);
   subId = body.id;
   console.log(`  id: ${subId}`);
-  await page.waitForSelector('#thanks:not([hidden])', { timeout: 180_000 });
-  ok('filen er uploadet, og takke-beskeden vises');
+  check(await page.isVisible('#new-item'), 'formularen lukker, og "Nyt bidrag" vises igen');
+  await page.waitForSelector('.upload-item.done', { timeout: 180_000 });
+  ok('filen er uploadet og står som sendt i listen');
+  await page.click('#new-item');
+  check((await page.inputValue('input[name=credit]')) === 'Automatisk test (GitHub Actions)', 'krediteringen huskes til næste bidrag');
+  await page.click('[data-cancel]');
 
   step('Skjult for offentligheden');
   const pub = await fetch(`${WORKER}/api/contributions/${subId}`);

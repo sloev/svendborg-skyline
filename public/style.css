@@ -249,3 +249,38 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .privacy summary:focus-visible { outline: 3px solid var(--teal); outline-offset: 4px; border-radius: 6px; }
 .made-with { margin-top: 14px !important; font-size: .85rem; color: #9fb2bd; }
 .made-with a { color: #bfe6dc; }
+
+/* ---------- nyt bidrag i trin */
+.new-item-row { text-align: center; padding: 8px 0 4px; }
+.new-item-row .hint { max-width: 52ch; margin: 12px auto 0; }
+.steps { display: flex; gap: 8px; list-style: none; padding: 0; margin: 0 0 22px; counter-reset: none; }
+.steps li { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: #f3efe8; color: var(--muted); font-size: .92rem; }
+.steps li span { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #ddd5c8; color: var(--ink); font-weight: 700; font-size: .85rem; flex: none; }
+.steps li.active { background: #e3f1ed; color: var(--navy); }
+.steps li.active span { background: var(--teal); color: #fff; }
+.steps li.done span { background: var(--navy-2); color: #fff; }
+@media (max-width: 480px) { .steps li b { display: none; } .steps li { justify-content: center; } }
+.step-nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 18px; }
+.step-nav .btn:only-child { margin-left: auto; }
+.req-star { color: var(--danger); font-weight: 700; margin-left: 3px; }
+.req-legend { font-size: .85rem; color: var(--muted); margin: 0 0 12px; }
+.picked { display: flex; gap: 14px; align-items: center; padding: 10px; border-radius: 12px; background: #f3efe8; margin-bottom: 16px; }
+.picked:empty { display: none; }
+.picked-thumb { width: 96px; height: 72px; flex: none; border-radius: 8px; object-fit: cover; background: #e6e0d5; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+.picked-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.picked-info .muted { font-size: .85rem; overflow-wrap: anywhere; }
+.picked-info .link { align-self: flex-start; font-size: .9rem; }
+#turnstile { margin-top: 12px; }
+
+/* ---------- egne uploads */
+.uploads { margin: 0 0 18px; }
+.uploads-warning { background: #fff6e0; border: 1.5px solid #ecc76a; color: #6b4b00; font-weight: 600; border-radius: 10px; padding: 10px 14px; margin: 0 0 10px; }
+.upload-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.upload-item { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 10px 14px; }
+.upload-icon { font-size: 1.5rem; flex: none; }
+.upload-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.upload-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-status { font-size: .85rem; color: var(--muted); }
+.upload-item.done .upload-status { color: var(--teal-dark); font-weight: 600; }
+.upload-item.failed .upload-status { color: var(--danger); font-weight: 600; }
+.upload-item .bar { height: 6px; }

@@ -114,16 +114,115 @@
         { class: 'actions' },
         s.status !== 'published' ? el('button', { type: 'button', text: 'Vis offentligt', onclick: () => act(() => api('PATCH', `/api/admin/submissions/${s.id}`, { status: 'published' })) }) : null,
         s.status !== 'hidden' ? el('button', { type: 'button', text: 'Skjul', onclick: () => act(() => api('PATCH', `/api/admin/submissions/${s.id}`, { status: 'hidden' })) }) : null,
+        el('button', { type: 'button', text: 'Rediger', onclick: () => node.replaceWith(editor(s)) }),
         s.status === 'published' ? el('a', { href: `./#bidrag/${s.id}`, target: '_blank', class: 'link', text: 'Se på siden' }) : null,
         el('button', {
           type: 'button',
           class: 'danger',
           text: 'Slet helt',
-          onclick: () => confirm('Slet bidraget og alle filer permanent? (Kopier i Google Drive skal slettes manuelt.)') && act(() => api('DELETE', `/api/admin/submissions/${s.id}`)),
+          onclick: () => confirm('Slet bidraget og alle filer permanent?') && act(() => api('DELETE', `/api/admin/submissions/${s.id}`)),
         }),
       ),
     );
     return node;
+  }
+
+  // Valgmuligheder til tilknytning og perspektiv hentes én gang fra workeren.
+  let options = null;
+  async function getOptions() {
+    if (!options) {
+      const res = await fetch(`${API}/api/config`);
+      options = await res.json();
+    }
+    return options;
+  }
+
+  // Redigér alle felter på et bidrag og dets filer.
+  function editor(s) {
+    const box = el('article', { class: 'row editing' }, el('p', { class: 'meta', text: 'Henter …' }));
+    getOptions().then((cfg) => {
+      box.textContent = '';
+      const input = (label, name, value, attrs = {}) =>
+        el('label', { class: 'field' }, el('span', { text: label }), el('input', { name, value: value ?? '', ...attrs }));
+      const select = (label, name, value, choices) =>
+        el(
+          'label',
+          { class: 'field' },
+          el('span', { text: label }),
+          el('select', { name }, el('option', { value: '', text: '—' }), Object.entries(choices || {}).map(([k, v]) => el('option', { value: k, text: v, selected: k === value }))),
+        );
+      const check = (label, name, value) => el('label', { class: 'check' }, el('input', { type: 'checkbox', name, checked: !!value }), el('span', { text: label }));
+      const L = cfg.limits || {};
+      const form = el(
+        'form',
+        { class: 'edit-form' },
+        el('h3', { text: 'Rediger bidrag' }),
+        input('Overskrift', 'title', s.title, { maxlength: L.title }),
+        el('label', { class: 'field' }, el('span', { text: 'Historie / beskrivelse' }), (() => {
+          const ta = el('textarea', { name: 'story', rows: '6', maxlength: L.story });
+          ta.value = s.story || '';
+          return ta;
+        })()),
+        el(
+          'div',
+          { class: 'grid-2' },
+          input('Hvornår (skrevet)', 'period', s.period, { maxlength: L.period }),
+          input('Hvor fra', 'place', s.place, { maxlength: L.place }),
+          select('Perspektiv', 'perspective', s.perspective, cfg.perspectives),
+          select('Tilknytning', 'relation', s.relation, cfg.relations),
+          input('Kreditering / ophavsret', 'credit', s.credit, { maxlength: L.credit }),
+          input('E-mail', 'email', s.email, { type: 'email', maxlength: L.email }),
+        ),
+        check('Vis krediteringen offentligt', 'show_credit', s.show_credit),
+        check('Må kontaktes', 'contact_ok', s.contact_ok),
+        el(
+          'div',
+          { class: 'grid-2' },
+          input('Kilde (URL)', 'source_url', s.source_url, { type: 'url' }),
+          input('Licens', 'license', s.license, { maxlength: '80' }),
+          input('Licens-link (URL)', 'license_url', s.license_url, { type: 'url' }),
+        ),
+        s.items.length ? el('h4', { text: 'Filer' }) : null,
+        s.items.map((i) =>
+          el(
+            'fieldset',
+            { class: 'edit-item', 'data-id': i.id },
+            el('legend', { text: `${ICON[i.kind] || ''} ${i.original_name}` }),
+            el(
+              'div',
+              { class: 'grid-2' },
+              input('Optaget (ÅÅÅÅ-MM-DD TT:MM)', 'taken_at', (i.taken_at || '').replace('T', ' ').slice(0, 16), { placeholder: '2024-06-21 21:14' }),
+              input('Kamera', 'camera', i.camera, { maxlength: '200' }),
+              input('Breddegrad (lat)', 'lat', i.lat, { inputmode: 'decimal', placeholder: '55.0612' }),
+              input('Længdegrad (lon)', 'lon', i.lon, { inputmode: 'decimal', placeholder: '10.6160' }),
+            ),
+          ),
+        ),
+        el(
+          'div',
+          { class: 'actions' },
+          el('button', { type: 'submit', class: 'primary', text: 'Gem' }),
+          el('button', { type: 'button', text: 'Annullér', onclick: () => box.replaceWith(row(s)) }),
+        ),
+      );
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = form.elements;
+        const body = {
+          title: f.title.value, story: f.story.value, period: f.period.value, place: f.place.value,
+          perspective: f.perspective.value, relation: f.relation.value, credit: f.credit.value, email: f.email.value,
+          show_credit: f.show_credit.checked, contact_ok: f.contact_ok.checked,
+          source_url: f.source_url.value, license: f.license.value, license_url: f.license_url.value,
+          items: [...form.querySelectorAll('.edit-item')].map((fs) => {
+            const v = (n) => fs.querySelector(`[name=${n}]`).value.trim();
+            return { id: fs.dataset.id, taken_at: v('taken_at'), camera: v('camera'), lat: v('lat').replace(',', '.'), lon: v('lon').replace(',', '.') };
+          }),
+        };
+        await act(() => api('PUT', `/api/admin/submissions/${s.id}`, body));
+      });
+      box.append(form);
+    });
+    return box;
   }
 
   async function act(fn) {

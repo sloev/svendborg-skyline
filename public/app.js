@@ -237,83 +237,207 @@
     });
   }
 
-  // ------------------------------------------------------------------ file picker
+  // ------------------------------------------------------------------ nyt bidrag (ét ad gangen, i tre trin)
 
   const form = $('#share-form');
-  const fileInput = $('#files');
-  const fileList = $('#file-list');
+  const fileInput = $('#file');
   const drop = $('#drop');
-  const formLoadedAt = Date.now();
-  /** @type {{file: File, kind: string, li: HTMLElement, url?: string}[]} */
-  let picked = [];
+  let formOpenedAt = Date.now();
+  /** Det bidrag der er ved at blive udfyldt: { kind, file?, url?, gps? } */
+  let draft = null;
+  let step = 1;
 
-  function addFiles(list) {
-    const errors = [];
-    for (const file of list) {
-      const kind = kindOf(file);
-      if (!kind) {
-        errors.push(t('file.notMedia', { name: file.name }));
-        continue;
+  // Hvilke felter der vises for hver type, deres overskrift, og om de skal udfyldes.
+  const FIELDS = {
+    image: { title: 'q.title', story: 'q.story.visual', period: 'q.period.visual', place: 'q.place', perspective: 'q.persp', relation: 'q.relation' },
+    video: { title: 'q.title', story: 'q.story.visual', period: 'q.period.visual', place: 'q.place', perspective: 'q.persp', relation: 'q.relation' },
+    audio: { title: 'q.title', story: 'q.story.audio', period: 'q.period.audio', relation: 'q.relation' },
+    document: { title: 'q.title', story: 'q.story.document', period: 'q.period.document', relation: 'q.relation' },
+    story: { title: 'q.title', story: 'q.story.story', period: 'q.period.story', relation: 'q.relation' },
+  };
+  const REQUIRED = { image: [], video: [], audio: ['title'], document: ['title'], story: ['story'] };
+
+  // Husk ophavsret, e-mail og afkrydsninger til næste bidrag (kun i denne browser).
+  const REMEMBER = ['credit', 'email', 'showCredit', 'contactOk'];
+  function loadRemembered() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('silo-ophavsret') || '{}');
+      for (const k of REMEMBER) {
+        const input = form.elements[k];
+        if (!input || saved[k] === undefined) continue;
+        if (input.type === 'checkbox') input.checked = !!saved[k];
+        else input.value = saved[k];
       }
-      if (file.size === 0) {
-        errors.push(t('file.empty', { name: file.name }));
-        continue;
-      }
-      if (file.size > config.maxFileMb * 1024 * 1024) {
-        errors.push(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
-        continue;
-      }
-      if (picked.some((p) => p.file.name === file.name && p.file.size === file.size && p.file.lastModified === file.lastModified)) continue;
-      if (picked.length >= config.maxFiles) {
-        errors.push(t('file.tooMany', { n: config.maxFiles }));
-        break;
-      }
-      const entry = { file, kind };
-      const thumb = el('div', { class: 'thumb', text: KIND_ICON[kind] });
-      if (kind === 'image' && /^image\/(jpeg|png|gif|webp|avif)$/.test(file.type)) {
-        entry.url = URL.createObjectURL(file);
-        thumb.textContent = '';
-        thumb.append(el('img', { src: entry.url, alt: '' }));
-      } else if (kind === 'video' && file.size < 600 * 1024 * 1024) {
-        entry.url = URL.createObjectURL(file);
-        thumb.textContent = '';
-        thumb.append(el('video', { src: `${entry.url}#t=0.5`, muted: true, preload: 'metadata', playsinline: true }));
-      }
-      entry.li = el(
-        'li',
-        {},
-        thumb,
-        el('div', { class: 'name', title: file.name, text: file.name }),
-        el('div', { class: 'size', text: formatSize(file.size) }),
-        el('div', { class: 'fbar' }, el('div')),
-        el('button', { type: 'button', class: 'remove', 'aria-label': t('file.remove', { name: file.name }), text: '×', onclick: () => removeFile(entry) }),
-      );
-      picked.push(entry);
-      fileList.append(entry.li);
-      if (kind === 'image' || kind === 'video') checkGps(entry);
+    } catch {}
+  }
+  function saveRemembered() {
+    try {
+      const out = {};
+      for (const k of REMEMBER) out[k] = form.elements[k].type === 'checkbox' ? form.elements[k].checked : form.elements[k].value.trim();
+      localStorage.setItem('silo-ophavsret', JSON.stringify(out));
+    } catch {}
+  }
+
+  function openForm() {
+    resetDraft();
+    form.reset();
+    loadRemembered();
+    formOpenedAt = Date.now();
+    $('#new-item-row').hidden = true;
+    form.hidden = false;
+    goStep(1);
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function closeForm() {
+    resetDraft();
+    form.hidden = true;
+    $('#new-item-row').hidden = false;
+    showError('');
+  }
+
+  function resetDraft() {
+    if (draft && draft.url) URL.revokeObjectURL(draft.url);
+    draft = null;
+    fileInput.value = '';
+  }
+
+  function goStep(n) {
+    step = n;
+    showError('');
+    for (const sec of $$('.step', form)) sec.hidden = Number(sec.dataset.step) !== n;
+    for (const li of $$('.steps li', form)) {
+      const k = Number(li.dataset.step);
+      li.classList.toggle('active', k === n);
+      li.classList.toggle('done', k < n);
     }
-    showError(errors.join(' '));
+    if (n === 2) renderFields();
+    if (n === 3) {
+      if (turnstileWidget === null) renderTurnstile();
+      const credit = form.elements.credit;
+      if (!credit.value) setTimeout(() => credit.focus(), 50);
+    }
   }
 
-  // Tell the uploader right away which files carry a GPS position (it will be public).
-  async function checkGps(entry) {
-    if (!(await hasGps(entry.file, entry.kind))) return;
-    entry.gps = true;
-    $('.size', entry.li).textContent += ' · 📍 GPS';
-    updateGpsHint();
+  function pickFile(file) {
+    const kind = kindOf(file);
+    if (!kind) return showError(t('file.notMedia', { name: file.name }));
+    if (file.size === 0) return showError(t('file.empty', { name: file.name }));
+    if (file.size > config.maxFileMb * 1024 * 1024) return showError(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
+    resetDraft();
+    draft = { kind, file };
+    if ((kind === 'image' && /^image\/(jpeg|png|gif|webp|avif)$/.test(file.type)) || (kind === 'video' && file.size < 600 * 1024 * 1024)) {
+      draft.url = URL.createObjectURL(file);
+    }
+    if (kind === 'image' || kind === 'video') {
+      hasGps(file, kind).then((gps) => {
+        if (draft && draft.file === file && gps) {
+          draft.gps = true;
+          if (step === 2) renderPicked();
+        }
+      });
+    }
+    goStep(2);
   }
 
-  function updateGpsHint() {
-    const n = picked.filter((p) => p.gps).length;
-    const hint = $('#gps-hint');
-    hint.textContent = n === 1 ? t('gps.one') : t('gps.many', { n });
-    hint.hidden = n === 0;
+  function renderPicked() {
+    const box = $('#picked');
+    box.textContent = '';
+    if (!draft) return;
+    let preview = el('div', { class: 'picked-thumb', text: draft.kind === 'story' ? '✍️' : KIND_ICON[draft.kind] });
+    if (draft.url && draft.kind === 'image') preview = el('img', { class: 'picked-thumb', src: draft.url, alt: '' });
+    if (draft.url && draft.kind === 'video') preview = el('video', { class: 'picked-thumb', src: `${draft.url}#t=0.5`, muted: true, preload: 'metadata', playsinline: true });
+    box.append(
+      preview,
+      el(
+        'div',
+        { class: 'picked-info' },
+        el('strong', { text: t(`kind.${draft.kind}`) }),
+        draft.file ? el('span', { class: 'muted', text: `${draft.file.name} · ${formatSize(draft.file.size)}${draft.gps ? ' · 📍 GPS' : ''}` }) : null,
+        el('button', { type: 'button', class: 'link', text: t('btn.changeFile'), onclick: () => goStep(1) }),
+      ),
+    );
   }
 
-  // Cheap check, good enough for a heads-up (the server reads the real values):
-  //   photos (JPEG/HEIC/…): parse the EXIF/TIFF header and look for the GPS IFD pointer (tag 0x8825)
-  //   videos (MOV/MP4):     look for an ISO 6709 position string, e.g. "+55.0612+010.6160/",
-  //                         in the first and last megabyte (where the metadata box lives)
+  function renderFields() {
+    renderPicked();
+    const kind = draft ? draft.kind : 'story';
+    const fields = FIELDS[kind];
+    for (const box of $$('[data-field]', form)) {
+      const name = box.dataset.field;
+      if (name === 'gps') {
+        box.hidden = !(kind === 'image' || kind === 'video');
+        continue;
+      }
+      box.hidden = !fields[name];
+      if (!fields[name]) continue;
+      $('[data-label]', box).textContent = t(fields[name]);
+      const required = REQUIRED[kind].includes(name);
+      $('.req-star', box).hidden = !required;
+      const input = $('input, textarea, select', box);
+      input.required = required;
+    }
+  }
+
+  // Tjek felterne i et trin. Returnerer en fejltekst eller ''.
+  function validateStep(n) {
+    const kind = draft ? draft.kind : 'story';
+    if (n === 2) {
+      for (const name of REQUIRED[kind]) {
+        const input = form.elements[name];
+        const v = input.value.trim();
+        if (name === 'story' && v.length < 20) return (input.focus(), t('v.storyShort'));
+        if (!v) return (input.focus(), t('v.required'));
+      }
+      for (const [name, max] of Object.entries(config.limits || {})) {
+        const input = form.elements[name];
+        if (input && input.value && input.value.length > max) return t('v.tooLong', { max });
+      }
+    }
+    if (n === 3) {
+      if (form.elements.credit.value.trim().length < 2) return (form.elements.credit.focus(), t('v.needCredit'));
+      if (!form.elements.consent.checked) return t('v.consent');
+      // window.SILO_E2E sættes kun af den automatiske test (som serveren genkender på et hemmeligt token).
+      if (config.turnstileSiteKey && !turnstileToken && !window.SILO_E2E) return t('v.turnstile');
+    }
+    return '';
+  }
+
+  $('#new-item').addEventListener('click', openForm);
+  for (const b of $$('[data-cancel]', form)) b.addEventListener('click', closeForm);
+  for (const b of $$('[data-back]', form)) b.addEventListener('click', () => goStep(step - 1));
+  for (const b of $$('[data-next]', form)) {
+    b.addEventListener('click', () => {
+      const err = validateStep(step);
+      if (err) return showError(err);
+      goStep(step + 1);
+    });
+  }
+  $('#story-only').addEventListener('click', () => {
+    resetDraft();
+    draft = { kind: 'story' };
+    goStep(2);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) pickFile(fileInput.files[0]);
+  });
+  ['dragenter', 'dragover'].forEach((ev) =>
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add('over');
+    }),
+  );
+  ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files[0]) pickFile(files[0]);
+  });
+
+  // Fortæl med det samme, hvis filen har en GPS-placering (den bliver offentlig).
+  //   billeder (JPEG/HEIC/…): læs EXIF/TIFF-hovedet og led efter GPS-pegeren (tag 0x8825)
+  //   video (MOV/MP4):        led efter en ISO 6709-position, f.eks. "+55.0612+010.6160/",
+  //                           i den første og sidste megabyte (hvor metadata ligger)
   async function hasGps(file, kind) {
     try {
       const span = 1024 * 1024;
@@ -341,28 +465,11 @@
     return false;
   }
 
-  function removeFile(entry) {
-    if (form.classList.contains('busy')) return;
-    picked = picked.filter((p) => p !== entry);
-    entry.li.remove();
-    if (entry.url) URL.revokeObjectURL(entry.url);
+  // Bruges stadig ved sprogskift.
+  function updateGpsHint() {
+    if (!form.hidden && step === 2) renderFields();
+    renderUploads();
   }
-
-  fileInput.addEventListener('change', () => {
-    addFiles(fileInput.files);
-    fileInput.value = '';
-  });
-  ['dragenter', 'dragover'].forEach((ev) =>
-    drop.addEventListener(ev, (e) => {
-      e.preventDefault();
-      drop.classList.add('over');
-    }),
-  );
-  ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('over')));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
-  });
 
   function showError(msg) {
     const box = $('#form-error');
@@ -370,11 +477,16 @@
     box.hidden = !msg;
   }
 
-  // ------------------------------------------------------------------ submit + upload
+  // ------------------------------------------------------------------ send + upload i baggrunden
 
-  let uploading = false;
+  /** Indsendte bidrag i denne session: { title, kind, size, sent, state, error, id, review } */
+  const uploads = [];
+  let queue = Promise.resolve();
+  let wakeLock = null;
+  const busy = () => uploads.some((u) => u.state === 'queued' || u.state === 'uploading');
+
   window.addEventListener('beforeunload', (e) => {
-    if (uploading) {
+    if (busy()) {
       e.preventDefault();
       e.returnValue = '';
     }
@@ -382,76 +494,57 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const err = validateStep(3);
+    if (err) return showError(err);
     showError('');
-    const data = new FormData(form);
-    const story = String(data.get('story') || '').trim();
-    const credit = String(data.get('credit') || '').trim();
-    if (!picked.length && story.length < 20) return showError(t('v.needContent'));
-    if (credit.length < 2) {
-      form.elements.credit.focus();
-      return showError(t('v.needCredit'));
-    }
-    for (const [name, max] of Object.entries(config.limits || {})) {
-      const v = String(data.get(name) || '');
-      if (v.length > max) return showError(t('v.tooLong', { max }));
-    }
-    if (!data.get('consent')) return showError(t('v.consent'));
-    // window.SILO_E2E sættes kun af den automatiske test (som serveren genkender på et hemmeligt token).
-    if (config.turnstileSiteKey && !turnstileToken && !window.SILO_E2E) return showError(t('v.turnstile'));
-
+    const d = new FormData(form);
+    const kind = draft ? draft.kind : 'story';
     const btn = $('#submit');
     btn.disabled = true;
-    form.classList.add('busy');
-    let wakeLock = null;
     try {
       const payload = {
-        title: data.get('title'),
-        story,
-        period: data.get('period'),
-        place: data.get('place'),
-        perspective: data.get('perspective'),
-        relation: data.get('relation'),
-        credit,
-        showCredit: !!data.get('showCredit'),
-        email: data.get('email'),
-        contactOk: !!data.get('contactOk'),
-        consent: !!data.get('consent'),
-        website: data.get('website'),
-        url: data.get('url'),
-        phone: data.get('phone'),
-        elapsedMs: Date.now() - formLoadedAt,
+        title: d.get('title'),
+        story: String(d.get('story') || '').trim(),
+        period: d.get('period'),
+        place: FIELDS[kind].place ? d.get('place') : '',
+        perspective: FIELDS[kind].perspective ? d.get('perspective') : '',
+        relation: d.get('relation'),
+        credit: String(d.get('credit') || '').trim(),
+        showCredit: !!d.get('showCredit'),
+        email: d.get('email'),
+        contactOk: !!d.get('contactOk'),
+        consent: !!d.get('consent'),
+        website: d.get('website'),
+        url: d.get('url'),
+        phone: d.get('phone'),
+        elapsedMs: Date.now() - formOpenedAt,
         turnstileToken,
-        files: picked.map((p) => ({ name: p.file.name, size: p.file.size, type: p.file.type, lastModified: p.file.lastModified })),
+        files: draft && draft.file ? [{ name: draft.file.name, size: draft.file.size, type: draft.file.type, lastModified: draft.file.lastModified }] : [],
       };
+      // Bidraget oprettes med det samme (Turnstile-tokenet gælder kun kort); filen sendes i baggrunden.
       const sub = await getJson('/api/submissions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
-
-      uploading = true;
-      try {
-        wakeLock = navigator.wakeLock ? await navigator.wakeLock.request('screen') : null;
-      } catch {}
-      const failures = await uploadAll(sub, picked);
-      const done = await getJson(`/api/submissions/${sub.id}/complete`, { method: 'POST', headers: { 'x-upload-token': sub.uploadToken } });
-      uploading = false;
-
-      let msg = done.status === 'review' ? t('done.review') : t('done.published');
-      if (done.pending) msg += done.pending === 1 ? t('done.pendingOne') : t('done.pendingMany', { n: done.pending });
-      if (failures.length) msg += t(failures.length === 1 ? 'done.failedOne' : 'done.failedMany', { names: failures.join(', ') });
-      $('#thanks-text').textContent = msg;
-      $('#progress').hidden = true;
-      $('#thanks').hidden = false;
-      form.hidden = true;
-      $('#thanks').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      resetForm();
-      loadStats(true);
-      loadFeed(true, true);
+      saveRemembered();
+      const entry = {
+        title: payload.title || (draft && draft.file ? draft.file.name : payload.story.slice(0, 60)),
+        kind,
+        file: draft && draft.file,
+        size: draft && draft.file ? draft.file.size : 0,
+        sent: 0,
+        state: 'queued',
+        error: '',
+        id: sub.id,
+      };
+      uploads.unshift(entry);
+      queue = queue.then(() => runUpload(entry, sub));
+      draft = null; // filen ejes nu af upload-køen
+      fileInput.value = '';
+      closeForm();
+      renderUploads();
+      $('#uploads').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (err) {
-      uploading = false;
-      $('#progress').hidden = true;
       showError(err.message || t('err.generic'));
     } finally {
-      if (wakeLock) wakeLock.release().catch(() => {});
       btn.disabled = false;
-      form.classList.remove('busy');
       if (turnstileWidget !== null && window.turnstile) {
         window.turnstile.reset(turnstileWidget);
         turnstileToken = '';
@@ -459,64 +552,70 @@
     }
   });
 
-  function resetForm() {
-    form.reset();
-    for (const p of picked) if (p.url) URL.revokeObjectURL(p.url);
-    picked = [];
-    fileList.textContent = '';
-    $('#gps-hint').hidden = true;
+  async function runUpload(entry, sub) {
+    entry.state = 'uploading';
+    renderUploads();
+    try {
+      if (!wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen').catch(() => null);
+    } catch {}
+    try {
+      if (entry.file) {
+        let last = 0;
+        await uploadFile(sub, sub.items[0].id, entry.file, (bytes) => {
+          entry.sent = bytes;
+          if (Date.now() - last > 250) {
+            last = Date.now();
+            renderUploads();
+          }
+        });
+      }
+      const done = await getJson(`/api/submissions/${sub.id}/complete`, { method: 'POST', headers: { 'x-upload-token': sub.uploadToken } });
+      entry.state = 'done';
+      entry.review = done.status === 'review';
+      entry.file = null;
+      loadStats(true);
+      loadFeed(true, true);
+    } catch (err) {
+      console.error(err);
+      entry.state = 'failed';
+      entry.error = err.message || t('err.generic');
+    }
+    if (!busy() && wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+    renderUploads();
   }
 
-  $('#again').addEventListener('click', () => {
-    $('#thanks').hidden = true;
-    form.hidden = false;
-    form.scrollIntoView({ behavior: 'smooth' });
-  });
-
-  async function uploadAll(sub, entries) {
-    if (!entries.length) return [];
-    const total = entries.reduce((n, p) => n + p.file.size, 0);
-    const sent = new Array(entries.length).fill(0);
-    const progress = $('#progress');
-    progress.hidden = false;
-    $('#progress-title').textContent = t('progress.title', {
-      files: entries.length === 1 ? t('files.one') : t('files.many', { n: entries.length }),
-      size: formatSize(total),
-    });
-    const update = () => {
-      const s = sent.reduce((a, b) => a + b, 0);
-      const pct = Math.min(100, (s / total) * 100);
-      $('#progress-bar').style.width = `${pct}%`;
-      $('#progress-text').textContent = `${formatSize(s)} af ${formatSize(total)} · ${Math.floor(pct)} %`;
-    };
-    update();
-
-    const failures = [];
-    let next = 0;
-    const worker = async () => {
-      while (next < entries.length) {
-        const i = next++;
-        const entry = entries[i];
-        const item = sub.items.find((it) => it.position === i);
-        const bar = $('.fbar div', entry.li);
-        try {
-          await uploadFile(sub, item.id, entry.file, (bytes) => {
-            sent[i] = bytes;
-            bar.style.width = `${(bytes / entry.file.size) * 100}%`;
-            update();
-          });
-          entry.li.classList.add('done');
-        } catch (err) {
-          console.error(err);
-          entry.li.classList.add('error');
-          failures.push(entry.file.name);
-          sent[i] = entry.file.size;
-          update();
-        }
-      }
-    };
-    await Promise.all([worker(), worker(), worker()]);
-    return failures;
+  function renderUploads() {
+    $('#uploads').hidden = uploads.length === 0;
+    $('#uploads-warning').hidden = !busy();
+    const list = $('#upload-list');
+    list.textContent = '';
+    for (const u of uploads) {
+      const pct = u.size ? Math.min(100, Math.floor((u.sent / u.size) * 100)) : u.state === 'done' ? 100 : 0;
+      const status =
+        u.state === 'queued' ? t('up.queued') :
+        u.state === 'uploading' ? (u.size ? t('up.uploading', { pct }) : t('up.sending')) :
+        u.state === 'done' ? (u.review ? t('up.doneReview') : t('up.done')) :
+        t('up.failed', { msg: u.error });
+      list.append(
+        el(
+          'li',
+          { class: `upload-item ${u.state}` },
+          el('span', { class: 'upload-icon', text: u.kind === 'story' ? '✍️' : KIND_ICON[u.kind] }),
+          el(
+            'div',
+            { class: 'upload-main' },
+            el('strong', { text: u.title }),
+            el('span', { class: 'upload-status', text: status }),
+            u.state === 'uploading' || u.state === 'queued' ? el('div', { class: 'bar' }, el('div', { style: null, 'data-pct': pct })) : null,
+          ),
+          u.state === 'done' && !u.review ? el('a', { class: 'link', href: `#bidrag/${u.id}`, text: t('up.view') }) : null,
+        ),
+      );
+    }
+    for (const bar of $$('.upload-item .bar > div', list)) bar.style.width = `${bar.dataset.pct}%`;
   }
 
   async function uploadFile(sub, itemId, file, onProgress) {
@@ -564,6 +663,7 @@
       xhr.send(blob);
     });
   }
+
 
   // ------------------------------------------------------------------ feed
 

@@ -97,63 +97,83 @@
     <section class="section share" id="del">
       <div class="share-head">
         <h2 data-i18n="share.h2">Del dit bidrag</h2>
-        <p data-i18n="share.p">Det tager et par minutter. Du kan sende mange filer på én gang, også store videoer direkte fra telefonen. Vi gemmer billeder i printkvalitet (op til A3) og videoer i op til 1080p, sammen med oplysningerne i filerne, f.eks. hvornår og hvor de er taget.</p>
+        <p data-i18n="share.p">Ét bidrag ad gangen, i tre korte trin: fil, oplysninger og ophavsret. Mens det ene sendes, kan du begynde på det næste. Vi gemmer billeder i printkvalitet (op til A3) og videoer i op til 1080p, sammen med oplysningerne i filerne, f.eks. hvornår og hvor de er taget.</p>
       </div>
 
-      <form id="share-form" class="card form" novalidate>
-        <fieldset>
-          <legend data-i18n="f.legend1">1. Dine filer</legend>
-          <label class="drop" id="drop">
-            <input type="file" id="files" multiple accept="image/*,video/*,audio/*,.heic,.heif,.dng,.mov,.mp4,.m4a,.mp3,.wav,.pdf">
-            <span class="drop-icon" aria-hidden="true">⇪</span>
-            <span class="drop-title" data-i18n="drop.title">Vælg billeder, videoer, lyd eller PDF</span>
-            <span class="drop-hint" data-i18n="drop.hint">eller træk dem herind · op til <span data-cfg="maxFiles">40</span> filer, max <span data-cfg="maxFileGb">2</span> GB pr. fil</span>
-          </label>
-          <ul class="file-list" id="file-list" aria-live="polite"></ul>
-          <div class="notice" role="note">
-            <strong data-i18n="notice.title">📍 Placeringen bliver vist offentligt</strong>
-            <p data-i18n="notice.p">Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
-          </div>
-          <p class="hint" id="gps-hint" hidden></p>
-          <p class="hint" data-i18n="hint.storyonly">Har du kun en historie? Det er også fint. Så kan du springe filerne over.</p>
-        </fieldset>
+      <div class="uploads" id="uploads" hidden>
+        <p class="uploads-warning" id="uploads-warning" role="status" hidden data-i18n="up.warning">⚠️ Luk ikke siden, før alt er sendt.</p>
+        <ul class="upload-list" id="upload-list" aria-live="polite"></ul>
+      </div>
 
-        <fieldset>
-          <legend data-i18n="f.legend2">2. Fortæl om det</legend>
-          <label class="field">
-            <span data-i18n="f.title">Overskrift <em>(valgfri)</em></span>
+      <div class="new-item-row" id="new-item-row">
+        <button class="btn btn-primary btn-large" type="button" id="new-item" data-i18n="btn.new">＋ Nyt bidrag</button>
+        <p class="hint" data-i18n="new.hint">Ét billede, én video, én lydoptagelse, ét dokument eller én historie ad gangen. Du kan tilføje lige så mange, du vil.</p>
+      </div>
+
+      <form id="share-form" class="card form" novalidate hidden>
+        <ol class="steps" aria-label="Trin">
+          <li data-step="1"><span>1</span> <b data-i18n="step.file">Fil</b></li>
+          <li data-step="2"><span>2</span> <b data-i18n="step.fields">Oplysninger</b></li>
+          <li data-step="3"><span>3</span> <b data-i18n="step.credit">Ophavsret</b></li>
+        </ol>
+
+        <section class="step" data-step="1">
+          <label class="drop" id="drop">
+            <input type="file" id="file" accept="image/*,video/*,audio/*,.heic,.heif,.dng,.mov,.mp4,.m4a,.mp3,.wav,.pdf">
+            <span class="drop-icon" aria-hidden="true">⇪</span>
+            <span class="drop-title" data-i18n="drop.title1">Vælg et billede, en video, en lydoptagelse eller en PDF</span>
+            <span class="drop-hint" data-i18n="drop.hint1">eller træk filen herind · max <span data-cfg="maxFileGb">2</span> GB</span>
+          </label>
+          <p class="center"><button class="link" type="button" id="story-only" data-i18n="btn.storyOnly">Jeg har ingen fil – kun en historie</button></p>
+          <div class="step-nav">
+            <button class="btn btn-ghost" type="button" data-cancel data-i18n="btn.cancel">Annullér</button>
+          </div>
+        </section>
+
+        <section class="step" data-step="2" hidden>
+          <div class="picked" id="picked"></div>
+          <p class="req-legend"><span class="req-star">*</span> <span data-i18n="req.legend">skal udfyldes</span></p>
+          <label class="field" data-field="title">
+            <span><span data-label></span><span class="req-star" hidden>*</span></span>
             <input type="text" name="title" maxlength="120" data-i18n-ph="f.title.ph" placeholder="F.eks. Solnedgang over havnen, juni 2024">
           </label>
-          <label class="field">
-            <span data-i18n="f.story">Din historie eller beskrivelse</span>
+          <label class="field" data-field="story">
+            <span><span data-label></span><span class="req-star" hidden>*</span></span>
             <textarea name="story" rows="6" maxlength="8000" data-counter data-i18n-ph="f.story.ph" placeholder="Hvad ser vi? Hvornår og hvorfor tog du billedet? Har du et minde om siloerne, om arbejdet derinde eller om livet på havnen?"></textarea>
           </label>
           <div class="grid-2">
-            <label class="field">
-              <span data-i18n="f.period">Hvornår? <em>(valgfri)</em></span>
+            <label class="field" data-field="period">
+              <span><span data-label></span><span class="req-star" hidden>*</span></span>
               <input type="text" name="period" maxlength="60" data-i18n-ph="f.period.ph" placeholder="F.eks. sommeren 1987 eller 2025">
             </label>
-            <label class="field">
-              <span data-i18n="f.place">Hvor fra? <em>(valgfri)</em></span>
+            <label class="field" data-field="place">
+              <span><span data-label></span><span class="req-star" hidden>*</span></span>
               <input type="text" name="place" maxlength="120" data-i18n-ph="f.place.ph" placeholder="F.eks. fra Svendborgsund-broen">
             </label>
-            <label class="field">
-              <span data-i18n="f.persp">Hvordan er det set?</span>
+            <label class="field" data-field="perspective">
+              <span><span data-label></span><span class="req-star" hidden>*</span></span>
               <select name="perspective" data-options="perspectives"><option value="" data-i18n="f.choose">Vælg …</option></select>
             </label>
-            <label class="field">
-              <span data-i18n="f.relation">Din tilknytning til siloerne</span>
+            <label class="field" data-field="relation">
+              <span><span data-label></span><span class="req-star" hidden>*</span></span>
               <select name="relation" data-options="relations"><option value="" data-i18n="f.choose">Vælg …</option></select>
             </label>
           </div>
-        </fieldset>
+          <div class="notice" role="note" data-field="gps">
+            <strong data-i18n="notice.title">📍 Placeringen bliver vist offentligt</strong>
+            <p data-i18n="notice.p">Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
+          </div>
+          <div class="step-nav">
+            <button class="btn btn-ghost" type="button" data-back data-i18n="btn.back">Tilbage</button>
+            <button class="btn btn-primary" type="button" data-next data-i18n="btn.next">Næste</button>
+          </div>
+        </section>
 
-        <fieldset>
-          <legend data-i18n="f.legend3">3. Kreditering og kontakt</legend>
+        <section class="step" data-step="3" hidden>
           <label class="field">
-            <span data-i18n="f.credit">Kreditering / ophavsret <em class="req">(skal udfyldes)</em></span>
+            <span><span data-i18n="f.credit1">Kreditering / ophavsret</span><span class="req-star">*</span></span>
             <input type="text" name="credit" required minlength="2" maxlength="120" autocomplete="name" data-i18n-ph="f.credit.ph" placeholder="F.eks. Foto: Jens Hansen · © Familien Larsen · Svendborg Havn">
-            <small class="hint" data-i18n="f.credit.hint">Hvem har taget billederne eller ejer materialet? Det gemmes altid sammen med bidraget.</small>
+            <small class="hint" data-i18n="f.credit.hint1">Hvem har lavet eller ejer materialet? Vi husker det til dit næste bidrag.</small>
           </label>
           <label class="check"><input type="checkbox" name="showCredit"> <span data-i18n="f.showCredit">Vis krediteringen offentligt ved bidraget og i filerne <span class="muted">(ellers kender kun vi den)</span></span></label>
           <label class="field">
@@ -161,35 +181,21 @@
             <input type="email" name="email" maxlength="254" autocomplete="email" inputmode="email">
           </label>
           <label class="check"><input type="checkbox" name="contactOk"> <span data-i18n="f.contactOk">I må gerne kontakte mig, hvis I vil høre mere</span></label>
-          <label class="check required"><input type="checkbox" name="consent" required> <span data-i18n="f.consent">Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span></label>
-        </fieldset>
+          <label class="check required"><input type="checkbox" name="consent" required> <span><span data-i18n="f.consent">Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span><span class="req-star">*</span></span></label>
 
-        <div class="hp" aria-hidden="true">
-          <label>Lad dette felt være tomt <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-          <label>Lad dette felt være tomt <input type="url" name="url" tabindex="-1" autocomplete="off"></label>
-          <label>Lad dette felt være tomt <input type="tel" name="phone" tabindex="-1" autocomplete="off"></label>
-        </div>
-
-        <div class="submit-row">
+          <div class="hp" aria-hidden="true">
+            <label>Lad dette felt være tomt <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+            <label>Lad dette felt være tomt <input type="url" name="url" tabindex="-1" autocomplete="off"></label>
+            <label>Lad dette felt være tomt <input type="tel" name="phone" tabindex="-1" autocomplete="off"></label>
+          </div>
           <div id="turnstile"></div>
-          <button class="btn btn-primary btn-large" type="submit" id="submit" data-i18n="submit">Send bidrag</button>
-        </div>
+          <div class="step-nav">
+            <button class="btn btn-ghost" type="button" data-back data-i18n="btn.back">Tilbage</button>
+            <button class="btn btn-primary btn-large" type="submit" id="submit" data-i18n="submit">Send bidrag</button>
+          </div>
+        </section>
         <p class="form-error" id="form-error" role="alert" hidden></p>
       </form>
-
-      <div class="card progress" id="progress" hidden>
-        <h3 id="progress-title">Sender dit bidrag …</h3>
-        <p class="muted" id="progress-note" data-i18n="progress.note">Luk ikke siden, før alt er sendt. Store videoer kan tage et stykke tid.</p>
-        <div class="bar"><div id="progress-bar"></div></div>
-        <p id="progress-text" class="muted"></p>
-      </div>
-
-      <div class="card thanks" id="thanks" hidden>
-        <h3 data-i18n="thanks.h">Tusind tak! 💙</h3>
-        <p id="thanks-text">Dit bidrag er modtaget.</p>
-        <button class="btn btn-primary" type="button" id="again" data-i18n="thanks.again">Del mere</button>
-        <a class="btn btn-ghost" href="#bidrag" data-i18n="thanks.all">Se alle bidrag</a>
-      </div>
     </section>
 
     <section class="section gallery" id="bidrag">

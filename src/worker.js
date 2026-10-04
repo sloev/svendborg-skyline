@@ -314,6 +314,7 @@ async function adminApi(request, env, url, path, method, ctx) {
   if (path === '/api/admin/submissions' && method === 'GET') return adminList(env, url);
   if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)$/))) {
     if (method === 'PATCH') return adminSetStatus(request, env, m[1]);
+    if (method === 'PUT') return adminEdit(request, env, m[1]);
     if (method === 'DELETE') return adminDelete(env, m[1]);
   }
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/retry$/)) && method === 'POST') return adminRetry(env, m[1]);
@@ -537,7 +538,8 @@ async function createSubmission(request, env) {
   )
     .bind(isoAgo(3600), ipHash, isoAgo(86400))
     .first();
-  if (recent.hour >= 8 || recent.day >= 30) {
+  // Ét bidrag pr. fil, så grænserne er sat til mange billeder i træk (pladsen er begrænset af IP_DAILY_GB).
+  if (recent.hour >= 40 || recent.day >= 200) {
     throw new HttpError(429, 'rate_limited');
   }
 
@@ -555,8 +557,10 @@ async function createSubmission(request, env) {
   if (body.consent !== true) throw new HttpError(400, 'consent_missing');
   checkSpam([title, story, period, place, credit].join('\n'));
 
-  // Den samme tekst må ikke sendes igen (typisk spam-mønster).
-  const textHash = story.length >= 40 && !env.IS_TEST ? await sha256(story.toLowerCase().replace(/\s+/g, ' ')) : '';
+  // Den samme historie uden filer må ikke sendes igen (typisk spam-mønster). Samme beskrivelse på
+  // flere billeder er fint.
+  const hasFiles = Array.isArray(body.files) && body.files.length > 0;
+  const textHash = story.length >= 40 && !hasFiles && !env.IS_TEST ? await sha256(story.toLowerCase().replace(/\s+/g, ' ')) : '';
   if (textHash) {
     const dup = await env.DB.prepare(`SELECT 1 FROM submissions WHERE text_hash = ? AND created_at > ? LIMIT 1`)
       .bind(textHash, isoAgo(30 * 86400))
@@ -978,6 +982,37 @@ async function adminList(env, url) {
         .map((i) => ({ ...i, thumb: mediaUrl(env, i.thumb_key), src: mediaUrl(env, i.display_key) })),
     })),
   });
+}
+
+// Redigér alle felter på et bidrag (og dato/kamera/placering på dets filer).
+async function adminEdit(request, env, id) {
+  const b = await readJson(request, 100_000);
+  const sub = await env.DB.prepare(`SELECT id FROM submissions WHERE id = ?`).bind(id).first();
+  if (!sub) throw new HttpError(404, 'not_found');
+  const url = (v) => (/^https?:\/\//.test(String(v || '')) ? clean(v, 500) : '');
+  await env.DB.prepare(
+    `UPDATE submissions SET title = ?, story = ?, period = ?, place = ?, perspective = ?, relation = ?, credit = ?,
+       show_credit = ?, email = ?, contact_ok = ?, source_url = ?, license = ?, license_url = ?
+     WHERE id = ?`,
+  )
+    .bind(
+      clean(b.title, LIMITS.title), clean(b.story, LIMITS.story, true), clean(b.period, LIMITS.period), clean(b.place, LIMITS.place),
+      Object.hasOwn(PERSPECTIVES, b.perspective) ? b.perspective : '', Object.hasOwn(RELATIONS, b.relation) ? b.relation : '',
+      clean(b.credit, LIMITS.credit), b.show_credit ? 1 : 0, clean(b.email, LIMITS.email).toLowerCase(), b.contact_ok ? 1 : 0,
+      url(b.source_url), clean(b.license, 80), url(b.license_url), id,
+    )
+    .run();
+  for (const it of Array.isArray(b.items) ? b.items.slice(0, 50) : []) {
+    const taken = clean(it.taken_at, 25);
+    if (taken && !/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$/.test(taken)) throw new HttpError(400, 'invalid_data');
+    const lat = num(it.lat);
+    const lon = num(it.lon);
+    if ((lat !== null && Math.abs(lat) > 90) || (lon !== null && Math.abs(lon) > 180)) throw new HttpError(400, 'invalid_data');
+    await env.DB.prepare(`UPDATE items SET taken_at = ?, camera = ?, lat = ?, lon = ? WHERE id = ? AND submission_id = ?`)
+      .bind(taken ? taken.replace(' ', 'T') : null, clean(it.camera, 200) || null, lat, lon, String(it.id || ''), id)
+      .run();
+  }
+  return json({ ok: true });
 }
 
 async function adminSetStatus(request, env, id) {

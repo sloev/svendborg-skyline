@@ -23,3 +23,14 @@
 #login { max-width: 420px; margin: 12vh auto; }
 .admin-title { margin: 0; }
 .item-error { color: var(--danger); }
+.row.editing { outline: 3px solid var(--teal); }
+.edit-form h3 { margin-top: 0; }
+.edit-form h4 { margin: 18px 0 6px; font-family: var(--serif); color: var(--navy); }
+.edit-form textarea { width: 100%; }
+.edit-item { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 0; margin: 0 0 10px; }
+.edit-item legend { font-size: .85rem; color: var(--muted); padding: 0 4px; }
+.actions button.primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+.edit-form input:not([type=checkbox]), .edit-form select, .edit-form textarea {
+  width: 100%; font: inherit; color: inherit; background: #fbfaf7; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px;
+}
+.edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rgba(29, 138, 116, .18); }
