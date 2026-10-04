@@ -72,7 +72,13 @@ try {
   check((await page.textContent('#picked')).includes('Billede'), 'filtypen genkendes som billede');
   check(await page.isVisible('[data-field="place"]'), 'billeder får feltet "Hvorfra er det set?"');
   await page.fill('input[name=title]', 'Automatisk test');
-  await page.fill('textarea[name=story]', marker);
+  // Historiefeltet er en lille editor; teksten gemmes som simpel markdown i det skjulte tekstfelt.
+  await page.click('.editor-area');
+  await page.keyboard.type(`${marker} `);
+  await page.click('.editor-bar [data-cmd=bold]');
+  await page.keyboard.type('fed tekst');
+  await page.click('.editor-bar [data-cmd=bold]');
+  check((await page.inputValue('textarea[name=story]')) === `${marker} **fed tekst**`, 'editoren gemmer teksten som markdown');
   await page.click('.step[data-step="2"] [data-next]');
   await page.waitForSelector('.step[data-step="3"]:not([hidden])');
   await page.fill('input[name=credit]', 'Automatisk test (GitHub Actions)');
@@ -92,6 +98,14 @@ try {
   await page.click('#new-item');
   check((await page.inputValue('input[name=credit]')) === 'Automatisk test (GitHub Actions)', 'krediteringen huskes til næste bidrag');
   await page.click('[data-cancel]');
+
+  step('Hele arkivet som PDF');
+  const archive = await (await fetch(`${WORKER}/api/archive`)).json();
+  check(archive.available === false || (archive.url && archive.count > 0), `arkiv-endepunktet svarer (${archive.available ? `${archive.count} bidrag` : 'ingen PDF endnu'})`);
+  if (archive.available) {
+    const head = await fetch(archive.url, { method: 'HEAD' });
+    check(head.ok && head.headers.get('content-type') === 'application/pdf' && /attachment/.test(head.headers.get('content-disposition') || ''), 'PDF\'en kan hentes');
+  }
 
   step('Skjult for offentligheden');
   const pub = await fetch(`${WORKER}/api/contributions/${subId}`);
