@@ -37,6 +37,8 @@ jobs:
           if [ -z "$url" ]; then echo "::error::Kunne ikke finde workerens adresse (tjek CLOUDFLARE_*-secrets eller sæt variablen WORKER_URL)"; exit 1; fi
           printf "window.SILO_CONFIG = { apiBase: %s };\n" "$(jq -Rn --arg u "$url" '$u')" > public/config.js
           cat public/config.js
+          # Ny version i filnavnene ved hver udgivelse, så browsere ikke bruger gamle CSS/JS-filer.
+          sed -i -E "s/\?v=[0-9a-z]+\"/?v=${GITHUB_SHA::10}\"/g" public/*.html
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
