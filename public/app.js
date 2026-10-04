@@ -75,6 +75,17 @@
     for (const sel of $$('select[data-options]')) {
       for (const [value, label] of Object.entries(config[sel.dataset.options] || {})) sel.append(el('option', { value, text: label }));
     }
+    for (const [name, max] of Object.entries(config.limits || {})) {
+      const input = form.elements[name];
+      if (input && input.setAttribute) input.setAttribute('maxlength', String(max));
+    }
+    for (const ta of $$('[data-counter]')) {
+      const counter = el('small', { class: 'counter', 'aria-live': 'polite' });
+      ta.after(counter);
+      const upd = () => (counter.textContent = `${ta.value.length} / ${ta.maxLength} tegn`);
+      ta.addEventListener('input', upd);
+      upd();
+    }
     $$('[data-cfg=maxFiles]').forEach((n) => (n.textContent = config.maxFiles));
     $$('[data-cfg=maxFileGb]').forEach((n) => (n.textContent = fmtNum.format(Math.round((config.maxFileMb / 1024) * 10) / 10)));
     if (config.contactEmail) {
@@ -111,6 +122,7 @@
     }
     turnstileWidget = window.turnstile.render('#turnstile', {
       sitekey: config.turnstileSiteKey,
+      action: 'bidrag',
       language: 'da',
       callback: (t) => (turnstileToken = t),
       'expired-callback': () => (turnstileToken = ''),
@@ -262,7 +274,16 @@
     showError('');
     const data = new FormData(form);
     const story = String(data.get('story') || '').trim();
+    const credit = String(data.get('credit') || '').trim();
     if (!picked.length && story.length < 20) return showError('Vælg mindst én fil, eller skriv en historie (mindst et par sætninger).');
+    if (credit.length < 2) {
+      form.elements.credit.focus();
+      return showError('Skriv hvem der skal krediteres for materialet (f.eks. dit navn eller fotografens navn).');
+    }
+    for (const [name, max] of Object.entries(config.limits || {})) {
+      const v = String(data.get(name) || '');
+      if (v.length > max) return showError(`Feltet er for langt (max ${max} tegn).`);
+    }
     if (!data.get('consent')) return showError('Sæt kryds ved tilladelsen nederst, så vi må vise og gemme dit bidrag.');
     if (config.turnstileSiteKey && !turnstileToken) return showError('Vent et øjeblik på spam-tjekket, eller sæt kryds i boksen ved "Send".');
 
@@ -278,12 +299,14 @@
         place: data.get('place'),
         perspective: data.get('perspective'),
         relation: data.get('relation'),
-        name: data.get('name'),
+        credit,
+        showCredit: !!data.get('showCredit'),
         email: data.get('email'),
-        showName: !!data.get('showName'),
         contactOk: !!data.get('contactOk'),
         consent: !!data.get('consent'),
         website: data.get('website'),
+        url: data.get('url'),
+        phone: data.get('phone'),
         elapsedMs: Date.now() - formLoadedAt,
         turnstileToken,
         files: picked.map((p) => ({ name: p.file.name, size: p.file.size, type: p.file.type, lastModified: p.file.lastModified })),
@@ -467,7 +490,7 @@
   function tile(c) {
     const first = c.items.find((i) => i.thumb) || c.items[0];
     const excerpt = c.story ? c.story.slice(0, 400) : '';
-    const byline = [c.name, c.relationLabel, c.period].filter(Boolean).join(' · ');
+    const byline = [c.credit, c.relationLabel, c.period].filter(Boolean).join(' · ');
     let media = null;
     let body;
     if (first && first.thumb) {
@@ -488,7 +511,7 @@
         el('p', { text: excerpt }),
         el(
           'div',
-          { class: 'tile-body', style: 'padding:0 0 14px' },
+          { class: 'tile-body tile-body-quote' },
           c.title ? el('h3', { text: c.title }) : null,
           el('span', { class: 'byline', text: byline }),
           processingNote(c),
@@ -537,7 +560,7 @@
   function openViewer(c, i) {
     current = c;
     $('#viewer-title').textContent = c.title || (c.items.length ? 'Bidrag' : 'Historie');
-    $('#viewer-meta').textContent = [c.name ? `Delt af ${c.name}` : 'Delt anonymt', c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
+    $('#viewer-meta').textContent = [c.credit ? `Kreditering: ${c.credit}` : 'Kreditering ikke offentlig', c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
     $('#viewer-story').textContent = c.story || '';
     const strip = $('#viewer-strip');
     strip.textContent = '';

@@ -51,6 +51,14 @@ const VIDEO_EXT = ['mp4', 'mov', 'm4v', 'avi', 'mkv', 'webm', '3gp', 'mts', 'm2t
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'amr', 'wma'];
 const DOC_EXT = ['pdf'];
 
+// Max længde på alle tekstfelter (tegn). Sendes også til siden via /api/config.
+const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200 };
+const FIELD_NAMES = { title: 'Overskrift', story: 'Historie', period: 'Hvornår', place: 'Hvor fra', credit: 'Kreditering', email: 'E-mail' };
+
+// Grove spam-ord. Rammer de, afvises bidraget (siden handler om siloerne i Svendborg).
+const SPAM_WORDS =
+  /\b(viagra|cialis|casino|kasino|betting|bitcoin|crypto|krypto|forex|porn|porno|xxx|escort|loan|lån uden|seo services?|backlinks?|click here|klik her|free money|gratis penge|onlyfans|telegram me|whatsapp me)\b/i;
+
 class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -68,10 +76,15 @@ export default {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
       const res = await handle(request, env, ctx, url);
       const out = new Response(res.body, res);
-      for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);
+      for (const [k, v] of Object.entries({ ...SECURITY_HEADERS, ...cors })) if (!out.headers.has(k) || k in cors) out.headers.set(k, v);
       return out;
     }
-    return env.ASSETS.fetch(request);
+    const asset = await env.ASSETS.fetch(request);
+    const out = new Response(asset.body, asset);
+    out.headers.set('x-content-type-options', 'nosniff');
+    out.headers.set('x-frame-options', 'DENY');
+    out.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+    return out;
   },
 
   // Daily (see [triggers] in wrangler.toml): clean up uploads that were started but never finished,
@@ -160,13 +173,34 @@ async function handle(request, env, ctx, url) {
   }
 }
 
-// ALLOWED_ORIGINS: comma separated list of sites allowed to call the API, e.g. "https://sloev.github.io".
-function corsHeaders(request, env) {
-  const origin = request.headers.get('origin');
-  const allowed = String(env.ALLOWED_ORIGINS || '')
+const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'no-referrer',
+  'x-frame-options': 'DENY',
+  'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+  'cross-origin-resource-policy': 'cross-origin',
+};
+
+function allowedOrigins(env) {
+  return String(env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((s) => s.trim().replace(/\/+$/, ''))
     .filter(Boolean);
+}
+
+// Ændringer fra browseren skal komme fra vores egen side (eller workerens eget domæne).
+function requireOrigin(request, env) {
+  const origin = request.headers.get('origin');
+  const self = new URL(request.url).origin;
+  if (!origin || !(origin === self || allowedOrigins(env).includes(origin))) {
+    throw new HttpError(403, 'Indsendelser skal komme fra hjemmesiden.');
+  }
+}
+
+// ALLOWED_ORIGINS: comma separated list of sites allowed to call the API, e.g. "https://sloev.github.io".
+function corsHeaders(request, env) {
+  const origin = request.headers.get('origin');
+  const allowed = allowedOrigins(env);
   if (!origin || !(allowed.includes(origin) || allowed.includes('*'))) return {};
   return {
     'access-control-allow-origin': origin,
@@ -186,7 +220,7 @@ async function api(request, env, ctx, url) {
   let m;
 
   if (path.startsWith('/api/admin/')) {
-    requireAdmin(request, env);
+    await requireAdmin(request, env);
     return adminApi(request, env, url, path, method);
   }
 
@@ -195,6 +229,7 @@ async function api(request, env, ctx, url) {
   if (path === '/api/contributions' && method === 'GET') return listContributions(env, url);
   if (path === '/api/map' && method === 'GET') return getMap(env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)$/)) && method === 'GET') return getContribution(env, m[1]);
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) requireOrigin(request, env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/report$/)) && method === 'POST') return reportContribution(request, env, m[1]);
   if (path === '/api/submissions' && method === 'POST') return createSubmission(request, env);
   if ((m = path.match(/^\/api\/upload\/([\w-]+)\/(\d+)$/)) && method === 'PUT') return uploadPart(request, env, m[1], Number(m[2]));
@@ -254,6 +289,7 @@ function getConfig(env) {
       contactEmail: env.CONTACT_EMAIL || '',
       relations: RELATIONS,
       perspectives: PERSPECTIVES,
+      limits: LIMITS,
     },
     200,
     { 'cache-control': 'public, max-age=300' },
@@ -374,7 +410,7 @@ function publicSubmission(env, s, items) {
     perspectiveLabel: PERSPECTIVES[s.perspective] || '',
     relation: s.relation,
     relationLabel: RELATIONS[s.relation] || '',
-    name: s.show_name ? s.name : '',
+    credit: s.show_credit ? s.credit : '',
     items: items.filter((i) => i.status === 'ready').map((i) => publicItem(env, i)),
     processing: items.filter((i) => ['pending', 'processing'].includes(i.status)).length,
   };
@@ -410,11 +446,11 @@ async function createSubmission(request, env) {
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const body = await readJson(request, 200_000);
 
-  // --- cheap spam checks first
-  if (body.website) throw new HttpError(400, 'Indsendelsen blev afvist.'); // honeypot
-  if (typeof body.elapsedMs === 'number' && body.elapsedMs < 4000) throw new HttpError(400, 'Det gik lidt for hurtigt – prøv igen.');
+  // --- billige spam-tjek først
+  if (body.website || body.url || body.phone) throw new HttpError(400, 'Indsendelsen blev afvist.'); // honeypots
+  if (typeof body.elapsedMs !== 'number' || body.elapsedMs < 5000) throw new HttpError(400, 'Det gik lidt for hurtigt – prøv igen om et øjeblik.');
 
-  await verifyTurnstile(env, body.turnstileToken, ip);
+  await verifyTurnstile(env, body.turnstileToken, ip, request);
 
   const ipHash = await sha256(`${env.IP_SALT || ''}:${ip}`);
   const recent = await env.DB.prepare(
@@ -425,23 +461,32 @@ async function createSubmission(request, env) {
   )
     .bind(isoAgo(3600), ipHash, isoAgo(86400))
     .first();
-  if (recent.hour >= 10 || recent.day >= 40) {
+  if (recent.hour >= 8 || recent.day >= 30) {
     throw new HttpError(429, 'Du har sendt mange bidrag på kort tid. Prøv igen senere – eller skriv til os, hvis du har meget materiale.');
   }
 
-  // --- validate fields
-  const title = text(body.title, 150);
-  const story = text(body.story, 20000, true);
-  const period = text(body.period, 100);
-  const place = text(body.place, 200);
-  const name = text(body.name, 100);
-  const email = text(body.email, 200);
-  const relation = RELATIONS[body.relation] ? body.relation : '';
-  const perspective = PERSPECTIVES[body.perspective] ? body.perspective : '';
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'E-mailadressen ser ikke rigtig ud.');
-  if (!body.consent) throw new HttpError(400, 'Du skal give tilladelse til at vi må vise og gemme dit bidrag.');
-  const links = (`${title} ${story} ${place}`.match(/https?:\/\/|www\./gi) || []).length;
-  if (links > 3) throw new HttpError(400, 'Dit bidrag indeholder for mange links.');
+  // --- rens og tjek alle felter
+  const title = field(body.title, 'title');
+  const story = field(body.story, 'story', true);
+  const period = field(body.period, 'period');
+  const place = field(body.place, 'place');
+  const credit = field(body.credit, 'credit');
+  const email = field(body.email, 'email').toLowerCase();
+  const relation = Object.hasOwn(RELATIONS, body.relation) ? body.relation : '';
+  const perspective = Object.hasOwn(PERSPECTIVES, body.perspective) ? body.perspective : '';
+  if (credit.length < 2) throw new HttpError(400, 'Skriv hvem der skal krediteres for materialet (f.eks. dit navn eller fotografens navn).');
+  if (email && !/^[^\s@<>()",;:]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email)) throw new HttpError(400, 'E-mailadressen ser ikke rigtig ud.');
+  if (body.consent !== true) throw new HttpError(400, 'Du skal give tilladelse til at vi må vise og gemme dit bidrag.');
+  checkSpam([title, story, period, place, credit].join('\n'));
+
+  // Den samme tekst må ikke sendes igen (typisk spam-mønster).
+  const textHash = story.length >= 40 ? await sha256(story.toLowerCase().replace(/\s+/g, ' ')) : '';
+  if (textHash) {
+    const dup = await env.DB.prepare(`SELECT 1 FROM submissions WHERE text_hash = ? AND created_at > ? LIMIT 1`)
+      .bind(textHash, isoAgo(30 * 86400))
+      .first();
+    if (dup) throw new HttpError(409, 'Den historie er allerede sendt ind. Tak!');
+  }
 
   const maxFiles = Number(env.MAX_FILES || 40);
   const maxBytes = Number(env.MAX_FILE_MB || 2048) * 1024 * 1024;
@@ -455,9 +500,9 @@ async function createSubmission(request, env) {
 
   const items = [];
   for (const [idx, f] of files.entries()) {
-    const fname = text(f && f.name, 255) || 'fil';
+    const fname = clean(f && f.name, LIMITS.fileName).replace(/[\\/:*?"<>|]/g, '_') || 'fil';
     const size = Number(f && f.size);
-    const type = text(f && f.type, 100);
+    const type = /^[a-z]+\/[\w.+-]{1,80}$/i.test(String((f && f.type) || '')) ? String(f.type).toLowerCase() : '';
     if (!Number.isInteger(size) || size <= 0) throw new HttpError(400, `Filen "${fname}" er tom.`);
     if (size > maxBytes) throw new HttpError(400, `Filen "${fname}" er for stor (max ${env.MAX_FILE_MB || 2048} MB).`);
     const kind = kindOf(fname, type);
@@ -479,6 +524,20 @@ async function createSubmission(request, env) {
   // Spending guard: refuse before anything is written if the archive is full or the month's
   // write budget is used up. Every upload costs ~1 Class A operation per 16 MB plus 2.
   const incoming = items.reduce((n, it) => n + it.size, 0);
+  const maxSubmission = Number(env.MAX_SUBMISSION_GB || 10) * GB;
+  if (incoming > maxSubmission) throw new HttpError(400, `Et bidrag må højst fylde ${env.MAX_SUBMISSION_GB || 10} GB. Del det gerne op i flere.`);
+  // Ingen enkelt afsender må fylde arkivet op: højst IP_DAILY_GB pr. døgn.
+  if (incoming) {
+    const day = await env.DB.prepare(
+      `SELECT COALESCE(SUM(i.original_size), 0) AS bytes FROM items i JOIN submissions s ON s.id = i.submission_id
+       WHERE s.ip_hash = ? AND s.created_at > ?`,
+    )
+      .bind(ipHash, isoAgo(86400))
+      .first();
+    if (day.bytes + incoming > Number(env.IP_DAILY_GB || 20) * GB) {
+      throw new HttpError(429, 'Du har sendt meget materiale i dag. Prøv igen i morgen – eller skriv til os.');
+    }
+  }
   await checkStorage(env, incoming);
   if (items.length) {
     await chargeClassA(env, items.reduce((n, it) => n + Math.ceil(it.size / CHUNK_SIZE) + 2, 0), true);
@@ -495,13 +554,13 @@ async function createSubmission(request, env) {
 
   const stmts = [
     env.DB.prepare(
-      `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, name, email,
-         show_name, share_location, contact_ok, upload_token, ip_hash, user_agent)
-       VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, credit, show_credit,
+         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash)
+       VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
-      subId, now, title, story, period, place, perspective, relation, name, email,
-      body.showName && name ? 1 : 0, 1 /* GPS location is always shown */, body.contactOk && email ? 1 : 0,
-      uploadToken, ipHash, text(request.headers.get('user-agent'), 300),
+      subId, now, title, story, period, place, perspective, relation, credit, body.showCredit === true ? 1 : 0,
+      email, 1 /* GPS vises altid */, body.contactOk === true && email ? 1 : 0,
+      uploadToken, ipHash, clean(request.headers.get('user-agent'), 300), textHash,
     ),
     ...items.map((it) =>
       env.DB.prepare(
@@ -541,8 +600,18 @@ async function uploadPart(request, env, itemId, partNumber) {
   const length = Number(request.headers.get('content-length'));
   if (length !== expected) throw new HttpError(400, 'Forkert størrelse på fildel.');
   await chargeClassA(env, 1);
+  let body = request.body;
+  if (partNumber === 1) {
+    // Tjek filens første bytes: er det virkelig et billede/video/lyd/PDF som påstået?
+    body = await request.arrayBuffer();
+    if (body.byteLength !== expected) throw new HttpError(400, 'Forkert størrelse på fildel.');
+    if (!sniffOk(new Uint8Array(body, 0, Math.min(64, body.byteLength)), item.kind)) {
+      await rejectUpload(env, item, 'filindholdet passer ikke til filtypen');
+      throw new HttpError(415, 'Filen ser ikke ud til at være et billede, en video, lyd eller PDF.');
+    }
+  }
   const mpu = env.BUCKET.resumeMultipartUpload(item.original_key, item.upload_id);
-  const part = await mpu.uploadPart(partNumber, request.body);
+  const part = await mpu.uploadPart(partNumber, body);
   return json({ partNumber: part.partNumber, etag: part.etag });
 }
 
@@ -597,8 +666,12 @@ async function reportContribution(request, env, subId) {
   const body = await readJson(request, 10_000).catch(() => ({}));
   const sub = await env.DB.prepare(`SELECT id, status FROM submissions WHERE id = ?`).bind(subId).first();
   if (!sub) throw new HttpError(404, 'Ikke fundet');
+  const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM reports WHERE ip_hash = ? AND created_at > ?`)
+    .bind(ipHash, isoAgo(86400))
+    .first();
+  if (today.n >= 20) throw new HttpError(429, 'Du har anmeldt mange bidrag i dag. Skriv til os, hvis noget er galt.');
   const res = await env.DB.prepare(`INSERT OR IGNORE INTO reports (submission_id, ip_hash, reason, created_at) VALUES (?, ?, ?, ?)`)
-    .bind(subId, ipHash, text(body.reason, 500), new Date().toISOString())
+    .bind(subId, ipHash, clean(body.reason, LIMITS.reason, true), new Date().toISOString())
     .run();
   if (res.meta.changes) {
     // Three independent reports take the contribution offline until an admin has looked at it.
@@ -628,16 +701,20 @@ async function triggerProcessing(env) {
   if (!res.ok) console.error('GitHub dispatch failed', res.status, await res.text());
 }
 
-async function verifyTurnstile(env, token, ip) {
+async function verifyTurnstile(env, token, ip, request) {
   if (env.TURNSTILE_SECRET === 'disabled') return; // local development only
   if (!env.TURNSTILE_SECRET) throw new HttpError(500, 'Spam-beskyttelsen er ikke sat op (TURNSTILE_SECRET mangler).');
-  if (!token) throw new HttpError(400, 'Bekræft venligst at du er et menneske.');
+  if (typeof token !== 'string' || !token || token.length > 2048) throw new HttpError(400, 'Bekræft venligst at du er et menneske.');
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
   });
   const out = await res.json();
   if (!out.success) throw new HttpError(400, 'Spam-tjekket fejlede. Genindlæs siden og prøv igen.');
+  // Tokenet skal være udstedt til vores egen side og til netop denne formular.
+  const hosts = [...allowedOrigins(env), new URL(request.url).origin].map((o) => new URL(o).hostname);
+  if (out.hostname && !hosts.includes(out.hostname)) throw new HttpError(400, 'Spam-tjekket fejlede (forkert side).');
+  if (out.action && out.action !== 'bidrag') throw new HttpError(400, 'Spam-tjekket fejlede.');
 }
 
 // ---------------------------------------------------------------- media
@@ -654,6 +731,7 @@ async function serveMedia(request, env, url) {
   headers.set('etag', obj.httpEtag);
   headers.set('accept-ranges', 'bytes');
   headers.set('cache-control', 'public, max-age=31536000, immutable');
+  if (key.endsWith('.pdf')) headers.set('content-disposition', 'attachment; filename="dokument.pdf"');
   if (!('body' in obj)) return new Response(null, { status: 304, headers });
 
   let status = 200;
@@ -678,10 +756,18 @@ async function serveMedia(request, env, url) {
 
 // ---------------------------------------------------------------- admin
 
-function requireAdmin(request, env) {
+async function requireAdmin(request, env) {
   const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!env.ADMIN_TOKEN) throw new HttpError(500, 'ADMIN_TOKEN er ikke sat op.');
-  if (!safeEqual(token, env.ADMIN_TOKEN)) throw new HttpError(401, 'Forkert adgangskode.');
+  if (!env.ADMIN_TOKEN || env.ADMIN_TOKEN.length < 32) throw new HttpError(500, 'ADMIN_TOKEN er ikke sat op (mindst 32 tegn).');
+  const ipHash = await sha256(`${env.IP_SALT || ''}:${request.headers.get('cf-connecting-ip') || '0.0.0.0'}`);
+  const fails = await env.DB.prepare(`SELECT COUNT(*) AS n FROM auth_failures WHERE ip_hash = ? AND at > ?`)
+    .bind(ipHash, isoAgo(3600))
+    .first();
+  if (fails.n >= 10) throw new HttpError(429, 'For mange forkerte forsøg. Prøv igen om en time.');
+  if (!safeEqual(token, env.ADMIN_TOKEN)) {
+    await env.DB.prepare(`INSERT INTO auth_failures (ip_hash, at) VALUES (?, ?)`).bind(ipHash, new Date().toISOString()).run();
+    throw new HttpError(401, 'Forkert adgangskode.');
+  }
 }
 
 async function adminList(env, url) {
@@ -802,7 +888,12 @@ async function adminClaim(request, env) {
   )
     .bind(new Date().toISOString(), isoAgo(3 * 3600), limit)
     .all();
-  // Only what the processor needs: no names, e-mails or stories leave the worker.
+  // Kun det processoren skal bruge. Krediteringen kun hvis den må vises offentligt (den skrives ind i filerne).
+  const creditOf = new Map();
+  for (const sid of new Set(results.map((it) => it.submission_id))) {
+    const row = await env.DB.prepare(`SELECT credit, show_credit FROM submissions WHERE id = ?`).bind(sid).first();
+    if (row && row.show_credit) creditOf.set(sid, row.credit);
+  }
   return json({
     items: results.map((it) => ({
       id: it.id,
@@ -810,6 +901,7 @@ async function adminClaim(request, env) {
       original_key: it.original_key,
       original_size: it.original_size,
       original_last_modified: it.original_last_modified,
+      credit: creditOf.get(it.submission_id) || '',
     })),
   });
 }
@@ -820,7 +912,7 @@ async function adminResult(request, env, id) {
     const row = await env.DB.prepare(
       `UPDATE items SET status = CASE WHEN attempts >= 3 THEN 'failed' ELSE 'pending' END, error = ? WHERE id = ? RETURNING status`,
     )
-      .bind(text(b.error, 2000), id)
+      .bind(clean(b.error, 2000), id)
       .first();
     if (row && row.status === 'failed') await deleteOriginal(env, id);
     return json({ ok: true });
@@ -833,7 +925,7 @@ async function adminResult(request, env, id) {
   )
     .bind(
       Math.max(0, Math.round(num(b.storedBytes) || 0)), b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
-      b.takenAt || null, text(b.camera, 200) || null, num(b.lat), num(b.lon),
+      b.takenAt || null, clean(b.camera, 200) || null, num(b.lat), num(b.lon),
       b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null,
       new Date().toISOString(), id,
     )
@@ -909,12 +1001,75 @@ async function readJson(request, maxBytes) {
   }
 }
 
-function text(v, max, multiline = false) {
-  if (v === undefined || v === null) return '';
-  let s = String(v).normalize('NFC');
-  s = multiline ? s.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '') : s.replace(/[\u0000-\u001F\u007F]/g, ' ');
+// Renser tekst: Unicode-normalisering, ingen kontroltegn, usynlige tegn eller retnings-tricks,
+// ingen HTML-tags, sammenklappede mellemrum. Afkorter til max tegn.
+function clean(v, max, multiline = false) {
+  if (v === undefined || v === null || typeof v === 'object') return '';
+  let s = String(v).normalize('NFKC');
+  s = s.replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\uFFF9-\uFFFB]/g, '');
+  s = s.replace(/\r\n?/g, '\n').replace(/<\/?[a-z!][^>]*>/gi, '');
+  if (multiline) {
+    s = s.replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '').replace(/[ \t\u00A0]+/g, ' ');
+    s = s.split('\n').map((l) => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n');
+  } else {
+    s = s.replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ').replace(/\s+/g, ' ');
+  }
   s = s.trim();
-  return s.length > max ? s.slice(0, max) : s;
+  return s.length > max ? s.slice(0, max).trim() : s;
+}
+
+// Som clean(), men afviser for lange felter i stedet for at afkorte dem.
+function field(v, name, multiline = false) {
+  const max = LIMITS[name];
+  if (typeof v === 'string' && v.length > max * 2 + 100) throw new HttpError(400, `${FIELD_NAMES[name]} er for lang (max ${max} tegn).`);
+  const s = clean(v, max * 2, multiline);
+  if (s.length > max) throw new HttpError(400, `${FIELD_NAMES[name]} er for lang (max ${max} tegn).`);
+  return s;
+}
+
+function checkSpam(all) {
+  const links = (all.match(/https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|ru|cn|xyz|top|info|biz|io|shop|online|site)\b/gi) || []).length;
+  if (links > 2) throw new HttpError(400, 'Dit bidrag indeholder for mange links.');
+  if (SPAM_WORDS.test(all)) throw new HttpError(400, 'Dit bidrag blev fanget af spamfilteret. Skriv til os, hvis det er en fejl.');
+  if (/(.)\1{24,}/u.test(all)) throw new HttpError(400, 'Dit bidrag indeholder for mange gentagne tegn.');
+  const letters = all.match(/\p{L}/gu) || [];
+  const latin = all.match(/\p{Script=Latin}/gu) || [];
+  if (letters.length > 40 && latin.length / letters.length < 0.6) {
+    throw new HttpError(400, 'Skriv venligst på dansk (eller et andet sprog med latinske bogstaver).');
+  }
+}
+
+// Filsignaturer ("magic bytes") for de typer vi tager imod.
+function sniffOk(b, kind) {
+  const at = (off, ...bytes) => bytes.every((x, i) => b[off + i] === x);
+  const ascii = (off, str) => [...str].every((c, i) => b[off + i] === c.charCodeAt(0));
+  const ftyp = ascii(4, 'ftyp');
+  const riff = ascii(0, 'RIFF');
+  const tiff = at(0, 0x49, 0x49, 0x2a, 0x00) || at(0, 0x4d, 0x4d, 0x00, 0x2a) || ascii(0, 'IIRO') || ascii(0, 'IIU') || ascii(0, 'FUJIFILM');
+  if (kind === 'image') {
+    return at(0, 0xff, 0xd8, 0xff) || at(0, 0x89, 0x50, 0x4e, 0x47) || ascii(0, 'GIF8') || (riff && ascii(8, 'WEBP')) || ftyp || tiff || ascii(0, 'BM');
+  }
+  if (kind === 'video') {
+    return (
+      ftyp || ['moov', 'mdat', 'wide', 'free', 'skip'].some((a) => ascii(4, a)) || (riff && ascii(8, 'AVI ')) ||
+      at(0, 0x1a, 0x45, 0xdf, 0xa3) || b[0] === 0x47 || b[4] === 0x47 || at(0, 0x00, 0x00, 0x01, 0xba) || at(0, 0x30, 0x26, 0xb2, 0x75)
+    );
+  }
+  if (kind === 'audio') {
+    return (
+      ascii(0, 'ID3') || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) || (riff && ascii(8, 'WAVE')) || ascii(0, 'OggS') ||
+      ascii(0, 'fLaC') || ftyp || ascii(0, '#!AMR') || at(0, 0x30, 0x26, 0xb2, 0x75) || ascii(0, 'FORM')
+    );
+  }
+  if (kind === 'document') return ascii(0, '%PDF');
+  return false;
+}
+
+async function rejectUpload(env, item, reason) {
+  await env.BUCKET.resumeMultipartUpload(item.original_key, item.upload_id).abort().catch(() => {});
+  await env.DB.prepare(`UPDATE items SET status = 'failed', error = ?, upload_id = NULL, original_deleted = 1 WHERE id = ?`)
+    .bind(reason, item.id)
+    .run();
 }
 
 function extOf(name) {

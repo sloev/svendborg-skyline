@@ -1,10 +1,7 @@
 name: Udgiv hjemmeside (GitHub Pages)
 
-# Publishes public/ to GitHub Pages. The API stays on the Cloudflare Worker;
-# config.js is generated so the site knows where it is (variable WORKER_URL, or looked up
-# with the Cloudflare secrets).
-#
-# One-time setup: Settings → Pages → Source: "GitHub Actions".
+# Udgiver public/ på GitHub Pages. API'et ligger på Cloudflare-workeren; config.js skrives,
+# så siden ved hvor den er (variablen WORKER_URL, eller slået op med Cloudflare-hemmelighederne).
 
 on:
   push:

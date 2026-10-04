@@ -1,5 +1,6 @@
-# Copy to .dev.vars for local development (never commit .dev.vars)
-TURNSTILE_SECRET=1x0000000000000000000000000000000AA
-ADMIN_TOKEN=dev-admin-token
-IP_SALT=dev-salt
-# GITHUB_TOKEN=
+# Kopiér til .dev.vars til lokal udvikling (commit aldrig .dev.vars)
+TURNSTILE_SECRET=disabled
+TURNSTILE_SITE_KEY=
+ADMIN_TOKEN=lokal-udvikling-0000000000000000000000
+IP_SALT=lokal-salt
+ALLOWED_ORIGINS=http://localhost:8787

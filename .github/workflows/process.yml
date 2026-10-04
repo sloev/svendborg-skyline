@@ -1,15 +1,15 @@
 name: Behandl uploads
 
-# Re-encodes new uploads (photos → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, sound → M4A,
-# PDF → Ghostscript) and keeps their metadata incl. GPS. The worker deletes the originals.
+# Omkoder nye uploads (billeder → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, lyd → M4A,
+# PDF → Ghostscript) og bevarer deres metadata inkl. GPS. Workeren sletter originalerne.
 #
-# Started by the worker right after an upload (repository_dispatch), every hour as a fallback,
-# or by hand from the Actions tab.
+# Startes af workeren lige efter en upload (repository_dispatch), hver time som sikkerhedsnet,
+# eller i hånden fra Actions-fanen.
 #
-# Secrets (Settings → Secrets and variables → Actions): ADMIN_TOKEN, CLOUDFLARE_API_TOKEN and
-# CLOUDFLARE_ACCOUNT_ID (used only to look up the worker's address; or set the variable WORKER_URL).
+# Hemmeligheder: ADMIN_TOKEN, CLOUDFLARE_API_TOKEN og CLOUDFLARE_ACCOUNT_ID (bruges kun til at
+# finde workerens adresse; ellers sæt variablen WORKER_URL).
 #
-# The repository is public, so these logs are public: nothing personal is ever printed.
+# Repoet er offentligt, så logs er offentlige: der skrives aldrig personlige oplysninger ud.
 
 on:
   repository_dispatch:

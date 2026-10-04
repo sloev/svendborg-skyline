@@ -2,21 +2,22 @@ name = "silo-arkiv"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 
-# Static site (public/) is served for free; /api/* and /media/* go to the worker.
+# Den statiske side (public/) serveres gratis; /api/* og /media/* går til workeren.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "404-page"
 run_worker_first = ["/api/*", "/media/*"]
 
-# Daily clean-up of unfinished uploads.
+# Daglig oprydning i uploads, der aldrig blev gjort færdige.
 [triggers]
 crons = ["23 3 * * *"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "silo-arkiv"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"   # see README → "Updating the worker later"
+# Det rigtige id sættes kun under udgivelse (find det med `npx wrangler d1 list`). Commit det ikke.
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
@@ -24,32 +25,31 @@ binding = "BUCKET"
 bucket_name = "silo-arkiv"
 
 [vars]
-# Public Turnstile site key (for local testing use the always-passing test key 1x00000000000000000000AA via .dev.vars).
+# Offentlig Turnstile-nøgle (lokalt bruges testnøglen 1x00000000000000000000AA via .dev.vars).
 TURNSTILE_SITE_KEY = "0x4AAAAAAFNXcGxm9JQyNYTX"
-# Max size of a single file in MB, and max files per contribution.
+# Max størrelse pr. fil (MB), max filer pr. bidrag, max samlet størrelse pr. bidrag
+# og max mængde pr. afsender (IP) pr. døgn.
 MAX_FILE_MB = "2048"
 MAX_FILES = "40"
-# "post" = contributions are shown right away (admin can hide them afterwards)
-# "pre"  = contributions must be approved in /admin.html before they are shown
+MAX_SUBMISSION_GB = "10"
+IP_DAILY_GB = "20"
+# "post" = bidrag vises med det samme (kan skjules bagefter i /admin.html)
+# "pre"  = bidrag skal godkendes i /admin.html, før de vises
 MODERATION = "post"
-# Leave empty to serve media through the worker (/media/...). Keep it empty to stay inside the
-# spending guard: reads through the worker are capped by the Workers Free plan, reads from a public
-# bucket domain are not.
+# Lad være tom: så går alle medier gennem workeren og holdes inden for udgiftsloftet.
 MEDIA_BASE_URL = ""
-# Repository whose "Behandl uploads" workflow converts the uploads (needs GITHUB_TOKEN secret).
+# Repo hvis "Behandl uploads"-workflow omkoder filerne (kræver GITHUB_TOKEN-hemmeligheden).
 GITHUB_REPO = "sloev/svendborg-skyline"
-# Spending guard (see src/worker.js). Worst case with these values: (250 − 10) GB × $0.015 ≈ $3.60/month.
+# Udgiftsloft (se src/worker.js). Værst tænkelige: (250 − 10) GB × $0,015 ≈ $3,60 pr. måned.
 STORAGE_LIMIT_GB = "250"
 CLASS_A_MONTHLY_LIMIT = "900000"
-# Websites allowed to call the API from the browser (CORS), comma separated.
-# Needed when the site is hosted on GitHub Pages, e.g. "https://sloev.github.io".
+# Sider der må kalde API'et fra browseren (CORS og afsender-tjek), kommasepareret.
 ALLOWED_ORIGINS = "https://sloev.github.io"
-# Shown in the footer / privacy section.
+# Vises i afsnittet om privatliv.
 CONTACT_EMAIL = "fremmedartet@gmail.com"
 
-# Secrets (set with `npx wrangler secret put NAME`, or in .dev.vars locally):
-#   TURNSTILE_SECRET  – Turnstile secret key
-#   ADMIN_TOKEN       – long random string, used by /admin.html and the processor
-#   IP_SALT           – random string used to hash IP addresses for rate limiting
-#   GITHUB_TOKEN      – (optional, from the GitHub secret DISPATCH_TOKEN) fine-grained token with "Contents: read & write" on GITHUB_REPO,
-#                       used to start processing right after an upload instead of waiting for the hourly run
+# Hemmeligheder (sat som krypterede worker-hemmeligheder, aldrig i repoet):
+#   TURNSTILE_SECRET  – Turnstile-hemmelighed
+#   ADMIN_TOKEN       – lang tilfældig streng (mindst 32 tegn): adgangskode til /admin.html og processoren
+#   IP_SALT           – tilfældig streng til hashing af IP-adresser
+#   GITHUB_TOKEN      – GitHub-token (Contents: read & write), starter omkodning lige efter upload

@@ -2,36 +2,14 @@
 <html lang="da">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev; connect-src 'self' https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Administration – Siloerne på Østre Kaj</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
-  <style>
-    .admin { max-width: 1200px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 80px; }
-    .admin-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-    .row { background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
-    .row.st-hidden { opacity: .6; }
-    .row.st-review { outline: 3px solid #e7b34a; }
-    .row header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
-    .row h3 { margin: 0; font-size: 1.1rem; }
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: #e7e1d6; }
-    .pill.published { background: #d6efe7; color: #146a59; }
-    .pill.review { background: #fbe8c1; color: #7a5200; }
-    .pill.hidden, .pill.failed { background: #f6d6d3; color: #8c1d16; }
-    .pill.uploading, .pill.pending, .pill.processing { background: #dbe8f1; color: #1f4766; }
-    .meta { font-size: .85rem; color: var(--muted); }
-    .story { white-space: pre-line; margin: 10px 0; max-height: 12em; overflow: auto; }
-    .items { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-    .items figure { margin: 0; width: 130px; font-size: .75rem; }
-    .items img { width: 130px; height: 98px; object-fit: cover; border-radius: 6px; background: #ddd; }
-    .items .noimg { width: 130px; height: 98px; display: flex; align-items: center; justify-content: center; background: #e7e1d6; border-radius: 6px; font-size: 1.6rem; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .admin-bar select { width: auto; }
-    .actions button { padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; font: 500 .9rem var(--sans); cursor: pointer; }
-    .actions button.danger { color: var(--danger); border-color: #e3b2ae; }
-    #login { max-width: 420px; margin: 12vh auto; }
-  </style>
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
   <main class="admin">
@@ -44,7 +22,7 @@
 
     <div id="panel" hidden>
       <div class="admin-bar">
-        <h1 style="margin:0">Bidrag</h1>
+        <h1 class="admin-title">Bidrag</h1>
         <div class="actions">
           <select id="status">
             <option value="">Alle</option>

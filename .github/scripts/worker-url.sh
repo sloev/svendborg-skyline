@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Prints the worker's URL: the WORKER_URL variable if set, otherwise
-# https://silo-arkiv.<workers.dev subdomain>.workers.dev looked up with the Cloudflare API.
+# Skriver workerens adresse: variablen WORKER_URL hvis den er sat, ellers
+# https://silo-arkiv.<workers.dev-subdomæne>.workers.dev slået op via Cloudflares API.
 set -euo pipefail
 if [ -n "${WORKER_URL:-}" ]; then echo "${WORKER_URL%/}"; exit 0; fi
 if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then exit 0; fi

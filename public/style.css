@@ -217,3 +217,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+.tile-body-quote { padding: 0 0 14px; }
+.counter { display: block; text-align: right; color: var(--muted); font-size: .8rem; margin-top: 4px; }
+.req { color: var(--danger) !important; }
+.field .hint { display: block; margin-top: 6px; }

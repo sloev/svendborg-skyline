@@ -2,6 +2,8 @@
 <html lang="da">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev; connect-src 'self' https://*.workers.dev; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Siloerne på Østre Kaj – del dine billeder og minder</title>
   <meta name="description" content="Siloerne på Østre Kaj i Svendborg skal rives ned. Del dine billeder, videoer, historier og minder om siloerne, før de forsvinder fra byens skyline.">
@@ -14,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="style.css">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
@@ -100,20 +102,20 @@
           <legend>2. Fortæl om det</legend>
           <label class="field">
             <span>Overskrift <em>(valgfri)</em></span>
-            <input type="text" name="title" maxlength="150" placeholder="F.eks. Solnedgang over havnen, juni 2024">
+            <input type="text" name="title" maxlength="120" placeholder="F.eks. Solnedgang over havnen, juni 2024">
           </label>
           <label class="field">
             <span>Din historie eller beskrivelse</span>
-            <textarea name="story" rows="6" maxlength="20000" placeholder="Hvad ser vi? Hvornår og hvorfor tog du billedet? Har du et minde om siloerne, om arbejdet derinde eller om livet på havnen?"></textarea>
+            <textarea name="story" rows="6" maxlength="8000" data-counter placeholder="Hvad ser vi? Hvornår og hvorfor tog du billedet? Har du et minde om siloerne, om arbejdet derinde eller om livet på havnen?"></textarea>
           </label>
           <div class="grid-2">
             <label class="field">
               <span>Hvornår? <em>(valgfri)</em></span>
-              <input type="text" name="period" maxlength="100" placeholder="F.eks. sommeren 1987 eller 2025">
+              <input type="text" name="period" maxlength="60" placeholder="F.eks. sommeren 1987 eller 2025">
             </label>
             <label class="field">
               <span>Hvor fra? <em>(valgfri)</em></span>
-              <input type="text" name="place" maxlength="200" placeholder="F.eks. fra Svendborgsund-broen">
+              <input type="text" name="place" maxlength="120" placeholder="F.eks. fra Svendborgsund-broen">
             </label>
             <label class="field">
               <span>Hvordan er det set?</span>
@@ -127,24 +129,25 @@
         </fieldset>
 
         <fieldset>
-          <legend>3. Om dig</legend>
-          <div class="grid-2">
-            <label class="field">
-              <span>Navn <em>(valgfri)</em></span>
-              <input type="text" name="name" maxlength="100" autocomplete="name">
-            </label>
-            <label class="field">
-              <span>E-mail <em>(valgfri, vises aldrig)</em></span>
-              <input type="email" name="email" maxlength="200" autocomplete="email">
-            </label>
-          </div>
-          <label class="check"><input type="checkbox" name="showName"> <span>Vis mit navn ved bidraget</span></label>
+          <legend>3. Kreditering og kontakt</legend>
+          <label class="field">
+            <span>Kreditering / ophavsret <em class="req">(skal udfyldes)</em></span>
+            <input type="text" name="credit" required minlength="2" maxlength="120" autocomplete="name" placeholder="F.eks. Foto: Jens Hansen · © Familien Larsen · Svendborg Havn">
+            <small class="hint">Hvem har taget billederne eller ejer materialet? Det gemmes altid sammen med bidraget.</small>
+          </label>
+          <label class="check"><input type="checkbox" name="showCredit"> <span>Vis krediteringen offentligt ved bidraget og i filerne <span class="muted">(ellers kender kun vi den)</span></span></label>
+          <label class="field">
+            <span>E-mail <em>(valgfri, vises aldrig)</em></span>
+            <input type="email" name="email" maxlength="254" autocomplete="email" inputmode="email">
+          </label>
           <label class="check"><input type="checkbox" name="contactOk"> <span>I må gerne kontakte mig, hvis I vil høre mere</span></label>
           <label class="check required"><input type="checkbox" name="consent" required> <span>Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span></label>
         </fieldset>
 
         <div class="hp" aria-hidden="true">
           <label>Lad dette felt være tomt <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+          <label>Lad dette felt være tomt <input type="url" name="url" tabindex="-1" autocomplete="off"></label>
+          <label>Lad dette felt være tomt <input type="tel" name="phone" tabindex="-1" autocomplete="off"></label>
         </div>
 
         <div class="submit-row">
@@ -211,6 +214,7 @@
         <div>
           <h3>Dine rettigheder</h3>
           <ul>
+            <li>Krediteringen (hvem der har taget billederne eller ejer materialet) gemmes altid. Den vises kun offentligt, ved bidraget og inde i filerne, hvis du sætter kryds ved det. Ellers fjerner vi også navne fra filernes egne oplysninger.</li>
             <li>Du beholder ophavsretten til dit materiale. Du giver os lov til at vise det her og gemme det i arkivet om siloerne.</li>
             <li>Vil du have et bidrag rettet eller fjernet? Skriv til os<span id="contact-line">, så sletter vi det</span>.</li>
             <li>Ser du noget, der ikke hører hjemme her? Brug knappen <em>Anmeld</em> ved bidraget.</li>
@@ -243,7 +247,7 @@
     </div>
   </dialog>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="config.js"></script>
   <script src="app.js" defer></script>
 </body>

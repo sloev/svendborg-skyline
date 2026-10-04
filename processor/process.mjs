@@ -51,7 +51,7 @@ const VIDEO_CRF = '21';
 const AUDIO_BITRATE = '128k';
 
 if (!WORKER_URL || !ADMIN_TOKEN) {
-  console.error('WORKER_URL and ADMIN_TOKEN must be set');
+  console.error('WORKER_URL og ADMIN_TOKEN skal være sat');
   process.exit(1);
 }
 
@@ -135,8 +135,8 @@ async function convert(item, original, dir) {
       .toFile(photo);
     await img.clone().resize({ width: WEB_PX, height: WEB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(WEB).toFile(web);
     await img.clone().resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
-    await copyMetadata(original, photo);
-    await copyMetadata(original, web);
+    await copyMetadata(original, photo, item.credit);
+    await copyMetadata(original, web, item.credit);
     await upload(photo, `${base}/photo.jpg`, 'image/jpeg');
     await upload(web, `${base}/web.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
@@ -171,7 +171,7 @@ async function convert(item, original, dir) {
       '-c:v', 'libx264', '-preset', 'medium', '-crf', VIDEO_CRF, '-maxrate', '12M', '-bufsize', '24M',
       '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
       ...(hasAudio ? ['-c:a', 'aac', '-b:a', AUDIO_BITRATE, '-ac', '2'] : []),
-      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags',
+      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', ...creditArgs(item.credit),
       video,
     ]);
     const info = await probe(video);
@@ -200,7 +200,7 @@ async function convert(item, original, dir) {
     await run('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y', '-i', original, '-vn',
       '-c:a', 'aac', '-b:a', channels === 1 ? '96k' : AUDIO_BITRATE, '-ac', String(channels),
-      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', audio,
+      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', ...creditArgs(item.credit), audio,
     ]);
     const info = await probe(audio);
     await upload(audio, `${base}/audio.m4a`, 'audio/mp4');
@@ -276,13 +276,30 @@ function parseExifDate(v) {
 // Copy every tag from the original into the re-encoded file (date, camera, GPS, …) except
 // orientation (already applied to the pixels), colour profile (pixels are converted to sRGB)
 // and embedded preview images.
-async function copyMetadata(from, to) {
+// Kreditering: skrives ind som ophavsret, hvis den må vises offentligt. Ellers fjernes navne fra filen,
+// så de ikke bliver offentlige alligevel.
+function creditArgs(credit) {
+  return credit
+    ? ['-metadata', `copyright=${credit}`, '-metadata', `artist=${credit}`]
+    : ['-metadata', 'copyright=', '-metadata', 'artist=', '-metadata', 'author=', '-metadata', 'composer='];
+}
+
+function creditTags(credit) {
+  return credit
+    ? [`-Copyright=${credit}`, `-Artist=${credit}`, `-XMP-dc:Rights=${credit}`, `-XMP-dc:Creator=${credit}`, `-XMP-photoshop:Credit=${credit}`, `-IPTC:CopyrightNotice=${credit}`, '-IPTC:By-line=']
+    : ['-Artist=', '-Copyright=', '-OwnerName=', '-CameraOwnerName=', '-SerialNumber=', '-XMP-dc:Creator=', '-XMP-dc:Rights=', '-XMP-photoshop:Credit=', '-IPTC:By-line=', '-IPTC:CopyrightNotice='];
+}
+
+async function copyMetadata(from, to, credit) {
   // prettier-ignore
   await run('exiftool', [
     '-overwrite_original', '-q', '-q', '-m', '-api', 'LargeFileSupport=1', '-tagsFromFile', from, '-all:all', '-unsafe',
     '--Orientation', '--ICC_Profile:all', '--ThumbnailImage', '--PreviewImage', '--JpgFromRaw', '--MPImage*',
     '--ImageWidth', '--ImageHeight', '--ExifImageWidth', '--ExifImageHeight', '-Orientation=1', '-n', to,
   ]).catch((err) => console.warn('  kunne ikke kopiere metadata:', err.message));
+  // prettier-ignore
+  await run('exiftool', ['-overwrite_original', '-q', '-q', '-m', '-charset', 'iptc=UTF8', '-codedcharacterset=utf8', ...creditTags(credit), to])
+    .catch((err) => console.warn('  kunne ikke skrive kreditering:', err.message));
 }
 
 // ---------------------------------------------------------------- worker API
