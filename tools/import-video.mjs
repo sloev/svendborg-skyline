@@ -12,7 +12,7 @@
 //        OUT_DIR (valgfri: behold de udtrukne filer her)
 
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -26,6 +26,7 @@ if (!DRY && (!WORKER || !ADMIN)) {
 }
 const MANIFEST = process.env.MANIFEST || path.join(path.dirname(new URL(import.meta.url).pathname), 'udvalg-video.json');
 const OUT = process.env.OUT_DIR || mkdtempSync(path.join(os.tmpdir(), 'silo-video-'));
+mkdirSync(OUT, { recursive: true });
 const LICENSE = 'Ophavsret ikke afklaret';
 
 const { videos } = JSON.parse(readFileSync(MANIFEST, 'utf8'));

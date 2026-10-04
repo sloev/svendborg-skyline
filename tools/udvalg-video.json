@@ -88,7 +88,26 @@
    "title": "Droneoptagelser Svendborg havn og Æ rø færge tidlig morgen",
    "channel": "Drone Fyn",
    "channelUrl": "https://www.youtube.com/@dronefyn8373",
-   "items": []
+   "items": [
+    {
+     "type": "still",
+     "t": 140,
+     "title": "Siloerne i aftenlys bag Ærøfærgen, 2016",
+     "perspective": "luften",
+     "story": "Ærøfærgen sejler ind mod Svendborg Havn i aftensolen. På kajen bagved ses den hvide og den røde silo på Østre Kaj. Droneoptagelse fra 6. juni 2016."
+    },
+    {
+     "type": "clip",
+     "start": 128,
+     "end": 152,
+     "title": "Ærøfærgen sejler ind mod siloerne, 2016 (klip)",
+     "perspective": "luften",
+     "story": "Dronen følger Ærøfærgen ind mod Svendborg Havn med siloerne på Østre Kaj i baggrunden. Optaget 6. juni 2016."
+    }
+   ],
+   "period": "6. juni 2016",
+   "dateFrom": "titelkort i videoen (»Optaget 6. juni 2016«)",
+   "credit": "Drone Fyn / DroneFyn.dk (YouTube)"
   },
   {
    "id": "d15rS1OUqGQ",
@@ -96,7 +115,40 @@
    "title": "Færgen Højestene sejler fra Svendborg",
    "channel": "Svendborger",
    "channelUrl": "https://www.youtube.com/@Svendborger",
-   "items": []
+   "items": [
+    {
+     "type": "still",
+     "t": 83,
+     "title": "Den røde og den grå silo set fra vandet",
+     "perspective": "vandet",
+     "story": "Den røde silo i murværk og den grå betonsilo på Østre Kaj set fra Svendborgsund, med lystbådehavnen foran. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "still",
+     "t": 66,
+     "title": "Færgen Højestene foran den røde silo",
+     "perspective": "vandet",
+     "story": "Færgen Højestene sejler forbi den røde silo på Østre Kaj. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "still",
+     "t": 2,
+     "title": "Den grå silo og en sejlbåd",
+     "perspective": "vandet",
+     "story": "Den grå betonsilo på Østre Kaj med en sejlbåd og færgen Højestene på vej ud fra Svendborg. Optagelsesdatoen kendes ikke."
+    },
+    {
+     "type": "clip",
+     "start": 60,
+     "end": 84,
+     "title": "Færgen Højestene sejler forbi siloerne (klip)",
+     "perspective": "vandet",
+     "story": "Færgen Højestene glider forbi den røde og den grå silo på Østre Kaj. Optagelsesdatoen kendes ikke."
+    }
+   ],
+   "period": "",
+   "dateFrom": "ukendt (YouTube blokerede opslag af upload-datoen)",
+   "credit": "Svendborger (YouTube)"
   },
   {
    "id": "sb0o2jmqLWo",
