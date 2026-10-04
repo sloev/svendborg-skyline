@@ -1457,7 +1457,8 @@ async function adminImport(request, env) {
     }
     return json({ id: dup.id, resumed: true, items: waiting.map((w) => ({ id: w.id, name: w.original_name })) });
   }
-  if (!files.length) throw new HttpError(400, 'nothing');
+  // Uden filer: en ren tekst (f.eks. en historie skrevet ud fra kilder) – så skal der være en historie.
+  if (!files.length && clean(b.story, LIMITS.story, true).length < 20) throw new HttpError(400, 'nothing');
   const subId = crypto.randomUUID();
   const now = new Date().toISOString();
   const items = files.map((f, idx) => {
