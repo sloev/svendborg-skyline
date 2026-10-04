@@ -149,11 +149,12 @@
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   }
 
-  // Dato: EXIF-datoen fra filen først, og den dato personen selv skrev i parentes (hvis den findes).
+  // Dato: EXIF-datoen fra filen først (med den skrevne dato i parentes, hvis den findes),
+  // ellers den skrevne dato, ellers datoen for uploaden.
   function dateText(c, it) {
     const taken = it ? formatTaken(it.takenAt) : '';
     if (taken && c.period) return `${taken} (${c.period})`;
-    return taken || c.period || '';
+    return taken || c.period || formatTaken(c.publishedAt);
   }
 
   function formatTaken(v) {
