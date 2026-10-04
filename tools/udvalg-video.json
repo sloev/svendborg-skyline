@@ -1,0 +1,136 @@
+{
+ "note": "Videofilerne ligger ikke i repoet. Kør tools/import-video.mjs med VIDEO_DIR. Videoer uden items er ikke gennemgået endnu.",
+ "videos": [
+  {
+   "id": "AO5AWL1FlMk",
+   "slug": "svendborg-havn-1950erne",
+   "title": "Svendborg i 1950'erne - Svendborg Havn",
+   "channel": "Svendborger",
+   "channelUrl": "https://www.youtube.com/channel/UCe6vMrmRS9xHSSj3kEIhoVw",
+   "uploadDate": "2013-07-07",
+   "description": "Fra Kogtved til Christiansminde i midten af 1950'erne",
+   "period": "1950'erne",
+   "dateFrom": "titel",
+   "credit": "Sylvest Jensen / Det Kongelige Bibliotek (Danmark set fra luften), via YouTube: Svendborger",
+   "items": [
+    {
+     "type": "still",
+     "t": 55.5,
+     "crop": "1092:1076:414:2",
+     "title": "Østre Havn og siloen fra luften, 1950'erne",
+     "perspective": "luften",
+     "story": "Luftfoto ind over Østre Havn med siloen og et skib ved kajen, og byen og Svendborgsund bagved. Luftfoto fra Det Kongelige Biblioteks samling »Danmark set fra luften«."
+    },
+    {
+     "type": "still",
+     "t": 59.5,
+     "crop": "1132:1076:394:2",
+     "title": "Havnebassinet med siloen på Østre Kaj, 1950'erne",
+     "perspective": "luften",
+     "story": "Oversigt over havnebassinet, jernbanen og kvartererne bag Østre Havn, med siloen ude på kajen. Luftfoto fra Det Kongelige Biblioteks samling »Danmark set fra luften«."
+    },
+    {
+     "type": "still",
+     "t": 62,
+     "crop": "1088:1076:416:2",
+     "title": "Siloerne og pakhusene på Østre Havn, 1950'erne",
+     "perspective": "luften",
+     "story": "Tæt på siloerne og pakhusene på Østre Havn med byen bagved. Luftfoto fra Det Kongelige Biblioteks samling »Danmark set fra luften«."
+    },
+    {
+     "type": "still",
+     "t": 66,
+     "crop": "1156:1076:382:2",
+     "title": "Den høje silo på Østre Kaj, 1950'erne",
+     "perspective": "luften",
+     "story": "Den høje silo og pakhuset på Østre Kaj med et skib ved kajen. Luftfoto fra Det Kongelige Biblioteks samling »Danmark set fra luften«."
+    },
+    {
+     "type": "clip",
+     "start": 54,
+     "end": 69,
+     "crop": "1164:1080:378:0",
+     "title": "Siloen på Østre Kaj i luftfotos fra 1950'erne (klip)",
+     "perspective": "luften",
+     "story": "15 sekunder fra filmen, hvor kameraet glider hen over luftfotos af Østre Havn og siloen. Luftfoto fra Det Kongelige Biblioteks samling »Danmark set fra luften«."
+    }
+   ]
+  },
+  {
+   "id": "yfRmwrcjCKU",
+   "slug": "faf-filmen-1973",
+   "title": "Den gamle FAF film",
+   "channel": "Hans Jørgen Hansen",
+   "channelUrl": "https://www.youtube.com/channel/UC6kXR4wNLOt427o7QKkiiWg",
+   "uploadDate": "2015-01-28",
+   "description": "Film fra 1973 om en korn og foderstofvirksomhed.",
+   "period": "1973",
+   "dateFrom": "beskrivelse",
+   "credit": "Hans Jørgen Hansen (YouTube)",
+   "items": []
+  },
+  {
+   "id": "0Bbc8m0AIms",
+   "slug": "droneview-svendborg-havn",
+   "title": "Droneview fra Svendborg Havn",
+   "channel": "Propagandakontoret",
+   "channelUrl": "https://www.youtube.com/channel/UCo7UgU0LbXwcFJv9P4n1hlQ",
+   "uploadDate": "2021-01-22",
+   "description": "Svendborg har en charmerende havn med plads til både erhverv og fritidsaktiviteter blandet mellem hinanden.",
+   "period": "januar 2021",
+   "dateFrom": "upload",
+   "credit": "Propagandakontoret (YouTube)",
+   "items": []
+  },
+  {
+   "id": "54Igi6B6GVY",
+   "slug": "drone-havn-aeroefaerge",
+   "title": "Droneoptagelser Svendborg havn og Æ rø færge tidlig morgen",
+   "channel": "Drone Fyn",
+   "channelUrl": "https://www.youtube.com/@dronefyn8373",
+   "items": []
+  },
+  {
+   "id": "d15rS1OUqGQ",
+   "slug": "faergen-hoejestene",
+   "title": "Færgen Højestene sejler fra Svendborg",
+   "channel": "Svendborger",
+   "channelUrl": "https://www.youtube.com/@Svendborger",
+   "items": []
+  },
+  {
+   "id": "sb0o2jmqLWo",
+   "slug": "frederiksoeen",
+   "title": "SVENDBORG.  FREDERIKSØEN",
+   "channel": "ESKILD TV",
+   "channelUrl": "https://www.youtube.com/@ASKETILL",
+   "items": []
+  },
+  {
+   "id": "_qY5j1PHEqw",
+   "slug": "vaerft-kaempe-skib",
+   "title": "Svendborg Værft kæmpe skib",
+   "channel": "Drone Fyn",
+   "channelUrl": "https://www.youtube.com/@dronefyn8373",
+   "items": []
+  },
+  {
+   "id": "illCdGiI6uw",
+   "slug": "havn-im-sommer",
+   "title": "SVENDBORG HAVN IM SOMMER",
+   "channel": "ESKILD TV",
+   "channelUrl": "https://www.youtube.com/@ASKETILL",
+   "items": []
+  },
+  {
+   "id": "yp6gbE4bYNo",
+   "slug": "vaerft-1950-60",
+   "title": "Svendborg værft 1950 60",
+   "channel": "Jens P. Pedersen",
+   "channelUrl": "https://www.youtube.com/@jensp.pedersen5651",
+   "period": "1950–1960",
+   "dateFrom": "titel",
+   "items": []
+  }
+ ]
+}

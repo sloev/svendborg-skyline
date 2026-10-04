@@ -1439,9 +1439,24 @@ async function adminImport(request, env) {
   const license = clean(b.license, 80);
   const licenseUrl = /^https?:\/\//.test(String(b.licenseUrl || '')) ? clean(b.licenseUrl, 300) : '';
   if (!license) throw new HttpError(400, 'invalid_data');
-  const dup = await env.DB.prepare(`SELECT id FROM submissions WHERE source_url = ? LIMIT 1`).bind(sourceUrl).first();
-  if (dup) return json({ duplicate: true, id: dup.id });
   const files = Array.isArray(b.files) ? b.files.slice(0, 10) : [];
+  const dup = await env.DB.prepare(`SELECT id FROM submissions WHERE source_url = ? LIMIT 1`).bind(sourceUrl).first();
+  if (dup) {
+    // En tidligere import, hvor filen aldrig nåede frem: lad værktøjet uploade den igen.
+    const { results: waiting } = await env.DB.prepare(
+      `SELECT id, position, original_name FROM items WHERE submission_id = ? AND status = 'uploading' ORDER BY position`,
+    )
+      .bind(dup.id)
+      .all();
+    if (!waiting.length) return json({ duplicate: true, id: dup.id });
+    for (const w of waiting) {
+      const size = Number(files[w.position] && files[w.position].size);
+      if (Number.isInteger(size) && size > 0 && size <= 95 * 1024 * 1024) {
+        await env.DB.prepare(`UPDATE items SET original_size = ? WHERE id = ?`).bind(size, w.id).run();
+      }
+    }
+    return json({ id: dup.id, resumed: true, items: waiting.map((w) => ({ id: w.id, name: w.original_name })) });
+  }
   if (!files.length) throw new HttpError(400, 'nothing');
   const subId = crypto.randomUUID();
   const now = new Date().toISOString();
