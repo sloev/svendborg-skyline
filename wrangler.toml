@@ -1,0 +1,44 @@
+name = "silo-arkiv"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+# Static site (public/) is served for free; /api/* and /media/* go to the worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+run_worker_first = ["/api/*", "/media/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "silo-arkiv"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"   # output of: npx wrangler d1 create silo-arkiv
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "silo-arkiv"
+
+[vars]
+# Public Turnstile site key. The test key below always passes – replace in production.
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+# Max size of a single file in MB, and max files per contribution.
+MAX_FILE_MB = "2048"
+MAX_FILES = "40"
+# "post" = contributions are shown right away (admin can hide them afterwards)
+# "pre"  = contributions must be approved in /admin.html before they are shown
+MODERATION = "post"
+# Leave empty to serve media through the worker (/media/...).
+# Set to e.g. "https://media.example.dk" if the R2 bucket has a public custom domain.
+MEDIA_BASE_URL = ""
+# Repository whose "Behandl uploads" workflow converts the uploads (needs GITHUB_TOKEN secret).
+GITHUB_REPO = "sloev/svendborg-skyline"
+# Shown in the footer / privacy section.
+CONTACT_EMAIL = ""
+
+# Secrets (set with `npx wrangler secret put NAME`, or in .dev.vars locally):
+#   TURNSTILE_SECRET  – Turnstile secret key
+#   ADMIN_TOKEN       – long random string, used by /admin.html and the processor
+#   IP_SALT           – random string used to hash IP addresses for rate limiting
+#   GITHUB_TOKEN      – (optional) fine-grained token with "Contents: read & write" on GITHUB_REPO,
+#                       used to start processing right after an upload instead of waiting for the hourly run

@@ -1,0 +1,11 @@
+{
+  "name": "silo-arkiv-processor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node process.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.34.4"
+  }
+}
