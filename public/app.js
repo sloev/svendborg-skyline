@@ -220,6 +220,18 @@
       set('videos', s.videos);
       set('other', (s.audio || 0) + (s.documents || 0));
     } catch {}
+    loadArchive();
+  }
+
+  // Hele arkivet som PDF (bygges dagligt af en GitHub Action, kun når der er nyt).
+  async function loadArchive() {
+    try {
+      const a = await getJson('/api/archive');
+      if (!a.available || !/^https?:\/\//.test(a.url || '')) return;
+      $('#archive-link').href = a.url;
+      $('#archive-meta').textContent = t('archive.meta', { n: fmtNum.format(a.count || 0), size: formatSize(a.bytes || 0), date: formatTaken(a.generatedAt) });
+      $('#archive-dl').hidden = false;
+    } catch {}
   }
 
   // ------------------------------------------------------------------ turnstile

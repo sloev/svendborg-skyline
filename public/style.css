@@ -314,3 +314,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .form-top .link { margin-left: auto; font-size: .9rem; }
 .draft-status { margin: 0; font-size: .85rem; color: var(--teal-dark); }
 .prefill-note { background: #f1f7f5; border-radius: 8px; padding: 8px 12px; margin: -6px 0 14px; }
+
+/* Hele arkivet som PDF */
+.archive-dl { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line, rgba(0, 0, 0, 0.12)); }
+.archive-dl p { margin: 0.6rem auto 0; max-width: 38rem; font-size: 0.9rem; }

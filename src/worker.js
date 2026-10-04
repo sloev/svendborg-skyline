@@ -298,6 +298,7 @@ async function api(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return getStats(env);
   if (path === '/api/contributions' && method === 'GET') return listContributions(env, url);
   if (path === '/api/map' && method === 'GET') return getMap(env);
+  if (path === '/api/archive' && method === 'GET') return getArchive(env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)$/)) && method === 'GET') return getContribution(env, m[1]);
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) requireOrigin(request, env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/report$/)) && method === 'POST') return reportContribution(request, env, m[1]);
@@ -458,6 +459,20 @@ async function getMap(env) {
     200,
     { 'cache-control': 'public, max-age=60' },
   );
+}
+
+// Hele arkivet som én PDF. Bygges dagligt af GitHub Actions (.github/workflows/pdf.yml), kun når der
+// er sket noget siden sidst, og lægges i R2 under media/arkiv/ sammen med info.json.
+const ARCHIVE_PDF = 'media/arkiv/siloerne.pdf';
+const ARCHIVE_INFO = 'media/arkiv/info.json';
+
+async function getArchive(env) {
+  const obj = await env.BUCKET.get(ARCHIVE_INFO);
+  const info = obj ? await obj.json().catch(() => null) : null;
+  const out = info
+    ? { available: true, url: mediaUrl(env, ARCHIVE_PDF), generatedAt: info.generatedAt, count: info.count, bytes: info.bytes, fingerprint: info.fingerprint }
+    : { available: false };
+  return json(out, 200, { 'cache-control': 'public, max-age=300' });
 }
 
 async function withItems(env, subs) {
@@ -904,8 +919,14 @@ async function serveMedia(request, env, url) {
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
   headers.set('accept-ranges', 'bytes');
-  headers.set('cache-control', 'public, max-age=31536000, immutable');
-  if (key.endsWith('.pdf')) headers.set('content-disposition', 'attachment; filename="dokument.pdf"');
+  if (key.startsWith('media/arkiv/')) {
+    // Overskrives dagligt, så kun kort cache.
+    headers.set('cache-control', 'public, max-age=300');
+    if (key === ARCHIVE_PDF) headers.set('content-disposition', `attachment; filename="siloerne-paa-oestre-kaj-${obj.uploaded.toISOString().slice(0, 10)}.pdf"`);
+  } else {
+    headers.set('cache-control', 'public, max-age=31536000, immutable');
+    if (key.endsWith('.pdf')) headers.set('content-disposition', 'attachment; filename="dokument.pdf"');
+  }
   if (!('body' in obj)) return new Response(null, { status: 304, headers });
 
   let status = 200;

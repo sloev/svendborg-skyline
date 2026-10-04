@@ -1,0 +1,70 @@
+name: Hele arkivet som PDF
+
+# Bygger dagligt én PDF med alle offentlige bidrag (tekst, billeder, overskrifter, beskrivelser,
+# datoer og øvrige felter), sorteret ældst først efter EXIF-dato, skrevet dato eller upload-dato.
+# Bygges kun, hvis der er sket noget siden sidst. PDF'en hentes fra knappen på siden.
+#
+# Læser kun den offentlige API. ADMIN_TOKEN bruges kun til at lægge PDF'en i R2.
+# Repoet er offentligt, så logs er offentlige: der skrives kun antal og størrelser ud.
+
+on:
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Byg også selv om intet er ændret'
+        type: boolean
+        default: false
+
+concurrency:
+  group: archive-pdf
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  pdf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+      FORCE: ${{ inputs.force }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find workeren
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          url=$(.github/scripts/worker-url.sh)
+          [ -n "$url" ] || { echo "::error::Kunne ikke finde workerens adresse"; exit 1; }
+          echo "::add-mask::$url"
+          echo "WORKER_URL=$url" >> "$GITHUB_ENV"
+          echo "SITE_URL=$(grep -m1 '^SITE_URL' wrangler.toml | cut -d'"' -f2)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pdf/package-lock.json
+
+      - name: Er der noget nyt?
+        id: check
+        working-directory: pdf
+        run: |
+          npm ci --no-audit --no-fund
+          CHECK_ONLY=1 node build-pdf.mjs
+
+      - name: Installer Chromium
+        if: steps.check.outputs.changed == 'true'
+        working-directory: pdf
+        run: npx playwright install --with-deps chromium
+
+      - name: Byg og læg op
+        if: steps.check.outputs.changed == 'true'
+        working-directory: pdf
+        run: node build-pdf.mjs
