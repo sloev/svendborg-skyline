@@ -386,7 +386,7 @@ function getConfig(env) {
       maxFileMb: Number(env.MAX_FILE_MB || 2048),
       maxFiles: Number(env.MAX_FILES || 40),
       chunkSize: CHUNK_SIZE,
-      moderation: env.MODERATION === 'pre' ? 'pre' : 'post',
+      moderation: env.MODERATION === 'post' ? 'post' : 'pre',
       comments: commentsOpen(env) ? (env.COMMENT_MODERATION === 'auto' ? 'auto' : 'pre') : 'closed',
       contactEmail: env.CONTACT_EMAIL || '',
       relations: RELATIONS,
@@ -778,7 +778,8 @@ async function completeSubmission(request, env, ctx, subId) {
     throw new HttpError(400, 'none_through');
   }
 
-  const status = env.MODERATION === 'pre' ? 'review' : 'published';
+  // Alt venter på en administrator, medmindre MODERATION er sat til "post" (vises med det samme).
+  const status = env.MODERATION === 'post' ? 'published' : 'review';
   await env.DB.prepare(`UPDATE submissions SET status = ?, published_at = ? WHERE id = ?`)
     .bind(status, new Date().toISOString(), subId)
     .run();
@@ -1180,10 +1181,37 @@ function escapeHtml(str) {
 
 // ---------------------------------------------------------------- media
 
+async function isPublicItem(env, itemId) {
+  const row = await env.DB.prepare(
+    `SELECT 1 FROM items i JOIN submissions s ON s.id = i.submission_id WHERE i.id = ? AND s.status = 'published'`,
+  )
+    .bind(itemId)
+    .first();
+  return !!row;
+}
+
+// Underskrevne links til filer, der endnu ikke er godkendt (kun til admin-siden). Gælder i 12 timer.
+const MEDIA_SIG_TTL = 12 * 3600;
+async function signedMediaUrl(env, key) {
+  const u = mediaUrl(env, key);
+  if (!u) return u;
+  const exp = Math.ceil(Date.now() / 1000 / 3600) * 3600 + MEDIA_SIG_TTL; // rundet, så browseren kan cache
+  return `${u}?exp=${exp}&sig=${await hmac(env, `media.${key.split('/')[1]}.${exp}`)}`;
+}
+async function validMediaSig(env, itemId, url) {
+  const exp = Number(url.searchParams.get('exp'));
+  if (!exp || exp < Date.now() / 1000 || exp > Date.now() / 1000 + MEDIA_SIG_TTL + 3600) return false;
+  return safeEqual(url.searchParams.get('sig'), await hmac(env, `media.${itemId}.${exp}`));
+}
+
 async function serveMedia(request, env, url) {
   if (!['GET', 'HEAD'].includes(request.method)) throw new HttpError(405, 'method');
   const key = decodeURIComponent(url.pathname.slice(1)); // /media/<item>/<file> → R2 key media/<item>/<file>
   if (!/^media\/[\w-]+\/[\w.-]+$/.test(key)) throw new HttpError(404, 'not_found');
+  // Filerne vises kun, når bidraget er godkendt (offentligt). Admin-siden får underskrevne links.
+  const itemId = key.split('/')[1];
+  const open = itemId === 'arkiv' || (await isPublicItem(env, itemId));
+  if (!open && !(await validMediaSig(env, itemId, url))) throw new HttpError(404, 'not_found');
   const obj = await env.BUCKET.get(key, { range: request.headers, onlyIf: request.headers });
   if (!obj) throw new HttpError(404, 'not_found');
 
@@ -1195,8 +1223,11 @@ async function serveMedia(request, env, url) {
     // Overskrives dagligt, så kun kort cache.
     headers.set('cache-control', 'public, max-age=300');
     if (key === ARCHIVE_PDF) headers.set('content-disposition', `attachment; filename="siloerne-paa-oestre-kaj-${obj.uploaded.toISOString().slice(0, 10)}.pdf"`);
+  } else if (!open) {
+    headers.set('cache-control', 'private, no-store');
   } else {
-    headers.set('cache-control', 'public, max-age=31536000, immutable');
+    // Kort cache: skjules et bidrag senere, skal filerne forsvinde hurtigt.
+    headers.set('cache-control', 'public, max-age=3600');
     if (key.endsWith('.pdf')) headers.set('content-disposition', 'attachment; filename="dokument.pdf"');
   }
   if (!('body' in obj)) return new Response(null, { status: 304, headers });
@@ -1263,7 +1294,7 @@ async function adminList(env, url) {
   if (page.length) {
     ({ results: items } = await env.DB.prepare(
       `SELECT id, submission_id, position, kind, original_name, original_type, original_size, status, attempts, error,
-              full_key, display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted
+              full_key, display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted, nsfw
        FROM items WHERE submission_id IN (${page.map(() => '?').join(',')}) ORDER BY position`,
     )
       .bind(...page.map((s) => s.id))
@@ -1271,6 +1302,11 @@ async function adminList(env, url) {
   }
   const counts = await env.DB.prepare(`SELECT status, COUNT(*) AS n FROM submissions GROUP BY status`).all();
   const usage = await env.DB.prepare(`SELECT class_a FROM usage WHERE month = ?`).bind(month()).first();
+  for (const i of items) {
+    i.thumb = await signedMediaUrl(env, i.thumb_key);
+    i.src = await signedMediaUrl(env, i.display_key);
+    i.poster = await signedMediaUrl(env, i.poster_key);
+  }
   return json({
     usage: {
       storedGb: Math.round(((await storageUsed(env)) / GB) * 100) / 100,
@@ -1282,9 +1318,7 @@ async function adminList(env, url) {
     next: more ? page[page.length - 1].created_at : null,
     submissions: page.map(({ upload_token, ip_hash, ...s }) => ({
       ...s,
-      items: items
-        .filter((i) => i.submission_id === s.id)
-        .map((i) => ({ ...i, thumb: mediaUrl(env, i.thumb_key), src: mediaUrl(env, i.display_key) })),
+      items: items.filter((i) => i.submission_id === s.id),
     })),
   });
 }
@@ -1407,8 +1441,12 @@ async function adminClaim(request, env) {
   });
 }
 
+// Grænse for automatisk NSFW-mistanke (0–1, fra billedgenkendelsen i processor/process.mjs).
+const NSFW_FLAG = 0.5;
+
 async function adminResult(request, env, id) {
   const b = await request.json();
+  const nsfw = num(b.nsfw) === null ? null : Math.min(1, Math.max(0, num(b.nsfw)));
   if (!b.ok) {
     const row = await env.DB.prepare(
       `UPDATE items SET status = CASE WHEN attempts >= 3 THEN 'failed' ELSE 'pending' END, error = ? WHERE id = ? RETURNING status`,
@@ -1421,16 +1459,24 @@ async function adminResult(request, env, id) {
   await env.DB.prepare(
     `UPDATE items SET status = 'ready', error = '', stored_bytes = ?, full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
        duration = ?, taken_at = ?, camera = ?, lat = ?, lon = ?, metadata = ?, archive_path = COALESCE(?, archive_path),
-       processed_at = ?
+       processed_at = ?, nsfw = ?
      WHERE id = ?`,
   )
     .bind(
       Math.max(0, Math.round(num(b.storedBytes) || 0)), b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
       b.takenAt || null, clean(b.camera, 200) || null, num(b.lat), num(b.lon),
       b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null,
-      new Date().toISOString(), id,
+      new Date().toISOString(), nsfw, id,
     )
     .run();
+  // Ligner det nøgenhed eller porno, tages bidraget af siden (hvis det var offentligt) og venter på en admin.
+  if (nsfw !== null && nsfw >= NSFW_FLAG) {
+    await env.DB.prepare(
+      `UPDATE submissions SET status = 'review' WHERE status = 'published' AND id = (SELECT submission_id FROM items WHERE id = ?)`,
+    )
+      .bind(id)
+      .run();
+  }
   await deleteOriginal(env, id);
   return json({ ok: true });
 }

@@ -112,8 +112,10 @@
           el(
             'figure',
             {},
-            i.thumb ? el('a', { href: i.src || i.thumb, target: '_blank' }, el('img', { src: i.thumb, alt: '', loading: 'lazy' })) : el('div', { class: 'noimg', text: ICON[i.kind] }),
-            el('figcaption', {}, el('span', { class: `pill ${i.status}`, text: STATUS[i.status] || i.status }), ' ', i.original_name, i.error ? el('div', { class: 'item-error', text: i.error }) : null,
+            i.thumb ? thumbLink(i) : el('div', { class: 'noimg', text: ICON[i.kind] }),
+            el('figcaption', {}, el('span', { class: `pill ${i.status}`, text: STATUS[i.status] || i.status }), ' ',
+              i.nsfw >= NSFW_FLAG ? el('span', { class: 'pill nsfw', title: 'Billedgenkendelsen mistænker nøgenhed eller porno – se selv efter', text: `NSFW? ${Math.round(i.nsfw * 100)} %` }) : null, ' ',
+              i.original_name, i.error ? el('div', { class: 'item-error', text: i.error }) : null,
               i.status === 'failed' && !i.original_deleted ? el('button', { class: 'link', type: 'button', text: 'Behandl igen', onclick: () => act(() => api('POST', `/api/admin/items/${i.id}/retry`)) }) : null),
           ),
         ),
@@ -134,6 +136,22 @@
       ),
     );
     return node;
+  }
+
+  // Filer, som billedgenkendelsen mistænker for nøgenhed/porno, vises sløret, indtil man klikker på dem.
+  const NSFW_FLAG = 0.5;
+  function thumbLink(i) {
+    const img = el('img', { src: i.thumb, alt: '', loading: 'lazy' });
+    const a = el('a', { href: i.src || i.thumb, target: '_blank', rel: 'noopener', class: i.nsfw >= NSFW_FLAG ? 'blurred' : '' }, img);
+    if (i.nsfw >= NSFW_FLAG) {
+      a.title = 'Sløret: muligt NSFW. Klik for at se.';
+      a.addEventListener('click', (e) => {
+        if (!a.classList.contains('blurred')) return;
+        e.preventDefault();
+        a.classList.remove('blurred');
+      });
+    }
+    return a;
   }
 
   // Valgmuligheder til tilknytning og perspektiv hentes én gang fra workeren.

@@ -28,7 +28,7 @@ MAX_SUBMISSION_GB = "10"
 IP_DAILY_GB = "20"
 # "post" = bidrag vises med det samme (kan skjules bagefter i /admin.html)
 # "pre"  = bidrag skal godkendes i /admin.html, før de vises
-MODERATION = "post"
+MODERATION = "pre"
 # Lad være tom: så går alle medier gennem workeren og holdes inden for udgiftsloftet.
 MEDIA_BASE_URL = ""
 # Repo hvis "Behandl uploads"-workflow omkoder filerne (kræver GITHUB_TOKEN-hemmeligheden).

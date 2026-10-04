@@ -12,6 +12,11 @@
 //   sound     → M4A: AAC-LC 128 kb/s
 //   documents → PDF rewritten by Ghostscript (/printer: images at 300 dpi) + thumbnail JPEG
 //
+// Every image, five frames of every video and the first page of every PDF are checked for nudity /
+// pornography with an open image classifier (AdamCodd/vit-base-nsfw-detector, Apache-2.0, run locally
+// with transformers.js – nothing is sent anywhere). The highest score goes to the worker, which flags it
+// in /admin.html and takes a public contribution off the site until an admin has looked at it.
+//
 // See README.md ("Formater og kvalitet") for how these settings were chosen.
 //
 // Runs in GitHub Actions (.github/workflows/process.yml) but works anywhere with
@@ -62,6 +67,7 @@ const started = Date.now();
 let processed = 0;
 let failed = 0;
 let storedBytes = 0; // bytes uploaded for the current item (reported to the worker's storage guard)
+let classifier = null; // NSFW image classifier, loaded on first use (see nsfwScore)
 
 await mkdir(WORK, { recursive: true });
 if (process.env.STRIP_EXISTING === '1') {
@@ -95,7 +101,8 @@ async function handle(item) {
     const meta = await exif(original);
     const facts = extractFacts(meta, item);
     storedBytes = 0;
-    const out = await convert(item, original, dir);
+    const { check = [], ...out } = await convert(item, original, dir);
+    out.nsfw = await nsfwScore(check);
 
     // The full metadata dump is not stored anywhere – only the extracted facts.
     const result = { ok: true, ...facts, ...out, storedBytes };
@@ -151,6 +158,7 @@ async function convert(item, original, dir) {
     await upload(web, `${base}/web.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
     return {
+      check: [web],
       fullKey: `${base}/photo.jpg`,
       displayKey: `${base}/web.jpg`,
       thumbKey: `${base}/thumb.jpg`,
@@ -193,7 +201,17 @@ async function convert(item, original, dir) {
     await upload(video, `${base}/video.mp4`, 'video/mp4');
     await upload(poster, `${base}/poster.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
+    // Fem stillbilleder spredt over videoen til NSFW-tjekket.
+    const frames = [];
+    for (const p of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+      const frame = path.join(dir, `frame-${p}.jpg`);
+      await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(duration * p), '-i', video, '-frames:v', '1', '-vf', 'scale=512:-2', '-q:v', '4', frame]).then(
+        () => frames.push(frame),
+        () => {},
+      );
+    }
     return {
+      check: [poster, ...frames],
       fullKey: `${base}/video.mp4`,
       displayKey: `${base}/video.mp4`,
       posterKey: `${base}/poster.jpg`,
@@ -225,10 +243,33 @@ async function convert(item, original, dir) {
     await run('pdftoppm', ['-jpeg', '-jpegopt', 'quality=75', '-f', '1', '-l', '1', '-scale-to', String(THUMB_PX), '-singlefile', pdf, thumbBase]);
     await upload(pdf, `${base}/document.pdf`, 'application/pdf');
     await upload(`${thumbBase}.jpg`, `${base}/thumb.jpg`, 'image/jpeg');
-    return { fullKey: `${base}/document.pdf`, displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg` };
+    return { check: [`${thumbBase}.jpg`], fullKey: `${base}/document.pdf`, displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg` };
   }
 
   throw new Error(`Ukendt type: ${item.kind}`);
+}
+
+// NSFW-tjek: den højeste "nsfw"-score (0–1) blandt billederne, eller null hvis tjekket ikke kunne køre
+// (så venter bidraget alligevel på en admin). Modellen hentes første gang og caches af workflowet.
+async function nsfwScore(files) {
+  if (!files.length) return null;
+  try {
+    if (!classifier) {
+      const { pipeline: hf, env } = await import('@huggingface/transformers');
+      if (process.env.HF_CACHE) env.cacheDir = process.env.HF_CACHE;
+      classifier = await hf('image-classification', 'AdamCodd/vit-base-nsfw-detector', { dtype: 'q8' });
+    }
+    let max = 0;
+    for (const f of files) {
+      const out = await classifier(f, { top_k: 2 });
+      max = Math.max(max, out.find((o) => o.label === 'nsfw')?.score || 0);
+    }
+    console.log(`  NSFW-score ${max.toFixed(3)}`);
+    return Math.round(max * 1000) / 1000;
+  } catch (err) {
+    console.error(`  NSFW-tjek fejlede: ${err.message}`);
+    return null;
+  }
 }
 
 // Forhåndsbillede til sociale medier (Open Graph): 1200 × 630, beskåret om det mest interessante

@@ -8,6 +8,9 @@
 .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: #e7e1d6; }
 .pill.published { background: #d6efe7; color: #146a59; }
 .pill.review { background: #fbe8c1; color: #7a5200; }
+.pill.nsfw { background: #8c1d16; color: #fff; }
+.items a.blurred { display: block; overflow: hidden; border-radius: 6px; }
+.items a.blurred img { filter: blur(14px); }
 .pill.hidden, .pill.failed { background: #f6d6d3; color: #8c1d16; }
 .pill.uploading, .pill.pending, .pill.processing { background: #dbe8f1; color: #1f4766; }
 .meta { font-size: .85rem; color: var(--muted); }

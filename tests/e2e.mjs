@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Ende-til-ende-test: uploader et testbillede gennem den rigtige hjemmeside i en headless browser,
-// venter på omkodningen, tjekker visning, delelink og forhåndsbillede, og sletter så testbidraget.
+// tjekker at det venter på godkendelse og ikke kan ses, godkender det som admin, tjekker visning, delelink og forhåndsbillede, og sletter så testbidraget.
 //
 // Testbidrag genkendes af workeren på et token afledt af ADMIN_TOKEN: de springer Turnstile over
 // og vises aldrig offentligt. Repoet er offentligt, så der logges kun id'er og resultater.
@@ -95,6 +95,7 @@ try {
   check(await page.isVisible('#new-item'), 'formularen lukker, og "Nyt bidrag" vises igen');
   await page.waitForSelector('.upload-item.done', { timeout: 180_000 });
   ok('filen er uploadet og står som sendt i listen');
+  check(/kigget på det/.test(await page.textContent('.upload-item.done')), 'uploaderen får at vide, at bidraget venter på godkendelse');
   await page.click('#new-item');
   check((await page.inputValue('input[name=credit]')) === 'Automatisk test (GitHub Actions)', 'krediteringen huskes til næste bidrag');
   await page.click('[data-cancel]');
@@ -107,22 +108,43 @@ try {
     check(head.ok && head.headers.get('content-type') === 'application/pdf' && /attachment/.test(head.headers.get('content-disposition') || ''), 'PDF\'en kan hentes');
   }
 
-  step('Skjult for offentligheden');
+  step('Venter på godkendelse');
   const pub = await fetch(`${WORKER}/api/contributions/${subId}`);
   check(pub.status === 404, 'testbidraget kan ikke ses uden testtoken');
+  const notYet = await fetch(`${WORKER}/api/contributions/${subId}`, { headers: { 'x-e2e-token': E2E } });
+  check(notYet.status === 404, 'bidraget er ikke offentligt, før en admin har godkendt det');
 
   step('Omkodning');
   const started = Date.now();
-  let contribution;
+  let queued;
   for (;;) {
-    const r = await fetch(`${WORKER}/api/contributions/${subId}`, { headers: { 'x-e2e-token': E2E } });
-    contribution = await r.json();
-    if (contribution.items && contribution.items.length === 1 && !contribution.processing) break;
+    const list = await (await fetch(`${WORKER}/api/admin/submissions?status=review`, { headers: { authorization: `Bearer ${ADMIN}` } })).json();
+    queued = list.submissions.find((x) => x.id === subId);
+    check(queued, 'bidraget står i admin under "Afventer godkendelse"');
+    if (queued.items.length === 1 && queued.items[0].status === 'ready') break;
     if (Date.now() - started > WAIT_MS) throw new Error('Fejlede: filen blev ikke omkodet i tide (kører "Behandl uploads"?)');
     await new Promise((r) => setTimeout(r, 15_000));
   }
+  ok(`omkodet på ${Math.round((Date.now() - started) / 1000)} s`);
+  const queuedItem = queued.items[0];
+  check(typeof queuedItem.nsfw === 'number' && queuedItem.nsfw < 0.5, `NSFW-tjekket har kørt (${queuedItem.nsfw})`);
+  const signed = await fetch(queuedItem.thumb);
+  check(signed.ok && signed.headers.get('cache-control') === 'private, no-store', 'admin kan se filen via et underskrevet link');
+  const bare = await fetch(queuedItem.thumb.split('?')[0]);
+  check(bare.status === 404, 'filen kan ikke hentes direkte, før bidraget er godkendt');
+  const forged = await fetch(queuedItem.thumb.replace(/sig=(\w)/, (_, c) => `sig=${c === '0' ? '1' : '0'}`));
+  check(forged.status === 404, 'et forfalsket link virker ikke');
+  const approve = await fetch(`${WORKER}/api/admin/submissions/${subId}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${ADMIN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ status: 'published' }),
+  });
+  check(approve.ok, 'admin godkender bidraget');
+
+  step('Offentligt efter godkendelse');
+  const contribution = await (await fetch(`${WORKER}/api/contributions/${subId}`, { headers: { 'x-e2e-token': E2E } })).json();
   const item = contribution.items[0];
-  check(item.kind === 'image' && item.width === 1600 && item.height === 1000, `billedet er omkodet (${item.width}×${item.height}) på ${Math.round((Date.now() - started) / 1000)} s`);
+  check(item.kind === 'image' && item.width === 1600 && item.height === 1000, `billedet er omkodet (${item.width}×${item.height})`);
   check(contribution.credit === 'Automatisk test (GitHub Actions)', 'krediteringen vises offentligt som valgt');
   for (const [name, url, type] of [['fuld størrelse', item.full, 'image/jpeg'], ['skærmversion', item.src, 'image/jpeg'], ['miniature', item.thumb, 'image/jpeg']]) {
     const m = await fetch(url);

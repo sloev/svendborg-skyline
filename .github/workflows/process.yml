@@ -2,6 +2,7 @@ name: Behandl uploads
 
 # Omkoder nye uploads (billeder → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, lyd → M4A,
 # PDF → Ghostscript) og fjerner al metadata (dato, kamera og GPS gemmes kun i databasen). Workeren sletter originalerne.
+# Billeder, videoer og PDF'er tjekkes for nøgenhed/porno (NSFW); mistænkte bidrag markeres i admin.
 #
 # Startes af workeren lige efter en upload (repository_dispatch), hver time som sikkerhedsnet,
 # eller i hånden fra Actions-fanen.
@@ -69,10 +70,21 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends ffmpeg libimage-exiftool-perl libheif-examples ghostscript poppler-utils
 
+      # Billedgenkendelsen til NSFW-tjekket (ca. 90 MB) hentes fra Hugging Face første gang.
+      - name: Cache NSFW-model
+        if: steps.queue.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/silo-nsfw
+          key: nsfw-AdamCodd-vit-base-nsfw-detector-q8
+
       - name: Behandl
         if: steps.queue.outputs.run == 'true'
         working-directory: processor
+        env:
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
         run: |
+          export HF_CACHE="$HOME/.cache/silo-nsfw"
           npm ci --no-audit --no-fund
           if [ "${{ inputs.strip_existing }}" = "true" ]; then STRIP_EXISTING=1 node process.mjs; fi
           node process.mjs
