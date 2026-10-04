@@ -59,6 +59,7 @@ if (!WORKER_URL || !ADMIN_TOKEN) {
 const started = Date.now();
 let processed = 0;
 let failed = 0;
+let storedBytes = 0; // bytes uploaded for the current item (reported to the worker's storage guard)
 
 await mkdir(WORK, { recursive: true });
 while (Date.now() - started < BUDGET_MS) {
@@ -101,13 +102,14 @@ async function handle(item) {
     await download(item.original_key, original);
     const meta = await exif(original);
     const facts = extractFacts(meta, item);
+    storedBytes = 0;
     const out = await convert(item, original, dir);
 
     let archivePath = null;
     if (RCLONE_REMOTE) archivePath = await archive(item, sub, out.archiveFile, meta, dir);
 
     const { archiveFile, ...keys } = out;
-    const result = { ok: true, ...facts, ...keys, metadata: meta, archivePath };
+    const result = { ok: true, ...facts, ...keys, metadata: meta, archivePath, storedBytes };
     // Prefer dimensions/duration of what we actually store.
     for (const k of ['width', 'height', 'duration']) result[k] = out[k] || facts[k];
 
@@ -398,6 +400,7 @@ async function download(key, file) {
 
 async function upload(file, key, type) {
   const { size } = await stat(file);
+  storedBytes += size;
   const auth = { authorization: `Bearer ${ADMIN_TOKEN}` };
   if (size <= PART) {
     const res = await fetch(`${WORKER_URL}/api/admin/object/${key}`, { method: 'PUT', headers: { ...auth, 'content-type': type }, body: await readFile(file) });

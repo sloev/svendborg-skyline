@@ -73,7 +73,81 @@ export default {
     }
     return env.ASSETS.fetch(request);
   },
+
+  // Daily (see [triggers] in wrangler.toml): clean up uploads that were started but never finished,
+  // so their parts stop taking up (billable) space.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(abandonUploads(env, `created_at < ?`, [isoAgo(48 * 3600)], 'submissions'));
+  },
 };
+
+// ---------------------------------------------------------------- spending guard
+//
+// Cloudflare has no hard spending cap, so the worker enforces one. On the Free plan, Workers, D1
+// and Turnstile cannot cost anything (they stop at their limits). R2 is the only usage-billed part:
+//   storage  $0.015 / GB-month above 10 GB   → capped by STORAGE_LIMIT_GB
+//   Class A  $4.50 / million above 1M/month  → capped by CLASS_A_MONTHLY_LIMIT (default: inside the free 1M)
+//   Class B  $0.36 / million above 10M/month → every read goes through this worker, which the Free
+//                                              plan limits to 100k requests/day (≈3M/month), so it stays free
+// With the defaults the worst case is (250 − 10) GB × $0.015 ≈ $3.60/month.
+
+const GB = 1024 ** 3;
+
+async function storageUsed(env) {
+  const row = await env.DB.prepare(
+    `SELECT COALESCE(SUM(stored_bytes), 0) + COALESCE(SUM(CASE WHEN original_deleted = 0 THEN original_size ELSE 0 END), 0) AS bytes FROM items`,
+  ).first();
+  return row.bytes;
+}
+
+async function checkStorage(env, incoming) {
+  const limit = Number(env.STORAGE_LIMIT_GB || 9) * GB;
+  if ((await storageUsed(env)) + incoming > limit) {
+    throw new HttpError(507, 'Arkivet er desværre fyldt op lige nu. Skriv til os, så finder vi en løsning.');
+  }
+}
+
+function month() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+// Counts n Class A operations against this month's budget (or only checks, with dryRun).
+async function chargeClassA(env, n, dryRun = false) {
+  const limit = Number(env.CLASS_A_MONTHLY_LIMIT || 900000);
+  if (dryRun) {
+    const row = await env.DB.prepare(`SELECT class_a FROM usage WHERE month = ?`).bind(month()).first();
+    if ((row ? row.class_a : 0) + n > limit) throw budgetError();
+    return;
+  }
+  const row = await env.DB.prepare(
+    `INSERT INTO usage (month, class_a) VALUES (?, ?)
+     ON CONFLICT (month) DO UPDATE SET class_a = class_a + excluded.class_a
+     RETURNING class_a`,
+  )
+    .bind(month(), n)
+    .first();
+  if (row.class_a > limit) throw budgetError();
+}
+
+function budgetError() {
+  return new HttpError(503, 'Arkivet har nået sin grænse for uploads denne måned. Prøv igen fra den 1. i næste måned.');
+}
+
+async function abandonUploads(env, where, params, scope = 'items') {
+  const cond = scope === 'submissions' ? `submission_id IN (SELECT id FROM submissions WHERE ${where})` : where;
+  const { results } = await env.DB.prepare(`SELECT id, original_key, upload_id FROM items WHERE status = 'uploading' AND ${cond}`)
+    .bind(...params)
+    .all();
+  for (const it of results) {
+    if (it.upload_id) await env.BUCKET.resumeMultipartUpload(it.original_key, it.upload_id).abort().catch(() => {});
+    await env.BUCKET.delete(it.original_key).catch(() => {});
+    await env.DB.prepare(
+      `UPDATE items SET status = 'failed', error = 'upload ikke fuldført', upload_id = NULL, original_deleted = 1 WHERE id = ?`,
+    )
+      .bind(it.id)
+      .run();
+  }
+}
 
 async function handle(request, env, ctx, url) {
   try {
@@ -145,11 +219,13 @@ async function adminApi(request, env, url, path, method) {
   if ((m = url.pathname.match(/^\/api\/admin\/object\/(.+)$/))) return adminObject(request, env, decodeURIComponent(m[1]), method);
   if (path === '/api/admin/mpu/create' && method === 'POST') {
     const key = requireKey(url.searchParams.get('key'));
+    await chargeClassA(env, 1);
     const mpu = await env.BUCKET.createMultipartUpload(key, { httpMetadata: { contentType: url.searchParams.get('type') || 'application/octet-stream' } });
     return json({ uploadId: mpu.uploadId });
   }
   if (path === '/api/admin/mpu/part' && method === 'PUT') {
     const key = requireKey(url.searchParams.get('key'));
+    await chargeClassA(env, 1);
     const mpu = env.BUCKET.resumeMultipartUpload(key, url.searchParams.get('uploadId'));
     const part = await mpu.uploadPart(Number(url.searchParams.get('part')), request.body);
     return json({ partNumber: part.partNumber, etag: part.etag });
@@ -157,6 +233,7 @@ async function adminApi(request, env, url, path, method) {
   if (path === '/api/admin/mpu/complete' && method === 'POST') {
     const key = requireKey(url.searchParams.get('key'));
     const body = await request.json();
+    await chargeClassA(env, 1);
     const mpu = env.BUCKET.resumeMultipartUpload(key, url.searchParams.get('uploadId'));
     const obj = await mpu.complete(body.parts);
     return json({ key, size: obj.size });
@@ -399,6 +476,15 @@ async function createSubmission(request, env) {
     });
   }
 
+  // Spending guard: refuse before anything is written if the archive is full or the month's
+  // write budget is used up. Every upload costs ~1 Class A operation per 16 MB plus 2.
+  const incoming = items.reduce((n, it) => n + it.size, 0);
+  await checkStorage(env, incoming);
+  if (items.length) {
+    await chargeClassA(env, items.reduce((n, it) => n + Math.ceil(it.size / CHUNK_SIZE) + 2, 0), true);
+    await chargeClassA(env, items.length);
+  }
+
   for (const it of items) {
     const mpu = await env.BUCKET.createMultipartUpload(it.key, {
       httpMetadata: { contentType: it.type || 'application/octet-stream' },
@@ -454,6 +540,7 @@ async function uploadPart(request, env, itemId, partNumber) {
   const expected = Math.min(CHUNK_SIZE, item.original_size - (partNumber - 1) * CHUNK_SIZE);
   const length = Number(request.headers.get('content-length'));
   if (length !== expected) throw new HttpError(400, 'Forkert størrelse på fildel.');
+  await chargeClassA(env, 1);
   const mpu = env.BUCKET.resumeMultipartUpload(item.original_key, item.upload_id);
   const part = await mpu.uploadPart(partNumber, request.body);
   return json({ partNumber: part.partNumber, etag: part.etag });
@@ -464,6 +551,7 @@ async function completeUpload(request, env, itemId) {
   const body = await readJson(request, 100_000);
   const parts = Array.isArray(body.parts) ? body.parts : [];
   if (parts.length !== Math.ceil(item.original_size / CHUNK_SIZE)) throw new HttpError(400, 'Filen mangler dele.');
+  await chargeClassA(env, 1);
   const mpu = env.BUCKET.resumeMultipartUpload(item.original_key, item.upload_id);
   const obj = await mpu.complete(
     parts.map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })).sort((a, b) => a.partNumber - b.partNumber),
@@ -482,9 +570,7 @@ async function completeSubmission(request, env, ctx, subId) {
   if (!sub || !safeEqual(sub.upload_token, request.headers.get('x-upload-token') || '')) throw new HttpError(403, 'Ugyldig upload.');
   if (sub.status !== 'uploading') return json({ ok: true, status: sub.status });
 
-  await env.DB.prepare(`UPDATE items SET status = 'failed', error = 'upload ikke fuldført' WHERE submission_id = ? AND status = 'uploading'`)
-    .bind(subId)
-    .run();
+  await abandonUploads(env, `submission_id = ?`, [subId]);
   const counts = await env.DB.prepare(
     `SELECT COUNT(*) AS total, COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending FROM items WHERE submission_id = ?`,
   )
@@ -630,7 +716,14 @@ async function adminList(env, url) {
       .all());
   }
   const counts = await env.DB.prepare(`SELECT status, COUNT(*) AS n FROM submissions GROUP BY status`).all();
+  const usage = await env.DB.prepare(`SELECT class_a FROM usage WHERE month = ?`).bind(month()).first();
   return json({
+    usage: {
+      storedGb: Math.round(((await storageUsed(env)) / GB) * 100) / 100,
+      storageLimitGb: Number(env.STORAGE_LIMIT_GB || 9),
+      classA: usage ? usage.class_a : 0,
+      classALimit: Number(env.CLASS_A_MONTHLY_LIMIT || 900000),
+    },
     counts: Object.fromEntries(counts.results.map((r) => [r.status, r.n])),
     next: more ? page[page.length - 1].created_at : null,
     submissions: page.map(({ upload_token, ip_hash, ...s }) => ({
@@ -729,13 +822,13 @@ async function adminResult(request, env, id) {
     return json({ ok: true });
   }
   await env.DB.prepare(
-    `UPDATE items SET status = 'ready', error = '', full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
+    `UPDATE items SET status = 'ready', error = '', stored_bytes = ?, full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
        duration = ?, taken_at = ?, camera = ?, lat = ?, lon = ?, metadata = ?, archive_path = COALESCE(?, archive_path),
        processed_at = ?
      WHERE id = ?`,
   )
     .bind(
-      b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
+      Math.max(0, Math.round(num(b.storedBytes) || 0)), b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
       b.takenAt || null, text(b.camera, 200) || null, num(b.lat), num(b.lon),
       b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null,
       new Date().toISOString(), id,
@@ -775,6 +868,7 @@ async function adminObject(request, env, key, method) {
     return new Response(obj.body, { headers });
   }
   if (method === 'PUT') {
+    await chargeClassA(env, 1);
     const obj = await env.BUCKET.put(key, request.body, {
       httpMetadata: { contentType: request.headers.get('content-type') || 'application/octet-stream' },
     });

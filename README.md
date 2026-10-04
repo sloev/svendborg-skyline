@@ -56,62 +56,75 @@ should be approved in `/admin.html` first.
 
 ## Setup
 
-You need a Cloudflare account (free), this GitHub repo and Node 20+.
+Everything on Cloudflare is set up and deployed by the workflow **Opsæt og udgiv Cloudflare**
+(`.github/workflows/deploy.yml`). You only create a few keys and paste them into GitHub.
 
-### 1. Cloudflare
+1. **Cloudflare API token**: go to https://dash.cloudflare.com/profile/api-tokens and choose
+   *Create Token* → *Create Custom Token*. Give it these permissions, with *Account Resources*
+   set to your account:
+   - Account · Workers Scripts · Edit
+   - Account · D1 · Edit
+   - Account · Workers R2 Storage · Edit
+   - Account · Account Settings · Read
+2. **Account ID**: shown on the right of https://dash.cloudflare.com/?to=/:account/workers-and-pages
+   (it is also the long id in the dashboard URL).
+3. **Turnstile**: create a widget at https://dash.cloudflare.com/?to=/:account/turnstile with
+   hostname `sloev.github.io`. The site key goes in `wrangler.toml` (already done); the secret key
+   goes in GitHub (step 5).
+4. **GitHub token for "process right after upload"** (optional; without it, processing runs every
+   hour): https://github.com/settings/personal-access-tokens/new. Choose *Only select repositories* →
+   this repo, and *Contents: Read and write*.
+5. **GitHub secrets**: add these at https://github.com/sloev/svendborg-skyline/settings/secrets/actions
 
-```sh
-npm install
-npx wrangler login
-npx wrangler d1 create silo-arkiv          # put the database_id into wrangler.toml
-npx wrangler r2 bucket create silo-arkiv
-npm run db:migrate                         # creates the tables in D1
-```
+   | Secret | Value |
+   |---|---|
+   | `CLOUDFLARE_API_TOKEN` | from step 1 |
+   | `CLOUDFLARE_ACCOUNT_ID` | from step 2 |
+   | `ADMIN_TOKEN` | a long random string (`openssl rand -hex 32`); also the password for `/admin.html` |
+   | `TURNSTILE_SECRET` | from step 3 |
+   | `DISPATCH_TOKEN` | from step 4 |
 
-Create a Turnstile widget in the Cloudflare dashboard (Turnstile → Add widget, add your domain).
-Put the **site key** in `wrangler.toml` (`TURNSTILE_SITE_KEY`). Then set the secrets:
+6. **GitHub settings**:
+   - Default branch = `master` (https://github.com/sloev/svendborg-skyline/settings). Scheduled and
+     dispatched workflows only run from the default branch.
+   - Pages source = *GitHub Actions* (https://github.com/sloev/svendborg-skyline/settings/pages).
+7. **Run** *Opsæt og udgiv Cloudflare* at https://github.com/sloev/svendborg-skyline/actions/workflows/deploy.yml.
+   It does the following:
+   - registers a workers.dev subdomain if needed
+   - creates the D1 database and the R2 bucket
+   - runs the migrations
+   - deploys the worker and sets its secrets
+   - publishes the website
 
-```sh
-npx wrangler secret put TURNSTILE_SECRET    # Turnstile secret key
-npx wrangler secret put ADMIN_TOKEN         # long random string, e.g. `openssl rand -hex 32`
-npx wrangler secret put IP_SALT             # another random string
-npx wrangler secret put GITHUB_TOKEN        # optional, see step 2
-npm run deploy
-```
+   The run summary shows the links. After that, every push to `master` redeploys whatever changed.
 
-Also set `CONTACT_EMAIL` in `wrangler.toml`. It is shown in the privacy section so people can ask
-for their contribution to be removed. If you want, add a custom domain to the worker
-(Workers → silo-arkiv → Settings → Domains) and update `WORKER_URL` to match.
+The website is at https://sloev.github.io/svendborg-skyline/ and the admin page at `/admin.html`.
+The processing workflow finds the worker by itself through the same Cloudflare secrets, so
+`WORKER_URL` only needs to be set if you move the worker to a custom domain.
 
-### 2. GitHub Pages (the website)
+## Costs: hard limit of $5/month
 
-The website in `public/` is plain HTML/JS and is published to GitHub Pages. It talks to the worker for
-everything dynamic (API, uploads and media).
+Cloudflare has no setting that caps spending. Its [budget alerts](https://developers.cloudflare.com/billing/manage/budget-alerts/)
+only send an e-mail. So the limit is built into the worker:
 
-1. **Settings → Pages → Source: GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → Variables**: set `WORKER_URL` to your worker's
-   address, e.g. `https://silo-arkiv.<account>.workers.dev`. The processor uses it too.
-3. In `wrangler.toml`, `ALLOWED_ORIGINS` must contain the Pages address (`https://sloev.github.io`
-   by default, or your custom domain), so the browser may call the API. Run `npm run deploy` after changing it.
-4. Add the Pages hostname (`sloev.github.io` or your custom domain) to the Turnstile widget's hostnames.
-5. Push to `master`, or run the workflow **Udgiv hjemmeside (GitHub Pages)** by hand. The site is then at
-   `https://sloev.github.io/svendborg-skyline/`.
+- **Workers, D1, Turnstile and Pages are free.** On the Free plan they stop at their limits instead
+  of billing. Never subscribe to *Workers Paid*.
+- **R2 is the only usage-billed part.** Free: 10 GB storage, 1M Class A (write) and 10M Class B
+  (read) operations per month. Beyond that: $0.015/GB-month, $4.50 per million writes, $0.36 per
+  million reads.
+  - **Storage:** uploads are refused when the archive would exceed `STORAGE_LIMIT_GB` (250 GB).
+    Worst case: (250 − 10) × $0.015 ≈ **$3.60/month**. Originals waiting for processing count too,
+    and unfinished uploads are cleaned up daily.
+  - **Writes:** the worker counts every R2 write and stops uploads at `CLASS_A_MONTHLY_LIMIT`
+    (900,000), which stays inside the free million.
+  - **Reads:** all media goes through the worker, which the Free plan caps at 100k requests a day
+    (about 3M a month), so reads stay inside the free 10M. Keep `MEDIA_BASE_URL` empty for this to hold.
+- `/admin.html` shows storage used and writes this month.
+- Optional extra safety net: add a budget alert of $1 under *Manage Account → Billing → Billable Usage*.
 
-The workflow writes `public/config.js` with the worker address. Locally, and if you would rather let
-the worker serve the site itself, `config.js` is empty and everything runs on one origin.
+Change the limits in `wrangler.toml`. Remember: storage costs $0.015 per GB-month above 10 GB.
 
-### 3. GitHub Actions (conversion)
-
-In the repo, go to **Settings → Secrets and variables → Actions**:
-
-- Variable `WORKER_URL`: e.g. `https://silo-arkiv.<account>.workers.dev`
-- Secret `ADMIN_TOKEN`: the same value as the worker secret
-
-To start processing right after each upload instead of waiting for the hourly run, create a
-[fine-grained token](https://github.com/settings/personal-access-tokens/new) for this repository only,
-with **Contents: Read and write**. Save it as the worker secret `GITHUB_TOKEN`.
-
-### 4. Google Drive (backup)
+### Google Drive backup (optional)
 
 1. Install [rclone](https://rclone.org/install/) on your own computer and run `rclone config`.
    Create a new remote called `gdrive` of type `drive`, with scope `drive.file`.
@@ -119,6 +132,7 @@ with **Contents: Read and write**. Save it as the worker secret `GITHUB_TOKEN`.
    and publish the OAuth app ("In production"); otherwise Google may expire the login after 7 days.
 2. Copy the contents of `~/.config/rclone/rclone.conf` into the GitHub secret `RCLONE_CONFIG`.
 3. Set the GitHub variable `RCLONE_REMOTE` to the folder you want, e.g. `gdrive:Siloerne på Østre Kaj`.
+
 Drive then gets a copy of every re-encoded file (not the originals, which are deleted). Without
 Drive, R2 is the only copy. You can also download a JSON export of everything from `/admin.html`.
 
@@ -202,6 +216,8 @@ public/config.js              API address (generated by the Pages workflow)
 processor/process.mjs         conversion + metadata + Google Drive archive (runs in GitHub Actions)
 .github/workflows/process.yml runs the processor
 .github/workflows/pages.yml   publishes public/ to GitHub Pages
+.github/workflows/deploy.yml  sets up Cloudflare (D1, R2, secrets) and deploys the worker
+migrations/0003_…             spending guard counters
 ```
 
 The photos in `public/img/` are the ones shared when the project started. Make sure you are

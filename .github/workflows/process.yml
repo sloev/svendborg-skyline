@@ -8,9 +8,9 @@ name: Behandl uploads
 # fallback, or by hand from the Actions tab.
 #
 # Repository settings → Secrets and variables → Actions:
-#   variables: WORKER_URL                        https://<your worker>
-#              RCLONE_REMOTE                     e.g. gdrive:Siloerne   (optional)
-#   secrets:   ADMIN_TOKEN                       same value as the worker secret
+#   variables: RCLONE_REMOTE                     e.g. gdrive:Siloerne   (optional)
+#   secrets:   ADMIN_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (to find the worker;
+#              or set the variable WORKER_URL instead)
 #              RCLONE_CONFIG                     contents of rclone.conf (optional)
 
 on:
@@ -37,23 +37,27 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
-      WORKER_URL: ${{ vars.WORKER_URL }}
       ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
       RCLONE_REMOTE: ${{ secrets.RCLONE_CONFIG != '' && vars.RCLONE_REMOTE || '' }}
       FORCE_EXPORT: ${{ github.event_name == 'repository_dispatch' || inputs.export }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Er der noget at lave?
         id: queue
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          WORKER_URL=$(.github/scripts/worker-url.sh || true)
+          echo "WORKER_URL=$WORKER_URL" >> "$GITHUB_ENV"
           if [ -z "$WORKER_URL" ] || [ -z "$ADMIN_TOKEN" ]; then
             echo "WORKER_URL / ADMIN_TOKEN er ikke sat op – springer over."; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           pending=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/api/admin/queue-size" | jq -r .pending)
           echo "Filer i kø: $pending"
           if [ "$pending" != "0" ] || [ "$FORCE_EXPORT" = "true" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
-
-      - uses: actions/checkout@v4
-        if: steps.queue.outputs.run == 'true'
 
       - uses: actions/setup-node@v4
         if: steps.queue.outputs.run == 'true'

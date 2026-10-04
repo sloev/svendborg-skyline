@@ -1,7 +1,8 @@
 name: Udgiv hjemmeside (GitHub Pages)
 
 # Publishes public/ to GitHub Pages. The API stays on the Cloudflare Worker;
-# config.js is generated so the site knows where it is (repository variable WORKER_URL).
+# config.js is generated so the site knows where it is (variable WORKER_URL, or looked up
+# with the Cloudflare secrets). Also started by the Cloudflare deploy workflow.
 #
 # One-time setup: Settings → Pages → Source: "GitHub Actions".
 
@@ -32,9 +33,12 @@ jobs:
       - name: Skriv config.js
         env:
           WORKER_URL: ${{ vars.WORKER_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$WORKER_URL" ]; then echo "::error::Sæt repository-variablen WORKER_URL (Settings → Secrets and variables → Actions → Variables)"; exit 1; fi
-          printf "window.SILO_CONFIG = { apiBase: %s };\n" "$(jq -Rn --arg u "${WORKER_URL%/}" '$u')" > public/config.js
+          url=$(.github/scripts/worker-url.sh)
+          if [ -z "$url" ]; then echo "::error::Kør først 'Opsæt og udgiv Cloudflare' (eller sæt variablen WORKER_URL)"; exit 1; fi
+          printf "window.SILO_CONFIG = { apiBase: %s };\n" "$(jq -Rn --arg u "$url" '$u')" > public/config.js
           cat public/config.js
 
       - uses: actions/configure-pages@v5

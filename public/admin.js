@@ -59,6 +59,8 @@
     if (cursor) qs.set('before', cursor);
     const data = await api('GET', `/api/admin/submissions?${qs}`);
     $('#counts').textContent = Object.entries(data.counts).map(([k, v]) => `${STATUS[k] || k}: ${v}`).join(' · ');
+    const u = data.usage;
+    if (u) $('#counts').textContent += ` — Lager: ${u.storedGb} af ${u.storageLimitGb} GB · Skrivninger denne måned: ${u.classA.toLocaleString('da-DK')} af ${u.classALimit.toLocaleString('da-DK')}`;
     for (const s of data.submissions) $('#list').append(row(s));
     cursor = data.next;
     $('#more').hidden = !cursor;
