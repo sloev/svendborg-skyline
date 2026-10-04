@@ -21,127 +21,134 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
-  <a class="skip" href="#indhold">Spring til indhold</a>
+  <a class="skip" href="#indhold" data-i18n="skip">Spring til indhold</a>
 
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Til toppen">
+    <a class="brand" href="#top" aria-label="Til toppen" data-i18n-aria="brand.aria">
       <svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38V14h10v24M14 38V6h14v32M30 38V18h8v20M40 38V10h12v28M54 38V20h8v18" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
       <span>Siloerne på Østre Kaj</span>
     </a>
-    <nav aria-label="Hovedmenu">
-      <a href="#om">Om</a>
-      <a href="#bidrag">Se bidrag</a>
-      <a href="#kort">Kort</a>
-      <a class="btn btn-small" href="#del">Del dit bidrag</a>
+    <nav aria-label="Hovedmenu" data-i18n-aria="nav.aria">
+      <a href="#om" data-i18n="nav.about">Om</a>
+      <a href="#bidrag" data-i18n="nav.gallery">Se bidrag</a>
+      <a href="#kort" data-i18n="nav.map">Kort</a>
+      <a class="btn btn-small" href="#del" data-i18n="nav.share">Del dit bidrag</a>
+      <label class="lang-picker"><span class="sr-only" data-i18n="lang.label">Sprog</span>
+        <select id="lang" aria-label="Sprog / Language / Sprache">
+          <option value="da">🇩🇰 DA</option>
+          <option value="en">🇬🇧 EN</option>
+          <option value="de">🇩🇪 DE</option>
+        </select>
+      </label>
     </nav>
   </header>
 
   <main id="indhold">
     <section class="hero" id="top">
-      <img class="hero-img" src="img/havnen-luftfoto.webp" alt="Luftfoto af Svendborg Havn med de store hvide og røde silobygninger på Østre Kaj">
+      <img class="hero-img" src="img/havnen-luftfoto.webp" data-i18n-alt="hero.alt" alt="Luftfoto af Svendborg Havn med de store hvide og røde silobygninger på Østre Kaj">
       <div class="hero-inner">
         <p class="eyebrow">Svendborg Havn · Østre Kaj</p>
-        <h1>Siloerne forsvinder snart.<br>Hjælp os med at huske dem.</h1>
-        <p class="lead">Siloerne har i årtier været en del af Svendborgs skyline. Nu skal de rives ned. Vi samler billeder, videoer, lydoptagelser, historier og ting til et fælles arkiv, før de forsvinder.</p>
+        <h1 data-i18n="hero.h1">Siloerne forsvinder snart.<br>Hjælp os med at huske dem.</h1>
+        <p class="lead" data-i18n="hero.lead">Siloerne har i årtier været en del af Svendborgs skyline. Nu skal de rives ned. Vi samler billeder, videoer, lydoptagelser, historier og ting til et fælles arkiv, før de forsvinder.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#del">Del billeder og minder</a>
-          <a class="btn btn-ghost" href="#bidrag">Se hvad andre har delt</a>
+          <a class="btn btn-primary" href="#del" data-i18n="hero.cta1">Del billeder og minder</a>
+          <a class="btn btn-ghost" href="#bidrag" data-i18n="hero.cta2">Se hvad andre har delt</a>
         </div>
         <dl class="stats" id="stats" aria-live="polite">
-          <div><dt>bidrag</dt><dd data-stat="contributions">–</dd></div>
-          <div><dt>billeder</dt><dd data-stat="images">–</dd></div>
-          <div><dt>videoer</dt><dd data-stat="videos">–</dd></div>
-          <div><dt>lyd og dokumenter</dt><dd data-stat="other">–</dd></div>
+          <div><dt data-i18n="stat.contributions">bidrag</dt><dd data-stat="contributions">–</dd></div>
+          <div><dt data-i18n="stat.images">billeder</dt><dd data-stat="images">–</dd></div>
+          <div><dt data-i18n="stat.videos">videoer</dt><dd data-stat="videos">–</dd></div>
+          <div><dt data-i18n="stat.other">lyd og dokumenter</dt><dd data-stat="other">–</dd></div>
         </dl>
       </div>
     </section>
 
     <section class="section about" id="om">
       <div class="about-text">
-        <h2>Fra alle vinkler og afstande</h2>
-        <p>Vi vil gerne have <strong>så meget som muligt</strong>: nye og gamle billeder, korte mobilvideoer, droneoptagelser, scannede papirbilleder, avisudklip, arbejdssedler, fortællinger og lydoptagelser. Intet er for lille eller for hverdagsagtigt.</p>
+        <h2 data-i18n="about.h2">Fra alle vinkler og afstande</h2>
+        <p data-i18n="about.p">Vi vil gerne have <strong>så meget som muligt</strong>: nye og gamle billeder, korte mobilvideoer, droneoptagelser, scannede papirbilleder, avisudklip, arbejdssedler, fortællinger og lydoptagelser. Intet er for lille eller for hverdagsagtigt.</p>
         <ul class="who">
-          <li><strong>Bor du i Svendborg?</strong> Billeder fra vinduet, gåturen langs havnen eller udsigten fra Tåsinge og Thurø.</li>
-          <li><strong>Sejler du forbi?</strong> Siloerne set fra vandet, fra færgen eller fra broen.</li>
-          <li><strong>Har du arbejdet der?</strong> Dine historier om arbejdet, kollegerne, skibene og hverdagen inde i bygningerne er guld værd. Har du gamle billeder eller ting fra dengang, vil vi meget gerne se dem.</li>
-          <li><strong>Gamle familiebilleder?</strong> Siloerne gemmer sig ofte i baggrunden. Tag et billede af papirbilledet med mobilen, det er fint nok.</li>
+          <li data-i18n="about.li1"><strong>Bor du i Svendborg?</strong> Billeder fra vinduet, gåturen langs havnen eller udsigten fra Tåsinge og Thurø.</li>
+          <li data-i18n="about.li2"><strong>Sejler du forbi?</strong> Siloerne set fra vandet, fra færgen eller fra broen.</li>
+          <li data-i18n="about.li3"><strong>Har du arbejdet der?</strong> Dine historier om arbejdet, kollegerne, skibene og hverdagen inde i bygningerne er guld værd. Har du gamle billeder eller ting fra dengang, vil vi meget gerne se dem.</li>
+          <li data-i18n="about.li4"><strong>Gamle familiebilleder?</strong> Siloerne gemmer sig ofte i baggrunden. Tag et billede af papirbilledet med mobilen, det er fint nok.</li>
         </ul>
-        <p class="muted">Læs også Svendborg Kommunes <a href="https://www.svendborg.dk/nyheder/open-call-om-fremtiden-for-siloerne-paa-oestre-kaj/" target="_blank" rel="noopener">open call om fremtiden for siloerne på Østre Kaj</a>.</p>
+        <p class="muted" data-i18n="about.link">Læs også Svendborg Kommunes <a href="https://www.svendborg.dk/nyheder/open-call-om-fremtiden-for-siloerne-paa-oestre-kaj/" target="_blank" rel="noopener">open call om fremtiden for siloerne på Østre Kaj</a>.</p>
       </div>
       <figure class="about-photos">
-        <img src="img/siloerne-fra-vandet.webp" alt="Den hvide silo og de røde murstensbygninger set fra vandet en solskinsdag" loading="lazy">
-        <img src="img/silo-taet-paa.webp" alt="Tæt på den hvide silo med en blå fiskekutter ved kajen" loading="lazy">
+        <img src="img/siloerne-fra-vandet.webp" data-i18n-alt="about.img1" alt="Den hvide silo og de røde murstensbygninger set fra vandet en solskinsdag" loading="lazy">
+        <img src="img/silo-taet-paa.webp" data-i18n-alt="about.img2" alt="Tæt på den hvide silo med en blå fiskekutter ved kajen" loading="lazy">
       </figure>
     </section>
 
     <section class="section share" id="del">
       <div class="share-head">
-        <h2>Del dit bidrag</h2>
-        <p>Det tager et par minutter. Du kan sende mange filer på én gang, også store videoer direkte fra telefonen. Vi gemmer billeder i printkvalitet (op til A3) og videoer i op til 1080p, sammen med oplysningerne i filerne, f.eks. hvornår og hvor de er taget.</p>
+        <h2 data-i18n="share.h2">Del dit bidrag</h2>
+        <p data-i18n="share.p">Det tager et par minutter. Du kan sende mange filer på én gang, også store videoer direkte fra telefonen. Vi gemmer billeder i printkvalitet (op til A3) og videoer i op til 1080p, sammen med oplysningerne i filerne, f.eks. hvornår og hvor de er taget.</p>
       </div>
 
       <form id="share-form" class="card form" novalidate>
         <fieldset>
-          <legend>1. Dine filer</legend>
+          <legend data-i18n="f.legend1">1. Dine filer</legend>
           <label class="drop" id="drop">
             <input type="file" id="files" multiple accept="image/*,video/*,audio/*,.heic,.heif,.dng,.mov,.mp4,.m4a,.mp3,.wav,.pdf">
             <span class="drop-icon" aria-hidden="true">⇪</span>
-            <span class="drop-title">Vælg billeder, videoer, lyd eller PDF</span>
-            <span class="drop-hint">eller træk dem herind · op til <span data-cfg="maxFiles">40</span> filer, max <span data-cfg="maxFileGb">2</span> GB pr. fil</span>
+            <span class="drop-title" data-i18n="drop.title">Vælg billeder, videoer, lyd eller PDF</span>
+            <span class="drop-hint" data-i18n="drop.hint">eller træk dem herind · op til <span data-cfg="maxFiles">40</span> filer, max <span data-cfg="maxFileGb">2</span> GB pr. fil</span>
           </label>
           <ul class="file-list" id="file-list" aria-live="polite"></ul>
           <div class="notice" role="note">
-            <strong>📍 Placeringen bliver vist offentligt</strong>
-            <p>Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
+            <strong data-i18n="notice.title">📍 Placeringen bliver vist offentligt</strong>
+            <p data-i18n="notice.p">Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
           </div>
           <p class="hint" id="gps-hint" hidden></p>
-          <p class="hint">Har du kun en historie? Det er også fint. Så kan du springe filerne over.</p>
+          <p class="hint" data-i18n="hint.storyonly">Har du kun en historie? Det er også fint. Så kan du springe filerne over.</p>
         </fieldset>
 
         <fieldset>
-          <legend>2. Fortæl om det</legend>
+          <legend data-i18n="f.legend2">2. Fortæl om det</legend>
           <label class="field">
-            <span>Overskrift <em>(valgfri)</em></span>
-            <input type="text" name="title" maxlength="120" placeholder="F.eks. Solnedgang over havnen, juni 2024">
+            <span data-i18n="f.title">Overskrift <em>(valgfri)</em></span>
+            <input type="text" name="title" maxlength="120" data-i18n-ph="f.title.ph" placeholder="F.eks. Solnedgang over havnen, juni 2024">
           </label>
           <label class="field">
-            <span>Din historie eller beskrivelse</span>
-            <textarea name="story" rows="6" maxlength="8000" data-counter placeholder="Hvad ser vi? Hvornår og hvorfor tog du billedet? Har du et minde om siloerne, om arbejdet derinde eller om livet på havnen?"></textarea>
+            <span data-i18n="f.story">Din historie eller beskrivelse</span>
+            <textarea name="story" rows="6" maxlength="8000" data-counter data-i18n-ph="f.story.ph" placeholder="Hvad ser vi? Hvornår og hvorfor tog du billedet? Har du et minde om siloerne, om arbejdet derinde eller om livet på havnen?"></textarea>
           </label>
           <div class="grid-2">
             <label class="field">
-              <span>Hvornår? <em>(valgfri)</em></span>
-              <input type="text" name="period" maxlength="60" placeholder="F.eks. sommeren 1987 eller 2025">
+              <span data-i18n="f.period">Hvornår? <em>(valgfri)</em></span>
+              <input type="text" name="period" maxlength="60" data-i18n-ph="f.period.ph" placeholder="F.eks. sommeren 1987 eller 2025">
             </label>
             <label class="field">
-              <span>Hvor fra? <em>(valgfri)</em></span>
-              <input type="text" name="place" maxlength="120" placeholder="F.eks. fra Svendborgsund-broen">
+              <span data-i18n="f.place">Hvor fra? <em>(valgfri)</em></span>
+              <input type="text" name="place" maxlength="120" data-i18n-ph="f.place.ph" placeholder="F.eks. fra Svendborgsund-broen">
             </label>
             <label class="field">
-              <span>Hvordan er det set?</span>
-              <select name="perspective" data-options="perspectives"><option value="">Vælg …</option></select>
+              <span data-i18n="f.persp">Hvordan er det set?</span>
+              <select name="perspective" data-options="perspectives"><option value="" data-i18n="f.choose">Vælg …</option></select>
             </label>
             <label class="field">
-              <span>Din tilknytning til siloerne</span>
-              <select name="relation" data-options="relations"><option value="">Vælg …</option></select>
+              <span data-i18n="f.relation">Din tilknytning til siloerne</span>
+              <select name="relation" data-options="relations"><option value="" data-i18n="f.choose">Vælg …</option></select>
             </label>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>3. Kreditering og kontakt</legend>
+          <legend data-i18n="f.legend3">3. Kreditering og kontakt</legend>
           <label class="field">
-            <span>Kreditering / ophavsret <em class="req">(skal udfyldes)</em></span>
-            <input type="text" name="credit" required minlength="2" maxlength="120" autocomplete="name" placeholder="F.eks. Foto: Jens Hansen · © Familien Larsen · Svendborg Havn">
-            <small class="hint">Hvem har taget billederne eller ejer materialet? Det gemmes altid sammen med bidraget.</small>
+            <span data-i18n="f.credit">Kreditering / ophavsret <em class="req">(skal udfyldes)</em></span>
+            <input type="text" name="credit" required minlength="2" maxlength="120" autocomplete="name" data-i18n-ph="f.credit.ph" placeholder="F.eks. Foto: Jens Hansen · © Familien Larsen · Svendborg Havn">
+            <small class="hint" data-i18n="f.credit.hint">Hvem har taget billederne eller ejer materialet? Det gemmes altid sammen med bidraget.</small>
           </label>
-          <label class="check"><input type="checkbox" name="showCredit"> <span>Vis krediteringen offentligt ved bidraget og i filerne <span class="muted">(ellers kender kun vi den)</span></span></label>
+          <label class="check"><input type="checkbox" name="showCredit"> <span data-i18n="f.showCredit">Vis krediteringen offentligt ved bidraget og i filerne <span class="muted">(ellers kender kun vi den)</span></span></label>
           <label class="field">
-            <span>E-mail <em>(valgfri, vises aldrig)</em></span>
+            <span data-i18n="f.email">E-mail <em>(valgfri, vises aldrig)</em></span>
             <input type="email" name="email" maxlength="254" autocomplete="email" inputmode="email">
           </label>
-          <label class="check"><input type="checkbox" name="contactOk"> <span>I må gerne kontakte mig, hvis I vil høre mere</span></label>
-          <label class="check required"><input type="checkbox" name="consent" required> <span>Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span></label>
+          <label class="check"><input type="checkbox" name="contactOk"> <span data-i18n="f.contactOk">I må gerne kontakte mig, hvis I vil høre mere</span></label>
+          <label class="check required"><input type="checkbox" name="consent" required> <span data-i18n="f.consent">Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span></label>
         </fieldset>
 
         <div class="hp" aria-hidden="true">
@@ -152,72 +159,72 @@
 
         <div class="submit-row">
           <div id="turnstile"></div>
-          <button class="btn btn-primary btn-large" type="submit" id="submit">Send bidrag</button>
+          <button class="btn btn-primary btn-large" type="submit" id="submit" data-i18n="submit">Send bidrag</button>
         </div>
         <p class="form-error" id="form-error" role="alert" hidden></p>
       </form>
 
       <div class="card progress" id="progress" hidden>
         <h3 id="progress-title">Sender dit bidrag …</h3>
-        <p class="muted" id="progress-note">Luk ikke siden, før alt er sendt. Store videoer kan tage et stykke tid.</p>
+        <p class="muted" id="progress-note" data-i18n="progress.note">Luk ikke siden, før alt er sendt. Store videoer kan tage et stykke tid.</p>
         <div class="bar"><div id="progress-bar"></div></div>
         <p id="progress-text" class="muted"></p>
       </div>
 
       <div class="card thanks" id="thanks" hidden>
-        <h3>Tusind tak! 💙</h3>
+        <h3 data-i18n="thanks.h">Tusind tak! 💙</h3>
         <p id="thanks-text">Dit bidrag er modtaget.</p>
-        <button class="btn btn-primary" type="button" id="again">Del mere</button>
-        <a class="btn btn-ghost" href="#bidrag">Se alle bidrag</a>
+        <button class="btn btn-primary" type="button" id="again" data-i18n="thanks.again">Del mere</button>
+        <a class="btn btn-ghost" href="#bidrag" data-i18n="thanks.all">Se alle bidrag</a>
       </div>
     </section>
 
     <section class="section gallery" id="bidrag">
       <div class="gallery-head">
-        <h2>Bidrag</h2>
-        <div class="filters" role="group" aria-label="Filtrér bidrag">
+        <h2 data-i18n="gallery.h2">Bidrag</h2>
+        <div class="filters" role="group" aria-label="Filtrér bidrag" data-i18n-aria="filters.aria">
           <div class="chips" id="kind-filter">
-            <button type="button" data-kind="" aria-pressed="true">Alle</button>
-            <button type="button" data-kind="image" aria-pressed="false">Billeder</button>
-            <button type="button" data-kind="video" aria-pressed="false">Video</button>
-            <button type="button" data-kind="story" aria-pressed="false">Historier</button>
-            <button type="button" data-kind="audio" aria-pressed="false">Lyd</button>
-            <button type="button" data-kind="document" aria-pressed="false">Dokumenter</button>
+            <button type="button" data-kind="" aria-pressed="true" data-i18n="chip.all">Alle</button>
+            <button type="button" data-kind="image" aria-pressed="false" data-i18n="chip.image">Billeder</button>
+            <button type="button" data-kind="video" aria-pressed="false" data-i18n="chip.video">Video</button>
+            <button type="button" data-kind="story" aria-pressed="false" data-i18n="chip.story">Historier</button>
+            <button type="button" data-kind="audio" aria-pressed="false" data-i18n="chip.audio">Lyd</button>
+            <button type="button" data-kind="document" aria-pressed="false" data-i18n="chip.document">Dokumenter</button>
           </div>
-          <select id="relation-filter" data-options="relations" aria-label="Tilknytning"><option value="">Alle tilknytninger</option></select>
-          <select id="perspective-filter" data-options="perspectives" aria-label="Perspektiv"><option value="">Alle perspektiver</option></select>
+          <select id="relation-filter" data-options="relations" aria-label="Tilknytning" data-i18n-aria="filter.relation.aria"><option value="" data-i18n="filter.relation">Alle tilknytninger</option></select>
+          <select id="perspective-filter" data-options="perspectives" aria-label="Perspektiv" data-i18n-aria="filter.persp.aria"><option value="" data-i18n="filter.persp">Alle perspektiver</option></select>
         </div>
       </div>
       <div class="masonry" id="feed" aria-live="polite"></div>
-      <p class="empty muted" id="feed-empty" hidden>Ingen bidrag endnu, der passer. Bliv den første, og <a href="#del">del dit</a>.</p>
-      <div class="center"><button class="btn btn-ghost" id="more" type="button" hidden>Vis flere</button></div>
+      <p class="empty muted" id="feed-empty" hidden data-i18n="feed.empty">Ingen bidrag endnu, der passer. Bliv den første, og <a href="#del">del dit</a>.</p>
+      <div class="center"><button class="btn btn-ghost" id="more" type="button" hidden data-i18n="more">Vis flere</button></div>
     </section>
 
     <section class="section map-section" id="kort">
-      <h2>Hvor er billederne taget?</h2>
-      <p class="muted">Alle billeder og videoer med GPS-placering. Jo flere vinkler og afstande, jo bedre.</p>
-      <div id="map" class="map" role="region" aria-label="Kort over hvor billederne er taget"></div>
+      <h2 data-i18n="map.h2">Hvor er billederne taget?</h2>
+      <p class="muted" data-i18n="map.p">Alle billeder og videoer med GPS-placering. Jo flere vinkler og afstande, jo bedre.</p>
+      <div id="map" class="map" role="region" aria-label="Kort over hvor billederne er taget" data-i18n-aria="map.aria"></div>
     </section>
 
     <section class="section privacy" id="privatliv">
-      <h2>Privatliv og rettigheder</h2>
+      <h2 data-i18n="privacy.h2">Privatliv og rettigheder</h2>
       <div class="grid-2">
         <div>
-          <h3>Hvad vi gemmer</h3>
+          <h3 data-i18n="privacy.h3a">Hvad vi gemmer</h3>
           <ul>
-            <li>Vi gemmer ikke dine originale filer. De omkodes til almindelige formater i høj kvalitet: billeder som JPEG i op til A3-printstørrelse, video som MP4 i op til 1080p, lyd som M4A og dokumenter som PDF. Derefter slettes originalen.</li>
-            <li>Oplysningerne i filerne bevares, f.eks. dato, kameramodel og <strong>GPS-placering. Placeringen vises offentligt på kortet</strong>, og den kan også læses af alle, der henter filen.</li>
-            <li>Din e-mail vises aldrig og bruges kun, hvis du har sagt ja til at blive kontaktet.</li>
-            <li>For at beskytte mod spam gemmer vi en krypteret (hashet) udgave af din IP-adresse i kort tid. Spambeskyttelsen leveres af Cloudflare Turnstile.</li>
+            <li data-i18n="privacy.li1">Vi gemmer ikke dine originale filer. De omkodes til almindelige formater i høj kvalitet: billeder som JPEG i op til A3-printstørrelse, video som MP4 i op til 1080p, lyd som M4A og dokumenter som PDF. Derefter slettes originalen.</li>
+            <li data-i18n="privacy.li2">Oplysningerne i filerne bevares, f.eks. dato, kameramodel og <strong>GPS-placering. Placeringen vises offentligt på kortet</strong>, og den kan også læses af alle, der henter filen.</li>
+            <li data-i18n="privacy.li3">Din e-mail vises aldrig og bruges kun, hvis du har sagt ja til at blive kontaktet.</li>
+            <li data-i18n="privacy.li4">For at beskytte mod spam gemmer vi en krypteret (hashet) udgave af din IP-adresse i kort tid. Spambeskyttelsen leveres af Cloudflare Turnstile.</li>
           </ul>
         </div>
         <div>
-          <h3>Dine rettigheder</h3>
+          <h3 data-i18n="privacy.h3b">Dine rettigheder</h3>
           <ul>
-            <li>Krediteringen (hvem der har taget billederne eller ejer materialet) gemmes altid. Den vises kun offentligt, ved bidraget og inde i filerne, hvis du sætter kryds ved det. Ellers fjerner vi også navne fra filernes egne oplysninger.</li>
-            <li>Du beholder ophavsretten til dit materiale. Du giver os lov til at vise det her og gemme det i arkivet om siloerne.</li>
-            <li>Vil du have et bidrag rettet eller fjernet? Skriv til os<span id="contact-line">, så sletter vi det</span>.</li>
-            <li>Ser du noget, der ikke hører hjemme her? Brug knappen <em>Anmeld</em> ved bidraget.</li>
+            <li data-i18n="privacy.li5">Krediteringen (hvem der har taget billederne eller ejer materialet) gemmes altid. Den vises kun offentligt, ved bidraget og inde i filerne, hvis du sætter kryds ved det. Ellers fjerner vi også navne fra filernes egne oplysninger.</li>
+            <li data-i18n="privacy.li6">Du beholder ophavsretten til dit materiale. Du giver os lov til at vise det her og gemme det i arkivet om siloerne.</li>
+            <li data-i18n="privacy.li7">Vil du have et bidrag rettet eller fjernet? Skriv til os<span id="contact-line"></span>.</li>
+            <li data-i18n="privacy.li8">Ser du noget, der ikke hører hjemme her? Brug knappen <em>Anmeld</em> ved bidraget.</li>
           </ul>
         </div>
       </div>
@@ -225,13 +232,13 @@
   </main>
 
   <footer class="footer">
-    <p>Siloerne på Østre Kaj · et fælles arkiv for Svendborg</p>
-    <p class="muted">Kortdata © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bidragydere</p>
+    <p data-i18n="footer.p1">Siloerne på Østre Kaj · et fælles arkiv for Svendborg</p>
+    <p class="muted" data-i18n="footer.p2">Kortdata © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bidragydere</p>
   </footer>
 
   <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
     <div class="viewer-inner">
-      <button class="viewer-close" type="button" data-close aria-label="Luk">×</button>
+      <button class="viewer-close" type="button" data-close aria-label="Luk" data-i18n-aria="viewer.close">×</button>
       <div class="viewer-media" id="viewer-media"></div>
       <div class="viewer-strip" id="viewer-strip"></div>
       <article class="viewer-text">
@@ -240,8 +247,8 @@
         <div class="viewer-story" id="viewer-story"></div>
         <dl class="viewer-facts" id="viewer-facts"></dl>
         <div class="viewer-actions">
-          <button class="link" type="button" id="viewer-share">Kopiér link</button>
-          <button class="link danger" type="button" id="viewer-report">Anmeld</button>
+          <button class="link" type="button" id="viewer-share" data-i18n="viewer.share">Kopiér link</button>
+          <button class="link danger" type="button" id="viewer-report" data-i18n="viewer.report">Anmeld</button>
         </div>
       </article>
     </div>
@@ -249,6 +256,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="config.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>

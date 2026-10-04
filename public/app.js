@@ -3,8 +3,103 @@
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-  const fmtDate = new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
-  const fmtNum = new Intl.NumberFormat('da-DK');
+  // ------------------------------------------------------------------ sprog (dansk er standard)
+  const I = window.I18N;
+  let lang = (() => {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q && I.LANGS[q]) return q;
+    try {
+      const saved = localStorage.getItem('silo-lang');
+      if (saved && I.LANGS[saved]) return saved;
+    } catch {}
+    return 'da';
+  })();
+  let fmtDate;
+  let fmtNum;
+  function setFormatters() {
+    fmtDate = new Intl.DateTimeFormat(I.LOCALE[lang], { day: 'numeric', month: 'long', year: 'numeric' });
+    fmtNum = new Intl.NumberFormat(I.LOCALE[lang]);
+  }
+  setFormatters();
+
+  function t(key, vars = {}) {
+    const str = (I.TEXT[lang] && I.TEXT[lang][key]) || I.TEXT.da[key] || key;
+    return str.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
+  }
+  const relLabel = (k) => (k ? t(`rel.${k}`) : '');
+  const perLabel = (k) => (k ? t(`per.${k}`) : '');
+  const errText = (msg) => I.translateError(msg, lang);
+
+  // Faste tekster: den danske udgave står i HTML'en og gemmes første gang, så vi kan skifte tilbage.
+  const ORIGINAL = new Map();
+  const ORIGINAL_TITLE = document.title;
+  function remember(node, attr) {
+    const k = attr || 'html';
+    if (!ORIGINAL.has(node)) ORIGINAL.set(node, {});
+    const o = ORIGINAL.get(node);
+    if (!(k in o)) o[k] = attr ? node.getAttribute(attr) : node.innerHTML;
+    return o[k];
+  }
+  function translated(key) {
+    if (lang === 'da') return null;
+    return (I.STATIC[lang] && I.STATIC[lang][key]) || (I.TEXT[lang] && I.TEXT[lang][key]) || null;
+  }
+  function applyStatic() {
+    document.documentElement.lang = lang;
+    document.title = translated('doc.title') || ORIGINAL_TITLE;
+    for (const node of $$('[data-i18n]')) {
+      const da = remember(node);
+      node.innerHTML = translated(node.dataset.i18n) ?? da;
+    }
+    for (const [sel, attr] of [['[data-i18n-ph]', 'placeholder'], ['[data-i18n-aria]', 'aria-label'], ['[data-i18n-alt]', 'alt']]) {
+      for (const node of $$(sel)) {
+        const da = remember(node, attr);
+        node.setAttribute(attr, translated(node.getAttribute(`data-${sel.slice(6, -1)}`)) ?? da);
+      }
+    }
+    fillConfigTexts();
+    for (const sel of $$('select[data-options]')) {
+      for (const opt of sel.options) if (opt.value) opt.textContent = sel.dataset.options === 'relations' ? relLabel(opt.value) : perLabel(opt.value);
+    }
+    const picker = $('#lang');
+    if (picker) picker.value = lang;
+  }
+
+  function fillConfigTexts() {
+    $$('[data-cfg=maxFiles]').forEach((n) => (n.textContent = config.maxFiles));
+    $$('[data-cfg=maxFileGb]').forEach((n) => (n.textContent = fmtNum.format(Math.round((config.maxFileMb / 1024) * 10) / 10)));
+    const line = $('#contact-line');
+    if (line) {
+      line.textContent = '';
+      if (config.contactEmail) {
+        const [before, after] = t('contact.line').split('{email}');
+        line.append(before, el('a', { href: `mailto:${config.contactEmail}`, text: config.contactEmail }), after);
+      } else {
+        line.textContent = t('contact.none');
+      }
+    }
+    for (const c of $$('.counter')) c.dispatchEvent(new Event('refresh'));
+  }
+
+  function setLang(next) {
+    if (!I.LANGS[next] || next === lang) return;
+    lang = next;
+    try {
+      localStorage.setItem('silo-lang', lang);
+    } catch {}
+    setFormatters();
+    applyStatic();
+    loadStats();
+    loadFeed(true);
+    updateGpsHint();
+    if (viewer.open && current) openViewer(current, index);
+    if (turnstileWidget !== null && window.turnstile) {
+      window.turnstile.remove(turnstileWidget);
+      turnstileWidget = null;
+      turnstileToken = '';
+      renderTurnstile();
+    }
+  }
 
   let config = { maxFiles: 40, maxFileMb: 2048, chunkSize: 16 * 1024 * 1024, relations: {}, perspectives: {} };
 
@@ -29,7 +124,7 @@
   async function getJson(url, opts = {}) {
     const res = await fetch(API + url, opts);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Fejl ${res.status}`);
+    if (!res.ok) throw new Error(errText(data.error) || t('err.http', { status: res.status }));
     return data;
   }
 
@@ -73,7 +168,7 @@
       console.warn('config', e);
     }
     for (const sel of $$('select[data-options]')) {
-      for (const [value, label] of Object.entries(config[sel.dataset.options] || {})) sel.append(el('option', { value, text: label }));
+      for (const value of Object.keys(config[sel.dataset.options] || {})) sel.append(el('option', { value, text: value }));
     }
     for (const [name, max] of Object.entries(config.limits || {})) {
       const input = form.elements[name];
@@ -82,17 +177,13 @@
     for (const ta of $$('[data-counter]')) {
       const counter = el('small', { class: 'counter', 'aria-live': 'polite' });
       ta.after(counter);
-      const upd = () => (counter.textContent = `${ta.value.length} / ${ta.maxLength} tegn`);
+      const upd = () => (counter.textContent = t('counter', { n: ta.value.length, max: ta.maxLength }));
       ta.addEventListener('input', upd);
+      counter.addEventListener('refresh', upd);
       upd();
     }
-    $$('[data-cfg=maxFiles]').forEach((n) => (n.textContent = config.maxFiles));
-    $$('[data-cfg=maxFileGb]').forEach((n) => (n.textContent = fmtNum.format(Math.round((config.maxFileMb / 1024) * 10) / 10)));
-    if (config.contactEmail) {
-      const line = $('#contact-line');
-      line.textContent = ' på ';
-      line.append(el('a', { href: `mailto:${config.contactEmail}`, text: config.contactEmail }), ', så retter eller sletter vi det.');
-    }
+    applyStatic();
+    $('#lang').addEventListener('change', (e) => setLang(e.target.value));
     renderTurnstile();
     loadStats();
     loadFeed(true);
@@ -123,7 +214,7 @@
     turnstileWidget = window.turnstile.render('#turnstile', {
       sitekey: config.turnstileSiteKey,
       action: 'bidrag',
-      language: 'da',
+      language: lang,
       callback: (t) => (turnstileToken = t),
       'expired-callback': () => (turnstileToken = ''),
       'error-callback': () => (turnstileToken = ''),
@@ -145,20 +236,20 @@
     for (const file of list) {
       const kind = kindOf(file);
       if (!kind) {
-        errors.push(`"${file.name}" er ikke et billede, en video, lyd eller PDF.`);
+        errors.push(t('file.notMedia', { name: file.name }));
         continue;
       }
       if (file.size === 0) {
-        errors.push(`"${file.name}" er tom.`);
+        errors.push(t('file.empty', { name: file.name }));
         continue;
       }
       if (file.size > config.maxFileMb * 1024 * 1024) {
-        errors.push(`"${file.name}" er for stor (max ${fmtNum.format(config.maxFileMb)} MB).`);
+        errors.push(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
         continue;
       }
       if (picked.some((p) => p.file.name === file.name && p.file.size === file.size && p.file.lastModified === file.lastModified)) continue;
       if (picked.length >= config.maxFiles) {
-        errors.push(`Du kan højst sende ${config.maxFiles} filer ad gangen. Send gerne resten bagefter.`);
+        errors.push(t('file.tooMany', { n: config.maxFiles }));
         break;
       }
       const entry = { file, kind };
@@ -179,7 +270,7 @@
         el('div', { class: 'name', title: file.name, text: file.name }),
         el('div', { class: 'size', text: formatSize(file.size) }),
         el('div', { class: 'fbar' }, el('div')),
-        el('button', { type: 'button', class: 'remove', 'aria-label': `Fjern ${file.name}`, text: '×', onclick: () => removeFile(entry) }),
+        el('button', { type: 'button', class: 'remove', 'aria-label': t('file.remove', { name: file.name }), text: '×', onclick: () => removeFile(entry) }),
       );
       picked.push(entry);
       fileList.append(entry.li);
@@ -193,10 +284,14 @@
     if (!(await hasGps(entry.file, entry.kind))) return;
     entry.gps = true;
     $('.size', entry.li).textContent += ' · 📍 GPS';
+    updateGpsHint();
+  }
+
+  function updateGpsHint() {
     const n = picked.filter((p) => p.gps).length;
     const hint = $('#gps-hint');
-    hint.textContent = `📍 ${n === 1 ? '1 fil har' : `${n} filer har`} GPS-placering, som vil blive vist på kortet.`;
-    hint.hidden = false;
+    hint.textContent = n === 1 ? t('gps.one') : t('gps.many', { n });
+    hint.hidden = n === 0;
   }
 
   // Cheap check, good enough for a heads-up (the server reads the real values):
@@ -275,17 +370,17 @@
     const data = new FormData(form);
     const story = String(data.get('story') || '').trim();
     const credit = String(data.get('credit') || '').trim();
-    if (!picked.length && story.length < 20) return showError('Vælg mindst én fil, eller skriv en historie (mindst et par sætninger).');
+    if (!picked.length && story.length < 20) return showError(t('v.needContent'));
     if (credit.length < 2) {
       form.elements.credit.focus();
-      return showError('Skriv hvem der skal krediteres for materialet (f.eks. dit navn eller fotografens navn).');
+      return showError(t('v.needCredit'));
     }
     for (const [name, max] of Object.entries(config.limits || {})) {
       const v = String(data.get(name) || '');
-      if (v.length > max) return showError(`Feltet er for langt (max ${max} tegn).`);
+      if (v.length > max) return showError(t('v.tooLong', { max }));
     }
-    if (!data.get('consent')) return showError('Sæt kryds ved tilladelsen nederst, så vi må vise og gemme dit bidrag.');
-    if (config.turnstileSiteKey && !turnstileToken) return showError('Vent et øjeblik på spam-tjekket, eller sæt kryds i boksen ved "Send".');
+    if (!data.get('consent')) return showError(t('v.consent'));
+    if (config.turnstileSiteKey && !turnstileToken) return showError(t('v.turnstile'));
 
     const btn = $('#submit');
     btn.disabled = true;
@@ -321,9 +416,9 @@
       const done = await getJson(`/api/submissions/${sub.id}/complete`, { method: 'POST', headers: { 'x-upload-token': sub.uploadToken } });
       uploading = false;
 
-      let msg = done.status === 'review' ? 'Dit bidrag er modtaget og bliver vist på siden, så snart vi har kigget på det.' : 'Dit bidrag er modtaget og kan allerede ses på siden.';
-      if (done.pending) msg += ` Vi er i gang med at gøre ${done.pending === 1 ? 'filen' : `de ${done.pending} filer`} klar til visning. Det tager som regel et par minutter.`;
-      if (failures.length) msg += ` Desværre kom ${failures.length === 1 ? 'denne fil' : 'disse filer'} ikke igennem: ${failures.join(', ')}. Prøv gerne at sende ${failures.length === 1 ? 'den' : 'dem'} igen.`;
+      let msg = done.status === 'review' ? t('done.review') : t('done.published');
+      if (done.pending) msg += done.pending === 1 ? t('done.pendingOne') : t('done.pendingMany', { n: done.pending });
+      if (failures.length) msg += t(failures.length === 1 ? 'done.failedOne' : 'done.failedMany', { names: failures.join(', ') });
       $('#thanks-text').textContent = msg;
       $('#progress').hidden = true;
       $('#thanks').hidden = false;
@@ -335,7 +430,7 @@
     } catch (err) {
       uploading = false;
       $('#progress').hidden = true;
-      showError(err.message || 'Noget gik galt. Prøv igen.');
+      showError(err.message || t('err.generic'));
     } finally {
       if (wakeLock) wakeLock.release().catch(() => {});
       btn.disabled = false;
@@ -367,7 +462,10 @@
     const sent = new Array(entries.length).fill(0);
     const progress = $('#progress');
     progress.hidden = false;
-    $('#progress-title').textContent = `Sender ${entries.length === 1 ? '1 fil' : `${entries.length} filer`} (${formatSize(total)}) …`;
+    $('#progress-title').textContent = t('progress.title', {
+      files: entries.length === 1 ? t('files.one') : t('files.many', { n: entries.length }),
+      size: formatSize(total),
+    });
     const update = () => {
       const s = sent.reduce((a, b) => a + b, 0);
       const pct = Math.min(100, (s / total) * 100);
@@ -442,10 +540,10 @@
           data = JSON.parse(xhr.responseText);
         } catch {}
         if (xhr.status >= 200 && xhr.status < 300) resolve(data);
-        else reject(Object.assign(new Error(data.error || `Fejl ${xhr.status}`), { fatal: xhr.status >= 400 && xhr.status < 500 && xhr.status !== 408 && xhr.status !== 429 }));
+        else reject(Object.assign(new Error(errText(data.error) || t('err.http', { status: xhr.status })), { fatal: xhr.status >= 400 && xhr.status < 500 && xhr.status !== 408 && xhr.status !== 429 }));
       };
-      xhr.onerror = () => reject(new Error('Netværksfejl'));
-      xhr.ontimeout = () => reject(new Error('Timeout'));
+      xhr.onerror = () => reject(new Error(t('err.network')));
+      xhr.ontimeout = () => reject(new Error(t('err.timeout')));
       xhr.send(blob);
     });
   }
@@ -483,26 +581,26 @@
     } catch (err) {
       if (token !== feedToken) return;
       feed.textContent = '';
-      feed.append(el('p', { class: 'muted', text: `Kunne ikke hente bidrag: ${err.message}` }));
+      feed.append(el('p', { class: 'muted', text: t('feed.error', { msg: err.message }) }));
     }
   }
 
   function tile(c) {
     const first = c.items.find((i) => i.thumb) || c.items[0];
     const excerpt = c.story ? c.story.slice(0, 400) : '';
-    const byline = [c.credit, c.relationLabel, c.period].filter(Boolean).join(' · ');
+    const byline = [c.credit, relLabel(c.relation), c.period].filter(Boolean).join(' · ');
     let media = null;
     let body;
     if (first && first.thumb) {
       media = el(
         'div',
         { class: 'tile-media' },
-        el('img', { src: first.thumb, alt: c.title || 'Bidrag', loading: 'lazy', width: first.width || null, height: first.height || null }),
+        el('img', { src: first.thumb, alt: c.title || t('v.contribution'), loading: 'lazy', width: first.width || null, height: first.height || null }),
         first.kind === 'video' ? el('span', { class: 'play', 'aria-hidden': 'true', text: '▶' }) : null,
-        c.items.length > 1 ? el('span', { class: 'badge', text: `${c.items.length} filer` }) : null,
+        c.items.length > 1 ? el('span', { class: 'badge', text: t('tile.files', { n: c.items.length }) }) : null,
       );
     } else if (first && first.kind === 'audio') {
-      media = el('div', { class: 'tile-audio' }, el('span', { text: '🎙' }), el('span', { text: `Lydoptagelse ${formatDuration(first.duration)}` }));
+      media = el('div', { class: 'tile-audio' }, el('span', { text: '🎙' }), el('span', { text: t('tile.audio', { d: formatDuration(first.duration) }) }));
     }
     if (!media && excerpt) {
       body = el(
@@ -527,11 +625,12 @@
         processingNote(c),
       );
     }
-    return el('button', { type: 'button', class: 'tile', 'aria-label': `Åbn bidrag${c.title ? `: ${c.title}` : ''}`, onclick: () => openViewer(c, 0) }, media, body);
+    return el('button', { type: 'button', class: 'tile', 'aria-label': `${t('tile.open')}${c.title ? `: ${c.title}` : ''}`, onclick: () => openViewer(c, 0) }, media, body);
   }
 
   function processingNote(c) {
-    return c.processing ? el('p', { class: 'processing-note', text: `⏳ ${c.processing === 1 ? '1 fil' : `${c.processing} filer`} gøres klar …` }) : null;
+    const files = c.processing === 1 ? t('files.one') : t('files.many', { n: c.processing });
+    return c.processing ? el('p', { class: 'processing-note', text: t('tile.processing', { files }) }) : null;
   }
 
   moreBtn.addEventListener('click', () => loadFeed(false));
@@ -559,15 +658,15 @@
 
   function openViewer(c, i) {
     current = c;
-    $('#viewer-title').textContent = c.title || (c.items.length ? 'Bidrag' : 'Historie');
-    $('#viewer-meta').textContent = [c.credit ? `Kreditering: ${c.credit}` : 'Kreditering ikke offentlig', c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
+    $('#viewer-title').textContent = c.title || (c.items.length ? t('v.contribution') : t('v.story'));
+    $('#viewer-meta').textContent = [c.credit ? t('v.credit', { credit: c.credit }) : t('v.creditHidden'), c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
     $('#viewer-story').textContent = c.story || '';
     const strip = $('#viewer-strip');
     strip.textContent = '';
     if (c.items.length > 1) {
       c.items.forEach((it, n) =>
         strip.append(
-          el('button', { type: 'button', 'aria-label': `Vis fil ${n + 1}`, onclick: () => showItem(n) }, it.thumb ? el('img', { src: it.thumb, alt: '', loading: 'lazy' }) : KIND_ICON[it.kind]),
+          el('button', { type: 'button', 'aria-label': t('v.showFile', { n: n + 1 }), onclick: () => showItem(n) }, it.thumb ? el('img', { src: it.thumb, alt: '', loading: 'lazy' }) : KIND_ICON[it.kind]),
         ),
       );
     }
@@ -584,15 +683,15 @@
     const it = c.items[n];
     $('#viewer-media').hidden = !it;
     if (it) {
-      if (it.kind === 'image') box.append(el('img', { src: it.src, alt: c.title || 'Billede' }));
+      if (it.kind === 'image') box.append(el('img', { src: it.src, alt: c.title || t('v.image') }));
       else if (it.kind === 'video') box.append(el('video', { src: it.src, poster: it.poster, controls: true, playsinline: true, preload: 'metadata' }));
       else if (it.kind === 'audio') box.append(el('audio', { src: it.src, controls: true, preload: 'metadata' }));
       else if (it.kind === 'document')
-        box.append(el('div', { class: 'doc' }, it.thumb ? el('img', { src: it.thumb, alt: '' }) : null, el('a', { class: 'btn btn-primary', href: it.src, target: '_blank', rel: 'noopener', text: 'Åbn PDF' })));
+        box.append(el('div', { class: 'doc' }, it.thumb ? el('img', { src: it.thumb, alt: '' }) : null, el('a', { class: 'btn btn-primary', href: it.src, target: '_blank', rel: 'noopener', text: t('v.openPdf') })));
       if (c.items.length > 1) {
         box.append(
-          el('button', { type: 'button', class: 'nav prev', 'aria-label': 'Forrige', text: '‹', onclick: () => showItem((n - 1 + c.items.length) % c.items.length) }),
-          el('button', { type: 'button', class: 'nav next', 'aria-label': 'Næste', text: '›', onclick: () => showItem((n + 1) % c.items.length) }),
+          el('button', { type: 'button', class: 'nav prev', 'aria-label': t('v.prev'), text: '‹', onclick: () => showItem((n - 1 + c.items.length) % c.items.length) }),
+          el('button', { type: 'button', class: 'nav next', 'aria-label': t('v.next'), text: '›', onclick: () => showItem((n + 1) % c.items.length) }),
         );
       }
     }
@@ -601,20 +700,20 @@
     const facts = $('#viewer-facts');
     facts.textContent = '';
     const add = (k, v) => v && facts.append(el('dt', { text: k }), el('dd', { text: v }));
-    add('Hvornår', c.period);
-    if (it) add('Optaget', formatTaken(it.takenAt));
-    add('Hvor fra', c.place);
-    add('Perspektiv', c.perspectiveLabel);
-    add('Tilknytning', c.relationLabel);
+    add(t('f.when'), c.period);
+    if (it) add(t('f.taken'), formatTaken(it.takenAt));
+    add(t('f.where'), c.place);
+    add(t('f.persp'), perLabel(c.perspective));
+    add(t('f.relation'), relLabel(c.relation));
     if (it) {
-      add('Kamera', it.camera);
-      if (it.duration) add('Længde', formatDuration(it.duration));
+      add(t('f.camera'), it.camera);
+      if (it.duration) add(t('f.length'), formatDuration(it.duration));
       if (it.kind !== 'audio' && it.kind !== 'document') {
-        const full = el('a', { href: it.full || it.src, target: '_blank', rel: 'noopener', text: it.kind === 'image' ? 'Åbn i fuld størrelse' : 'Åbn video' });
-        facts.append(el('dt', { text: 'Fil' }), el('dd', {}, full));
+        const full = el('a', { href: it.full || it.src, target: '_blank', rel: 'noopener', text: it.kind === 'image' ? t('f.openFull') : t('f.openVideo') });
+        facts.append(el('dt', { text: t('f.file') }), el('dd', {}, full));
       }
     }
-    if (c.processing) add('Bemærk', `${c.processing} fil(er) gøres stadig klar til visning`);
+    if (c.processing) add(t('f.note'), t('f.stillProcessing', { n: c.processing }));
   }
 
   viewer.addEventListener('close', () => {
@@ -633,20 +732,20 @@
   $('#viewer-share').addEventListener('click', async (e) => {
     const url = `${location.origin}${location.pathname}#bidrag/${current.id}`;
     try {
-      if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: current.title || 'Siloerne på Østre Kaj', url });
+      if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: current.title || t('share.title'), url });
       else {
         await navigator.clipboard.writeText(url);
-        e.target.textContent = 'Link kopieret ✓';
-        setTimeout(() => (e.target.textContent = 'Kopiér link'), 2000);
+        e.target.textContent = t('share.copied');
+        setTimeout(() => (e.target.textContent = t('share.copy')), 2000);
       }
     } catch {}
   });
   $('#viewer-report').addEventListener('click', async () => {
-    const reason = prompt('Hvorfor skal bidraget fjernes? (f.eks. spam, krænkende, mit eget billede brugt uden lov)');
+    const reason = prompt(t('report.prompt'));
     if (reason === null) return;
     try {
       await getJson(`/api/contributions/${current.id}/report`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ reason }) });
-      alert('Tak – vi kigger på det.');
+      alert(t('report.thanks'));
     } catch (err) {
       alert(err.message);
     }
@@ -684,7 +783,7 @@
             'div',
             { class: 'map-popup' },
             p.thumb ? el('img', { src: p.thumb, alt: '' }) : null,
-            el('button', { type: 'button', class: 'link', text: p.title || 'Se bidraget', onclick: () => (location.hash = `#bidrag/${p.submissionId}`) }),
+            el('button', { type: 'button', class: 'link', text: p.title || t('map.open'), onclick: () => (location.hash = `#bidrag/${p.submissionId}`) }),
           );
           markers.push(L.circleMarker([p.lat, p.lon], { radius: 7, color: '#fff', weight: 2, fillColor: '#1d8a74', fillOpacity: 0.9 }).bindPopup(popup).addTo(map));
         }
