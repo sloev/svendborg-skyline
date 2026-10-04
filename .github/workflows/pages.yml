@@ -7,7 +7,7 @@ name: Udgiv hjemmeside (GitHub Pages)
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths: ['public/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 

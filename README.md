@@ -94,7 +94,7 @@ everything dynamic (API, uploads and media).
 3. In `wrangler.toml`, `ALLOWED_ORIGINS` must contain the Pages address (`https://sloev.github.io`
    by default, or your custom domain), so the browser may call the API. Run `npm run deploy` after changing it.
 4. Add the Pages hostname (`sloev.github.io` or your custom domain) to the Turnstile widget's hostnames.
-5. Push to `main`, or run the workflow **Udgiv hjemmeside (GitHub Pages)** by hand. The site is then at
+5. Push to `master`, or run the workflow **Udgiv hjemmeside (GitHub Pages)** by hand. The site is then at
    `https://sloev.github.io/svendborg-skyline/`.
 
 The workflow writes `public/config.js` with the worker address. Locally, and if you would rather let
