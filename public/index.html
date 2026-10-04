@@ -171,7 +171,7 @@
           </div>
           <div class="notice" role="note" data-field="gps">
             <strong data-i18n="notice.title">📍 Placeringen bliver vist offentligt</strong>
-            <p data-i18n="notice.p">Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den gemt og vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
+            <p data-i18n="notice.p">Hvis dine billeder eller videoer indeholder GPS-placering (det gør de fleste mobilbilleder), bliver den vist på kortet her på siden, så vi kan se, hvorfra siloerne er set. Selve filen gemmes uden GPS og andre skjulte oplysninger. Vil du ikke det, så slå placering fra i kameraet eller fjern den fra filen, før du sender.</p>
           </div>
           <div class="step-nav">
             <button class="btn btn-ghost" type="button" data-back data-i18n="btn.back">Tilbage</button>
@@ -191,7 +191,7 @@
             <input type="email" name="email" maxlength="254" autocomplete="email" inputmode="email">
           </label>
           <label class="check"><input type="checkbox" name="contactOk"> <span data-i18n="f.contactOk">I må gerne kontakte mig, hvis I vil høre mere</span></label>
-          <label class="check required"><input type="checkbox" name="consent" required> <span><span data-i18n="f.consent">Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen i filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span><span class="req-star">*</span></span></label>
+          <label class="check required"><input type="checkbox" name="consent" required> <span><span data-i18n="f.consent">Jeg har selv lavet materialet eller har lov til at dele det, og jeg giver lov til, at det vises her på siden og gemmes i arkivet om siloerne. Jeg ved, at <strong>GPS-placeringen fra filerne vises offentligt på kortet</strong>. <a href="#privatliv">Læs mere</a></span><span class="req-star">*</span></span></label>
 
           <div class="hp" aria-hidden="true">
             <label>Lad dette felt være tomt <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
@@ -243,7 +243,7 @@
           <h3 data-i18n="privacy.h3a">Hvad vi gemmer</h3>
           <ul>
             <li data-i18n="privacy.li1">Vi gemmer ikke dine originale filer. De omkodes til almindelige formater i høj kvalitet: billeder som JPEG i op til A3-printstørrelse, video som MP4 i op til 1080p, lyd som M4A og dokumenter som PDF. Derefter slettes originalen.</li>
-            <li data-i18n="privacy.li2">Oplysningerne i filerne bevares, f.eks. dato, kameramodel og <strong>GPS-placering. Placeringen vises offentligt på kortet</strong>, og den kan også læses af alle, der henter filen.</li>
+            <li data-i18n="privacy.li2"><strong>Alle skjulte oplysninger fjernes fra filerne</strong>, når de omkodes på serveren: EXIF, XMP og IPTC, GPS, kameraets serienummer, forfatter- og programnavne i dokumenter, kommentarer og indlejrede filer. Kun dato, kameramodel og <strong>GPS-placering</strong> læses først og gemmes ved bidraget. <strong>Placeringen vises offentligt på kortet</strong>, men står ikke længere i selve filen.</li>
             <li data-i18n="privacy.li3">Din e-mail vises aldrig og bruges kun, hvis du har sagt ja til at blive kontaktet.</li>
             <li data-i18n="privacy.li4">For at beskytte mod spam gemmer vi en krypteret (hashet) udgave af din IP-adresse i kort tid. Spambeskyttelsen leveres af Cloudflare Turnstile.</li>
           </ul>
@@ -251,7 +251,7 @@
         <div>
           <h3 data-i18n="privacy.h3b">Dine rettigheder</h3>
           <ul>
-            <li data-i18n="privacy.li5">Krediteringen (hvem der har taget billederne eller ejer materialet) gemmes altid. Den vises kun offentligt, ved bidraget og inde i filerne, hvis du sætter kryds ved det. Ellers fjerner vi også navne fra filernes egne oplysninger.</li>
+            <li data-i18n="privacy.li5">Krediteringen (hvem der har taget billederne eller ejer materialet) gemmes altid. Den vises kun offentligt, ved bidraget og som ophavsret inde i filerne, hvis du sætter kryds ved det. Ellers står der intet navn i filerne.</li>
             <li data-i18n="privacy.li6">Du beholder ophavsretten til dit materiale. Du giver os lov til at vise det her og gemme det i arkivet om siloerne.</li>
             <li data-i18n="privacy.li7">Vil du have et bidrag rettet eller fjernet? Skriv til os<span id="contact-line"></span>.</li>
             <li data-i18n="privacy.li8">Ser du noget, der ikke hører hjemme her? Brug knappen <em>Anmeld</em> ved bidraget.</li>

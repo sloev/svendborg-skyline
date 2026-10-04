@@ -1,7 +1,7 @@
 name: Behandl uploads
 
 # Omkoder nye uploads (billeder → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, lyd → M4A,
-# PDF → Ghostscript) og bevarer deres metadata inkl. GPS. Workeren sletter originalerne.
+# PDF → Ghostscript) og fjerner al metadata (dato, kamera og GPS gemmes kun i databasen). Workeren sletter originalerne.
 #
 # Startes af workeren lige efter en upload (repository_dispatch), hver time som sikkerhedsnet,
 # eller i hånden fra Actions-fanen.
@@ -17,6 +17,11 @@ on:
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
+    inputs:
+      strip_existing:
+        description: 'Fjern metadata fra alle allerede gemte filer (engangskørsel)'
+        type: boolean
+        default: false
 
 concurrency:
   group: process-media
@@ -49,7 +54,7 @@ jobs:
           echo "WORKER_URL=$WORKER_URL" >> "$GITHUB_ENV"
           pending=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/api/admin/queue-size" | jq -r .pending)
           echo "Filer i kø: $pending"
-          if [ "$pending" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+          if [ "$pending" != "0" ] || [ "${{ inputs.strip_existing }}" = "true" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-node@v4
         if: steps.queue.outputs.run == 'true'
@@ -69,4 +74,5 @@ jobs:
         working-directory: processor
         run: |
           npm ci --no-audit --no-fund
+          if [ "${{ inputs.strip_existing }}" = "true" ]; then STRIP_EXISTING=1 node process.mjs; fi
           node process.mjs

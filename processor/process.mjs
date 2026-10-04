@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-// Re-encodes uploads into one archive format per media type and keeps their metadata
-// (including GPS). The worker deletes the originals once the results are stored.
+// Re-encodes uploads into one archive format per media type and strips ALL embedded metadata
+// (EXIF, XMP, IPTC, GPS, camera serial numbers, PDF author/title, video/audio tags, chapters …).
+// Only the few facts the site shows (date, camera model, GPS position, size) are read from the
+// original and sent to the worker; the files themselves carry nothing but the colour profile and,
+// if the uploader allowed it, the public credit. The worker deletes the originals once the results are stored.
 //
 //   photos    → JPEG (mozjpeg q90, 4:2:0, sRGB), max A3 @ 300 dpi = 3508 × 4961 px
 //               + 2048 px screen version and 640 px thumbnail (also JPEG)
@@ -61,6 +64,10 @@ let failed = 0;
 let storedBytes = 0; // bytes uploaded for the current item (reported to the worker's storage guard)
 
 await mkdir(WORK, { recursive: true });
+if (process.env.STRIP_EXISTING === '1') {
+  console.log(`Metadata fjernet fra ${await stripExisting()} gemte filer.`);
+  process.exit(0);
+}
 while (Date.now() - started < BUDGET_MS) {
   const { items } = await api('POST', '/api/admin/queue/claim', { limit: 1 });
   if (!items.length) break;
@@ -90,7 +97,8 @@ async function handle(item) {
     storedBytes = 0;
     const out = await convert(item, original, dir);
 
-    const result = { ok: true, ...facts, ...out, metadata: meta, storedBytes };
+    // The full metadata dump is not stored anywhere – only the extracted facts.
+    const result = { ok: true, ...facts, ...out, storedBytes };
     // Prefer dimensions/duration of what we actually store.
     for (const k of ['width', 'height', 'duration']) result[k] = out[k] || facts[k];
 
@@ -136,8 +144,9 @@ async function convert(item, original, dir) {
     await img.clone().resize({ width: WEB_PX, height: WEB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(WEB).toFile(web);
     await img.clone().resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
     await makeShareImage(img.clone(), dir, base);
-    await copyMetadata(original, photo, item.credit);
-    await copyMetadata(original, web, item.credit);
+    await cleanMetadata(photo, item.credit);
+    await cleanMetadata(web, item.credit);
+    await cleanMetadata(thumb, '');
     await upload(photo, `${base}/photo.jpg`, 'image/jpeg');
     await upload(web, `${base}/web.jpg`, 'image/jpeg');
     await upload(thumb, `${base}/thumb.jpg`, 'image/jpeg');
@@ -172,13 +181,13 @@ async function convert(item, original, dir) {
       '-c:v', 'libx264', '-preset', 'medium', '-crf', VIDEO_CRF, '-maxrate', '12M', '-bufsize', '24M',
       '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
       ...(hasAudio ? ['-c:a', 'aac', '-b:a', AUDIO_BITRATE, '-ac', '2'] : []),
-      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', ...creditArgs(item.credit),
+      ...stripAv(), ...creditArgs(item.credit),
       video,
     ]);
     const info = await probe(video);
     const v = info.streams.find((s) => s.codec_type === 'video') || {};
     const duration = Number(info.format.duration) || 0;
-    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(Math.min(1, duration / 2)), '-i', video, '-frames:v', '1', '-q:v', '3', poster]);
+    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(Math.min(1, duration / 2)), '-i', video, '-map_metadata', '-1', '-frames:v', '1', '-q:v', '3', poster]);
     await sharp(poster).resize({ width: THUMB_PX, height: THUMB_PX, fit: 'inside', withoutEnlargement: true }).jpeg(THUMB).toFile(thumb);
     await makeShareImage(sharp(poster), dir, base);
     await upload(video, `${base}/video.mp4`, 'video/mp4');
@@ -202,7 +211,7 @@ async function convert(item, original, dir) {
     await run('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y', '-i', original, '-vn',
       '-c:a', 'aac', '-b:a', channels === 1 ? '96k' : AUDIO_BITRATE, '-ac', String(channels),
-      '-map_metadata', '0', '-movflags', '+faststart+use_metadata_tags', ...creditArgs(item.credit), audio,
+      ...stripAv(), ...creditArgs(item.credit), audio,
     ]);
     const info = await probe(audio);
     await upload(audio, `${base}/audio.m4a`, 'audio/mp4');
@@ -212,11 +221,7 @@ async function convert(item, original, dir) {
   if (item.kind === 'document') {
     const pdf = path.join(dir, 'document.pdf');
     const thumbBase = path.join(dir, 'thumb');
-    // prettier-ignore
-    await run('gs', [
-      '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.7',
-      '-dPDFSETTINGS=/printer', '-dDetectDuplicateImages=true', `-sOutputFile=${pdf}`, original,
-    ]);
+    await rewritePdf(original, pdf);
     await run('pdftoppm', ['-jpeg', '-jpegopt', 'quality=75', '-f', '1', '-l', '1', '-scale-to', String(THUMB_PX), '-singlefile', pdf, thumbBase]);
     await upload(pdf, `${base}/document.pdf`, 'application/pdf');
     await upload(`${thumbBase}.jpg`, `${base}/thumb.jpg`, 'image/jpeg');
@@ -283,33 +288,94 @@ function parseExifDate(v) {
   return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
 }
 
-// Copy every tag from the original into the re-encoded file (date, camera, GPS, …) except
-// orientation (already applied to the pixels), colour profile (pixels are converted to sRGB)
-// and embedded preview images.
-// Kreditering: skrives ind som ophavsret, hvis den må vises offentligt. Ellers fjernes navne fra filen,
-// så de ikke bliver offentlige alligevel.
+// Ghostscript rewrites the PDF without metadata: no XMP, document id, dates, comments (with author
+// names) or embedded files. Annotations are drawn onto the page, so their content is still visible.
+async function rewritePdf(input, output) {
+  // prettier-ignore
+  await run('gs', [
+    '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.7',
+    '-dPDFSETTINGS=/printer', '-dDetectDuplicateImages=true',
+    '-dOmitXMP', '-dOmitInfoDate', '-dOmitID', '-dPreserveAnnots=false', '-dPreserveEmbeddedFiles=false', '-dPreserveMarkedContent=false',
+    `-sOutputFile=${output}`, input,
+    // … and empty the document info (title, author, subject, keywords, program), which is otherwise copied.
+    '-c', '[ /Title () /Author () /Subject () /Keywords () /Creator () /DOCINFO pdfmark',
+  ]);
+}
+
+// One-off: strip metadata from files stored before metadata was removed during encoding.
+// Downloads every stored file, cleans it without re-encoding (except PDFs) and puts it back under the same key.
+async function stripExisting() {
+  const data = await api('GET', '/api/admin/export');
+  let files = 0;
+  for (const sub of data.submissions) {
+    const credit = sub.show_credit ? sub.credit || '' : '';
+    for (const item of sub.items) {
+      if (item.status !== 'ready') continue;
+      const keys = [...new Set([item.full_key, item.display_key, item.thumb_key, item.poster_key].filter(Boolean))];
+      const dir = path.join(WORK, `strip-${item.id}`);
+      await rm(dir, { recursive: true, force: true });
+      await mkdir(dir, { recursive: true });
+      try {
+        for (const key of keys) {
+          const ext = path.extname(key).toLowerCase();
+          const file = path.join(dir, `in${ext}`);
+          const out = path.join(dir, `out${ext}`);
+          await download(key, file);
+          let type;
+          if (ext === '.jpg') {
+            await cleanMetadata(file, /thumb|poster/.test(key) ? '' : credit);
+            await rm(out, { force: true });
+            await run('cp', [file, out]);
+            type = 'image/jpeg';
+          } else if (ext === '.mp4' || ext === '.m4a') {
+            await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', file, '-map', '0', '-c', 'copy', ...stripAv(), ...creditArgs(credit), out]);
+            type = ext === '.mp4' ? 'video/mp4' : 'audio/mp4';
+          } else if (ext === '.pdf') {
+            await rewritePdf(file, out);
+            type = 'application/pdf';
+          } else continue;
+          await upload(out, key, type);
+          files++;
+        }
+      } catch (err) {
+        console.error(`  ✗ ${item.id}: ${err.message}`);
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
+    }
+  }
+  return files;
+}
+
+// ffmpeg: drop all global, stream and chapter metadata (creation time, GPS/location, device,
+// handler names, encoder strings …). Rotation is already applied to the pixels by the auto-rotate.
+function stripAv() {
+  return [
+  '-map_metadata', '-1', '-map_metadata:s:v', '-1', '-map_metadata:s:a', '-1', '-map_chapters', '-1',
+  '-fflags', '+bitexact', '-flags:v', '+bitexact', '-flags:a', '+bitexact', '-movflags', '+faststart+use_metadata_tags',
+  ];
+}
+
+// Kreditering: skrives ind som ophavsret, hvis uploaderen har valgt at den må vises offentligt.
+// Ellers står der intet om personer i filen.
 function creditArgs(credit) {
-  return credit
-    ? ['-metadata', `copyright=${credit}`, '-metadata', `artist=${credit}`]
-    : ['-metadata', 'copyright=', '-metadata', 'artist=', '-metadata', 'author=', '-metadata', 'composer='];
+  return credit ? ['-metadata', `copyright=${credit}`, '-metadata', `artist=${credit}`] : [];
 }
 
 function creditTags(credit) {
   return credit
-    ? [`-Copyright=${credit}`, `-Artist=${credit}`, `-XMP-dc:Rights=${credit}`, `-XMP-dc:Creator=${credit}`, `-XMP-photoshop:Credit=${credit}`, `-IPTC:CopyrightNotice=${credit}`, '-IPTC:By-line=']
-    : ['-Artist=', '-Copyright=', '-OwnerName=', '-CameraOwnerName=', '-SerialNumber=', '-XMP-dc:Creator=', '-XMP-dc:Rights=', '-XMP-photoshop:Credit=', '-IPTC:By-line=', '-IPTC:CopyrightNotice='];
+    ? [`-Copyright=${credit}`, `-Artist=${credit}`, `-XMP-dc:Rights=${credit}`, `-XMP-dc:Creator=${credit}`, `-XMP-photoshop:Credit=${credit}`, `-IPTC:CopyrightNotice=${credit}`]
+    : [];
 }
 
-async function copyMetadata(from, to, credit) {
+// sharp writes JPEGs without EXIF/XMP/IPTC already; this makes sure, keeping only the sRGB profile
+// (needed for correct colours, contains nothing personal) and the public credit, if any.
+async function cleanMetadata(file, credit) {
   // prettier-ignore
   await run('exiftool', [
-    '-overwrite_original', '-q', '-q', '-m', '-api', 'LargeFileSupport=1', '-tagsFromFile', from, '-all:all', '-unsafe',
-    '--Orientation', '--ICC_Profile:all', '--ThumbnailImage', '--PreviewImage', '--JpgFromRaw', '--MPImage*',
-    '--ImageWidth', '--ImageHeight', '--ExifImageWidth', '--ExifImageHeight', '-Orientation=1', '-n', to,
-  ]).catch((err) => console.warn('  kunne ikke kopiere metadata:', err.message));
-  // prettier-ignore
-  await run('exiftool', ['-overwrite_original', '-q', '-q', '-m', '-charset', 'iptc=UTF8', '-codedcharacterset=utf8', ...creditTags(credit), to])
-    .catch((err) => console.warn('  kunne ikke skrive kreditering:', err.message));
+    '-overwrite_original', '-q', '-q', '-m', '-all=', '--ICC_Profile:all',
+    ...(credit ? ['-charset', 'iptc=UTF8', '-codedcharacterset=utf8', ...creditTags(credit)] : []), file,
+  ]);
 }
 
 // ---------------------------------------------------------------- worker API
