@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Re-encodes uploads into one archive format per media type, keeps their metadata
-// (including GPS), deletes the originals and optionally backs the results up to
-// Google Drive (via rclone).
+// Re-encodes uploads into one archive format per media type and keeps their metadata
+// (including GPS). The worker deletes the originals once the results are stored.
 //
 //   photos    → JPEG (mozjpeg q90, 4:2:0, sRGB), max A3 @ 300 dpi = 3508 × 4961 px
 //               + 2048 px screen version and 640 px thumbnail (also JPEG)
@@ -13,17 +12,18 @@
 // See README.md ("Formater og kvalitet") for how these settings were chosen.
 //
 // Runs in GitHub Actions (.github/workflows/process.yml) but works anywhere with
-// ffmpeg, exiftool, heif-convert, ghostscript, pdftoppm and (optionally) rclone installed.
+// ffmpeg, exiftool, heif-convert, ghostscript and pdftoppm installed.
+//
+// The repository is public, so Action logs are public: never log names, stories or file names.
 //
 // Environment:
 //   WORKER_URL            e.g. https://silo-arkiv.example.workers.dev
 //   ADMIN_TOKEN           same as the worker secret
-//   RCLONE_REMOTE         e.g. "gdrive:Siloerne på Østre Kaj" (optional backup of the re-encoded files)
 //   TIME_BUDGET_MINUTES   stop claiming new work after this long (default 50)
 
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { mkdir, rm, stat, writeFile, readFile, open } from 'node:fs/promises';
+import { mkdir, rm, stat, readFile, open } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
@@ -32,7 +32,6 @@ import sharp from 'sharp';
 
 const WORKER_URL = (process.env.WORKER_URL || '').replace(/\/+$/, '');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-const RCLONE_REMOTE = process.env.RCLONE_REMOTE || '';
 const BUDGET_MS = Number(process.env.TIME_BUDGET_MINUTES || 50) * 60_000;
 const WORK = path.resolve(process.env.WORK_DIR || path.join(os.tmpdir(), 'silo-work'));
 const PART = 64 * 1024 * 1024; // multipart size for large files (worker limit is 100 MB per request)
@@ -72,31 +71,17 @@ while (Date.now() - started < BUDGET_MS) {
 }
 console.log(`Færdig: ${processed} behandlet, ${failed} fejlede.`);
 
-if (RCLONE_REMOTE && (processed || failed || process.env.FORCE_EXPORT === 'true')) {
-  try {
-    const data = await api('GET', '/api/admin/export');
-    const file = path.join(WORK, 'bidrag.json');
-    await writeFile(file, JSON.stringify(data, null, 2));
-    await run('rclone', ['copyto', file, `${RCLONE_REMOTE}/bidrag.json`]);
-    await writeFile(path.join(WORK, 'historier.md'), storiesMarkdown(data));
-    await run('rclone', ['copyto', path.join(WORK, 'historier.md'), `${RCLONE_REMOTE}/historier.md`]);
-    console.log('Eksport gemt i Google Drive.');
-  } catch (err) {
-    console.error('Eksport til Google Drive fejlede:', err.message);
-  }
-}
 process.exit(failed && !processed ? 1 : 0);
 
 // ---------------------------------------------------------------- one item
 
 async function handle(item) {
-  const sub = item.submission || {};
   const dir = path.join(WORK, item.id);
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   const ext = path.extname(item.original_key).toLowerCase() || '.bin';
   const original = path.join(dir, `original${ext}`);
-  console.log(`→ ${item.id} (${item.kind}, ${item.original_name}, ${mb(item.original_size)} MB)`);
+  console.log(`→ ${item.id} (${item.kind}, ${mb(item.original_size)} MB)`);
 
   try {
     await download(item.original_key, original);
@@ -105,17 +90,13 @@ async function handle(item) {
     storedBytes = 0;
     const out = await convert(item, original, dir);
 
-    let archivePath = null;
-    if (RCLONE_REMOTE) archivePath = await archive(item, sub, out.archiveFile, meta, dir);
-
-    const { archiveFile, ...keys } = out;
-    const result = { ok: true, ...facts, ...keys, metadata: meta, archivePath, storedBytes };
+    const result = { ok: true, ...facts, ...out, metadata: meta, storedBytes };
     // Prefer dimensions/duration of what we actually store.
     for (const k of ['width', 'height', 'duration']) result[k] = out[k] || facts[k];
 
     // The worker deletes the original from R2 when it receives the result.
     await api('POST', `/api/admin/items/${item.id}/result`, result);
-    console.log(`  ✓ klar${archivePath ? ` (backup: ${archivePath})` : ''}`);
+    console.log('  ✓ klar');
     return true;
   } catch (err) {
     console.error(`  ✗ ${err.stack || err.message}`);
@@ -165,7 +146,6 @@ async function convert(item, original, dir) {
       thumbKey: `${base}/thumb.jpg`,
       width: info.width,
       height: info.height,
-      archiveFile: photo,
     };
   }
 
@@ -210,7 +190,6 @@ async function convert(item, original, dir) {
       width: v.width,
       height: v.height,
       duration,
-      archiveFile: video,
     };
   }
 
@@ -225,7 +204,7 @@ async function convert(item, original, dir) {
     ]);
     const info = await probe(audio);
     await upload(audio, `${base}/audio.m4a`, 'audio/mp4');
-    return { fullKey: `${base}/audio.m4a`, displayKey: `${base}/audio.m4a`, duration: Number(info.format.duration) || null, archiveFile: audio };
+    return { fullKey: `${base}/audio.m4a`, displayKey: `${base}/audio.m4a`, duration: Number(info.format.duration) || null };
   }
 
   if (item.kind === 'document') {
@@ -239,7 +218,7 @@ async function convert(item, original, dir) {
     await run('pdftoppm', ['-jpeg', '-jpegopt', 'quality=75', '-f', '1', '-l', '1', '-scale-to', String(THUMB_PX), '-singlefile', pdf, thumbBase]);
     await upload(pdf, `${base}/document.pdf`, 'application/pdf');
     await upload(`${thumbBase}.jpg`, `${base}/thumb.jpg`, 'image/jpeg');
-    return { fullKey: `${base}/document.pdf`, displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg`, archiveFile: pdf };
+    return { fullKey: `${base}/document.pdf`, displayKey: `${base}/document.pdf`, thumbKey: `${base}/thumb.jpg` };
   }
 
   throw new Error(`Ukendt type: ${item.kind}`);
@@ -304,72 +283,6 @@ async function copyMetadata(from, to) {
     '--Orientation', '--ICC_Profile:all', '--ThumbnailImage', '--PreviewImage', '--JpgFromRaw', '--MPImage*',
     '--ImageWidth', '--ImageHeight', '--ExifImageWidth', '--ExifImageHeight', '-Orientation=1', '-n', to,
   ]).catch((err) => console.warn('  kunne ikke kopiere metadata:', err.message));
-}
-
-// ---------------------------------------------------------------- Google Drive
-
-async function archive(item, sub, file, meta, dir) {
-  const day = (sub.created_at || new Date().toISOString()).slice(0, 10);
-  const who = slug(sub.name || 'anonym');
-  const folder = `${RCLONE_REMOTE}/arkiv/${day}_${who}_${item.submission_id.slice(0, 8)}`;
-  const safeName = `${String(item.position + 1).padStart(2, '0')}_${slug(item.original_name.replace(/\.[^.]+$/, ''))}${path.extname(file)}`;
-  const sidecar = path.join(dir, 'info.json');
-  await writeFile(
-    sidecar,
-    JSON.stringify(
-      {
-        bidrag: {
-          id: sub.id,
-          indsendt: sub.created_at,
-          titel: sub.title,
-          historie: sub.story,
-          hvornaar: sub.period,
-          hvor: sub.place,
-          perspektiv: sub.perspective_label,
-          tilknytning: sub.relation_label,
-          navn: sub.name,
-          email: sub.email,
-          vis_navn: !!sub.show_name,
-          del_placering: !!sub.share_location,
-          maa_kontaktes: !!sub.contact_ok,
-        },
-        fil: {
-          id: item.id,
-          originalt_navn: item.original_name,
-          type: item.original_type,
-          stoerrelse: item.original_size,
-          sidst_aendret: item.original_last_modified,
-        },
-        metadata: meta,
-      },
-      null,
-      2,
-    ),
-  );
-  await run('rclone', ['copyto', '--retries', '5', file, `${folder}/${safeName}`]);
-  await run('rclone', ['copyto', '--retries', '5', sidecar, `${folder}/${safeName}.json`]);
-  if (sub.story) {
-    const story = path.join(dir, 'historie.txt');
-    await writeFile(story, [sub.title, sub.period, sub.place, '', sub.story, '', sub.show_name ? `– ${sub.name}` : ''].filter((l) => l !== undefined).join('\n'));
-    await run('rclone', ['copyto', story, `${folder}/historie.txt`]);
-  }
-  return `${folder}/${safeName}`;
-}
-
-function storiesMarkdown(data) {
-  const lines = ['# Siloerne på Østre Kaj – historier', '', `Eksporteret ${data.exportedAt}`, ''];
-  for (const s of data.submissions) {
-    lines.push(`## ${s.title || '(uden titel)'}`, '');
-    lines.push(`- Indsendt: ${s.created_at} (${s.status})`);
-    if (s.name) lines.push(`- Navn: ${s.name}${s.email ? ` <${s.email}>` : ''}${s.show_name ? '' : ' (ikke offentligt)'}`);
-    if (s.relation_label) lines.push(`- Tilknytning: ${s.relation_label}`);
-    if (s.perspective_label) lines.push(`- Perspektiv: ${s.perspective_label}`);
-    if (s.period) lines.push(`- Hvornår: ${s.period}`);
-    if (s.place) lines.push(`- Hvor: ${s.place}`);
-    lines.push(`- Filer: ${s.items.length}`, '');
-    if (s.story) lines.push(s.story, '');
-  }
-  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------- worker API
@@ -449,20 +362,6 @@ function capture(cmd, args) {
     p.on('error', reject);
     p.on('close', (code) => (code === 0 ? resolve(out) : reject(new Error(`${cmd} fejlede (${code}): ${err.trim().slice(-800)}`))));
   });
-}
-
-function slug(s) {
-  return (
-    String(s)
-      .replace(/[æÆ]/g, 'ae')
-      .replace(/[øØ]/g, 'oe')
-      .replace(/[åÅ]/g, 'aa')
-      .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^\w-]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 60) || 'fil'
-  );
 }
 
 function num(v) {

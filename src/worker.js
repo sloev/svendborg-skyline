@@ -802,12 +802,16 @@ async function adminClaim(request, env) {
   )
     .bind(new Date().toISOString(), isoAgo(3 * 3600), limit)
     .all();
-  const out = [];
-  for (const it of results) {
-    const s = await env.DB.prepare(`SELECT * FROM submissions WHERE id = ?`).bind(it.submission_id).first();
-    out.push({ ...it, metadata: undefined, submission: s ? exportSubmission(s) : null });
-  }
-  return json({ items: out });
+  // Only what the processor needs: no names, e-mails or stories leave the worker.
+  return json({
+    items: results.map((it) => ({
+      id: it.id,
+      kind: it.kind,
+      original_key: it.original_key,
+      original_size: it.original_size,
+      original_last_modified: it.original_last_modified,
+    })),
+  });
 }
 
 async function adminResult(request, env, id) {

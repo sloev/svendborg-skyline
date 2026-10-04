@@ -1,17 +1,15 @@
 name: Behandl uploads
 
 # Re-encodes new uploads (photos → JPEG ≤ A3 @ 300 dpi, video → MP4/H.264 ≤ 1080p, sound → M4A,
-# PDF → Ghostscript), keeps their metadata incl. GPS, deletes the originals and backs the
-# re-encoded files up to Google Drive.
+# PDF → Ghostscript) and keeps their metadata incl. GPS. The worker deletes the originals.
 #
-# Started by the worker right after an upload (repository_dispatch), every hour as a
-# fallback, or by hand from the Actions tab.
+# Started by the worker right after an upload (repository_dispatch), every hour as a fallback,
+# or by hand from the Actions tab.
 #
-# Repository settings → Secrets and variables → Actions:
-#   variables: RCLONE_REMOTE                     e.g. gdrive:Siloerne   (optional)
-#   secrets:   ADMIN_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (to find the worker;
-#              or set the variable WORKER_URL instead)
-#              RCLONE_CONFIG                     contents of rclone.conf (optional)
+# Secrets (Settings → Secrets and variables → Actions): ADMIN_TOKEN, CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID (used only to look up the worker's address; or set the variable WORKER_URL).
+#
+# The repository is public, so these logs are public: nothing personal is ever printed.
 
 on:
   repository_dispatch:
@@ -19,11 +17,6 @@ on:
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
-    inputs:
-      export:
-        description: 'Gem altid en ny eksport (bidrag.json) i Google Drive'
-        type: boolean
-        default: false
 
 concurrency:
   group: process-media
@@ -38,8 +31,6 @@ jobs:
     timeout-minutes: 150
     env:
       ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-      RCLONE_REMOTE: ${{ secrets.RCLONE_CONFIG != '' && vars.RCLONE_REMOTE || '' }}
-      FORCE_EXPORT: ${{ github.event_name == 'repository_dispatch' || inputs.export }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,13 +42,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           WORKER_URL=$(.github/scripts/worker-url.sh || true)
-          echo "WORKER_URL=$WORKER_URL" >> "$GITHUB_ENV"
           if [ -z "$WORKER_URL" ] || [ -z "$ADMIN_TOKEN" ]; then
-            echo "WORKER_URL / ADMIN_TOKEN er ikke sat op – springer over."; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+            echo "Worker / ADMIN_TOKEN er ikke sat op – springer over."; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          echo "::add-mask::$WORKER_URL"
+          echo "WORKER_URL=$WORKER_URL" >> "$GITHUB_ENV"
           pending=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/api/admin/queue-size" | jq -r .pending)
           echo "Filer i kø: $pending"
-          if [ "$pending" != "0" ] || [ "$FORCE_EXPORT" = "true" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+          if [ "$pending" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-node@v4
         if: steps.queue.outputs.run == 'true'
@@ -66,20 +58,11 @@ jobs:
           cache: npm
           cache-dependency-path: processor/package-lock.json
 
-      - name: Installer ffmpeg, exiftool, libheif, ghostscript, poppler, rclone
+      - name: Installer ffmpeg, exiftool, libheif, ghostscript, poppler
         if: steps.queue.outputs.run == 'true'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends ffmpeg libimage-exiftool-perl libheif-examples ghostscript poppler-utils rclone
-
-      - name: Rclone-konfiguration
-        if: steps.queue.outputs.run == 'true' && env.RCLONE_REMOTE != ''
-        env:
-          RCLONE_CONFIG_CONTENT: ${{ secrets.RCLONE_CONFIG }}
-        run: |
-          mkdir -p ~/.config/rclone
-          printf '%s\n' "$RCLONE_CONFIG_CONTENT" > ~/.config/rclone/rclone.conf
-          chmod 600 ~/.config/rclone/rclone.conf
+          sudo apt-get install -y -qq --no-install-recommends ffmpeg libimage-exiftool-perl libheif-examples ghostscript poppler-utils
 
       - name: Behandl
         if: steps.queue.outputs.run == 'true'
