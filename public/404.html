@@ -4,8 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Siden findes ikke – Siloerne på Østre Kaj</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/style.css">
+  <script>
+    // GitHub Pages serves this page for any missing path; point assets at the site root.
+    (function () {
+      var parts = location.pathname.split('/');
+      var root = location.hostname.endsWith('github.io') && parts[1] ? '/' + parts[1] + '/' : '/';
+      document.write('<base href="' + root + '">');
+    })();
+  </script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="section center">

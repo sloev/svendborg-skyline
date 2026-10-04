@@ -23,8 +23,11 @@
     return node;
   }
 
+  // API base URL: empty when the worker also serves the site, else set in config.js (GitHub Pages).
+  const API = String((window.SILO_CONFIG && window.SILO_CONFIG.apiBase) || '').replace(/\/+$/, '');
+
   async function getJson(url, opts = {}) {
-    const res = await fetch(url, opts);
+    const res = await fetch(API + url, opts);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Fejl ${res.status}`);
     return data;
@@ -364,7 +367,7 @@
   function putPart(url, blob, token, onProgress) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', url);
+      xhr.open('PUT', API + url);
       xhr.setRequestHeader('x-upload-token', token);
       xhr.upload.onprogress = (e) => onProgress(e.loaded);
       xhr.onload = () => {
@@ -562,7 +565,7 @@
     if (e.key === 'ArrowLeft') showItem((index - 1 + current.items.length) % current.items.length);
   });
   $('#viewer-share').addEventListener('click', async (e) => {
-    const url = `${location.origin}/#bidrag/${current.id}`;
+    const url = `${location.origin}${location.pathname}#bidrag/${current.id}`;
     try {
       if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: current.title || 'Siloerne på Østre Kaj', url });
       else {

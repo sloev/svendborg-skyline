@@ -1,0 +1,45 @@
+name: Udgiv hjemmeside (GitHub Pages)
+
+# Publishes public/ to GitHub Pages. The API stays on the Cloudflare Worker;
+# config.js is generated so the site knows where it is (repository variable WORKER_URL).
+#
+# One-time setup: Settings → Pages → Source: "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths: ['public/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skriv config.js
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+        run: |
+          if [ -z "$WORKER_URL" ]; then echo "::error::Sæt repository-variablen WORKER_URL (Settings → Secrets and variables → Actions → Variables)"; exit 1; fi
+          printf "window.SILO_CONFIG = { apiBase: %s };\n" "$(jq -Rn --arg u "${WORKER_URL%/}" '$u')" > public/config.js
+          cat public/config.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4

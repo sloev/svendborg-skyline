@@ -23,8 +23,10 @@
     return n;
   }
 
+  const API = String((window.SILO_CONFIG && window.SILO_CONFIG.apiBase) || '').replace(/\/+$/, '');
+
   async function api(method, path, body) {
-    const res = await fetch(path, {
+    const res = await fetch(API + path, {
       method,
       headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined,
@@ -108,7 +110,7 @@
         { class: 'actions' },
         s.status !== 'published' ? el('button', { type: 'button', text: 'Vis offentligt', onclick: () => act(() => api('PATCH', `/api/admin/submissions/${s.id}`, { status: 'published' })) }) : null,
         s.status !== 'hidden' ? el('button', { type: 'button', text: 'Skjul', onclick: () => act(() => api('PATCH', `/api/admin/submissions/${s.id}`, { status: 'hidden' })) }) : null,
-        s.status === 'published' ? el('a', { href: `/#bidrag/${s.id}`, target: '_blank', class: 'link', text: 'Se på siden' }) : null,
+        s.status === 'published' ? el('a', { href: `./#bidrag/${s.id}`, target: '_blank', class: 'link', text: 'Se på siden' }) : null,
         el('button', {
           type: 'button',
           class: 'danger',

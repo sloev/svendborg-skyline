@@ -61,17 +61,48 @@ class HttpError extends Error {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    try {
-      if (url.pathname.startsWith('/api/')) return await api(request, env, ctx, url);
-      if (url.pathname.startsWith('/media/')) return await serveMedia(request, env, url);
-      return env.ASSETS.fetch(request);
-    } catch (err) {
-      if (err instanceof HttpError) return json({ error: err.message }, err.status);
-      console.error(err && err.stack ? err.stack : err);
-      return json({ error: 'Der skete en fejl på serveren. Prøv igen om lidt.' }, 500);
+    // Media URLs in API responses are absolute, so a site hosted elsewhere (GitHub Pages) can use them.
+    env = { ...env, PUBLIC_ORIGIN: url.origin };
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/media/')) {
+      const cors = corsHeaders(request, env);
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+      const res = await handle(request, env, ctx, url);
+      const out = new Response(res.body, res);
+      for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);
+      return out;
     }
+    return env.ASSETS.fetch(request);
   },
 };
+
+async function handle(request, env, ctx, url) {
+  try {
+    if (url.pathname.startsWith('/api/')) return await api(request, env, ctx, url);
+    return await serveMedia(request, env, url);
+  } catch (err) {
+    if (err instanceof HttpError) return json({ error: err.message }, err.status);
+    console.error(err && err.stack ? err.stack : err);
+    return json({ error: 'Der skete en fejl på serveren. Prøv igen om lidt.' }, 500);
+  }
+}
+
+// ALLOWED_ORIGINS: comma separated list of sites allowed to call the API, e.g. "https://sloev.github.io".
+function corsHeaders(request, env) {
+  const origin = request.headers.get('origin');
+  const allowed = String(env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  if (!origin || !(allowed.includes(origin) || allowed.includes('*'))) return {};
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS',
+    'access-control-allow-headers': 'content-type, authorization, x-upload-token, range',
+    'access-control-expose-headers': 'content-length, content-range',
+    'access-control-max-age': '86400',
+    vary: 'Origin',
+  };
+}
 
 // ---------------------------------------------------------------- routing
 
@@ -291,8 +322,8 @@ function publicItem(env, i, shareLocation) {
 
 function mediaUrl(env, key) {
   if (!key) return null;
-  const base = (env.MEDIA_BASE_URL || '').replace(/\/+$/, '');
-  return base ? `${base}/${key}` : `/${key}`; // keys start with media/
+  const base = (env.MEDIA_BASE_URL || env.PUBLIC_ORIGIN || '').replace(/\/+$/, '');
+  return `${base}/${key}`; // keys start with media/
 }
 
 // ---------------------------------------------------------------- public: write
