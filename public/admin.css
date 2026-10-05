@@ -39,3 +39,20 @@
 .edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rgba(29, 138, 116, .18); }
 .story.viewer-story { white-space: normal; max-height: 22em; }
 .story.viewer-story p { margin: 0 0 .5em; }
+
+/* ---------- placering */
+.loc-btn { display: block; margin-top: 4px; font-size: .85rem; }
+.loc-btn.missing { color: #8c5a00; font-weight: 600; }
+.loc-picker { margin: 12px 0; padding: 12px; border: 1px solid #d8d2c6; border-radius: 10px; background: #fbf9f5; }
+.loc-picker .meta { margin: 0 0 8px; }
+.loc-frame { position: relative; }
+.loc-map { height: 340px; border-radius: 8px; }
+/* Nålen står fast i midten; spidsen peger på kortets centrum. */
+.loc-pin { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -30px 0 0 -15px; pointer-events: none; z-index: 500;
+  background: #d0342c; border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.loc-pin::after { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fff; }
+.loc-picker .actions { align-items: center; margin-top: 8px; }
+.loc-coords { font-size: .85rem; color: #33444c; margin-right: auto; }
+.admin-noloc { display: inline-flex; align-items: center; gap: 4px; font-size: .9rem; }
+.admin-noloc[hidden] { display: none; }
+.admin-map { height: 70vh; min-height: 420px; border-radius: 10px; margin-bottom: 16px; }

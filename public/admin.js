@@ -56,6 +56,7 @@
     }
     const qs = new URLSearchParams({ limit: '30' });
     if ($('#status').value) qs.set('status', $('#status').value);
+    if ($('#noloc').checked) qs.set('noloc', '1');
     if (cursor) qs.set('before', cursor);
     const data = await api('GET', `/api/admin/submissions?${qs}`);
     $('#counts').textContent = Object.entries(data.counts).map(([k, v]) => `${STATUS[k] || k}: ${v}`).join(' · ');
@@ -116,7 +117,8 @@
             el('figcaption', {}, el('span', { class: `pill ${i.status}`, text: STATUS[i.status] || i.status }), ' ',
               i.nsfw >= NSFW_FLAG ? el('span', { class: 'pill nsfw', title: 'Billedgenkendelsen mistænker nøgenhed eller porno – se selv efter', text: `NSFW? ${Math.round(i.nsfw * 100)} %` }) : null, ' ',
               i.original_name, i.error ? el('div', { class: 'item-error', text: i.error }) : null,
-              i.status === 'failed' && !i.original_deleted ? el('button', { class: 'link', type: 'button', text: 'Behandl igen', onclick: () => act(() => api('POST', `/api/admin/items/${i.id}/retry`)) }) : null),
+              i.status === 'failed' && !i.original_deleted ? el('button', { class: 'link', type: 'button', text: 'Behandl igen', onclick: () => act(() => api('POST', `/api/admin/items/${i.id}/retry`)) }) : null,
+              LOCATABLE.includes(i.kind) ? locButton(i, s) : null),
           ),
         ),
       ),
@@ -136,6 +138,132 @@
       ),
     );
     return node;
+  }
+
+  // ---------------------------------------------------------------- placering
+
+  // Kortet med en fast nål i midten: man trækker kortet ind under nålen og gemmer.
+  const LOCATABLE = ['image', 'video', 'audio'];
+  const HARBOUR = [55.0605, 10.6125];
+  let lastPos = null; // næste fil uden placering starter, hvor man sidst satte en
+  const TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  const fmt = (lat, lon) => `${Number(lat).toFixed(5)}, ${Number(lon).toFixed(5)}`;
+  const hasLoc = (i) => i.lat !== null && i.lat !== undefined && i.lon !== null && i.lon !== undefined;
+
+  function locButton(i, s) {
+    return el('button', {
+      type: 'button',
+      class: `link loc-btn${hasLoc(i) ? '' : ' missing'}`,
+      title: hasLoc(i) ? 'Flyt placeringen' : 'Sæt placering på kortet',
+      text: hasLoc(i) ? `📍 ${fmt(i.lat, i.lon)}` : '📍 Sæt placering',
+      onclick: (e) => openPicker(i, s, e.currentTarget.closest('article')),
+    });
+  }
+
+  function openPicker(i, s, node) {
+    if (!window.L) return alert('Kortet er ikke indlæst endnu – prøv igen om et øjeblik.');
+    for (const old of node.querySelectorAll('.loc-picker')) old.remove();
+    const sibling = s.items.find((x) => x !== i && hasLoc(x));
+    const start = hasLoc(i) ? [i.lat, i.lon] : sibling ? [sibling.lat, sibling.lon] : lastPos || HARBOUR;
+    const mapEl = el('div', { class: 'loc-map' });
+    const coords = el('code', { class: 'loc-coords' });
+    const save = async (lat, lon) => {
+      try {
+        await api('PATCH', `/api/admin/items/${i.id}/location`, { lat, lon });
+        if (lat !== null) lastPos = [lat, lon];
+        await reload(true);
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+    const picker = el(
+      'div',
+      { class: 'loc-picker' },
+      el('p', { class: 'meta' }, `${ICON[i.kind] || ''} ${i.original_name}: træk kortet, så nålen står, hvor ${i.kind === 'audio' ? 'optagelsen er lavet' : 'billedet er taget fra'}.`),
+      el('div', { class: 'loc-frame' }, mapEl, el('div', { class: 'loc-pin', 'aria-hidden': 'true' })),
+      el(
+        'div',
+        { class: 'actions' },
+        coords,
+        el('button', { type: 'button', class: 'primary', text: 'Gem placering', onclick: () => { const c = map.getCenter(); save(Math.round(c.lat * 1e6) / 1e6, Math.round(c.lng * 1e6) / 1e6); } }),
+        hasLoc(i) ? el('button', { type: 'button', class: 'danger', text: 'Fjern placering', onclick: () => confirm('Fjern placeringen fra filen?') && save(null, null) }) : null,
+        el('button', { type: 'button', text: 'Annullér', onclick: () => { map.remove(); picker.remove(); } }),
+      ),
+    );
+    node.querySelector('.items').after(picker);
+    const map = L.map(mapEl, { zoomControl: true }).setView(start, hasLoc(i) || sibling || lastPos ? 17 : 15);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: OSM }).addTo(map);
+    // De andre filer med placering i samme bidrag vises som små prikker.
+    for (const x of s.items) if (x !== i && hasLoc(x)) L.circleMarker([x.lat, x.lon], { radius: 5, color: '#fff', weight: 1, fillColor: '#5b6b73', fillOpacity: 0.8 }).addTo(map);
+    const show = () => { const c = map.getCenter(); coords.textContent = fmt(c.lat, c.lng); };
+    map.on('move', show);
+    show();
+    picker.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ---------------------------------------------------------------- oversigtskort
+
+  const MAP_COLOR = { published: '#1d8a74', review: '#d99a00', hidden: '#9aa5ab' };
+  let overview = null;
+  let overviewView = null;
+
+  async function loadMap() {
+    if (!window.L) return setTimeout(() => loadMap().catch((e) => alert(e.message)), 300);
+    if (overview) {
+      overviewView = { center: overview.getCenter(), zoom: overview.getZoom() };
+      overview.remove();
+      overview = null;
+    }
+    $('#list').textContent = '';
+    $('#more').hidden = true;
+    const { points } = await api('GET', '/api/admin/map');
+    const groups = new Map();
+    for (const p of points) {
+      const key = `${p.submissionId}:${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
+      if (!groups.has(key)) groups.set(key, { ...p, count: 0, thumb: null });
+      const g = groups.get(key);
+      g.count++;
+      g.thumb = g.thumb || p.thumb;
+    }
+    const subs = new Set(points.map((p) => p.submissionId));
+    $('#counts').textContent = `${subs.size} bidrag med placering (${points.length} filer). Grøn: offentlig · gul: afventer · grå: skjult. Brug "Mangler placering" under Bidrag for at finde dem uden.`;
+    const mapEl = el('div', { class: 'admin-map' });
+    const detail = el('div', { id: 'map-detail' });
+    $('#list').append(mapEl, detail);
+    overview = L.map(mapEl).setView(HARBOUR, 15);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: OSM }).addTo(overview);
+    const markers = [];
+    for (const p of groups.values()) {
+      const showRow = async () => {
+        const data = await api('GET', `/api/admin/submissions?id=${encodeURIComponent(p.submissionId)}`);
+        detail.textContent = '';
+        for (const s of data.submissions) detail.append(row(s));
+        detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      const popup = el(
+        'div',
+        { class: 'map-popup' },
+        p.thumb ? el('img', { src: p.thumb, alt: '', loading: 'lazy' }) : el('div', { class: 'map-popup-icon', text: ICON[p.kind] || '📍' }),
+        el('strong', { class: 'map-popup-title', text: p.title || '(uden titel)' }),
+        el('span', { class: 'map-popup-meta' }, el('span', { class: `pill ${p.status}`, text: STATUS[p.status] || p.status }), p.period ? ` ${p.period}` : '', p.count > 1 ? ` · ${p.count} filer` : ''),
+        p.excerpt ? el('p', { class: 'map-popup-text', text: p.excerpt }) : null,
+        el(
+          'div',
+          { class: 'actions' },
+          el('button', { type: 'button', class: 'primary', text: 'Læs mere →', onclick: () => showRow().catch((e) => alert(e.message)) }),
+          p.status === 'published' ? el('a', { href: `./#bidrag/${p.submissionId}`, target: '_blank', class: 'link', text: 'Se på siden' }) : null,
+        ),
+      );
+      markers.push(
+        L.circleMarker([p.lat, p.lon], { radius: 8, color: '#fff', weight: 2, fillColor: MAP_COLOR[p.status] || '#5b6b73', fillOpacity: 0.9 })
+          .bindPopup(popup, { maxWidth: 260, minWidth: 220 })
+          .bindTooltip(p.title || '', { direction: 'top', offset: [0, -6] })
+          .addTo(overview),
+      );
+    }
+    if (overviewView) overview.setView(overviewView.center, overviewView.zoom);
+    else if (markers.length) overview.fitBounds(L.featureGroup(markers).getBounds().pad(0.15), { maxZoom: 17 });
   }
 
   // Filer, som billedgenkendelsen mistænker for nøgenhed/porno, vises sløret, indtil man klikker på dem.
@@ -255,7 +383,7 @@
   async function act(fn) {
     try {
       await fn();
-      await load(true);
+      await reload(true);
     } catch (err) {
       alert(err.message);
     }
@@ -342,15 +470,24 @@
     }
   }
 
-  const reload = (reset) => (commentsView() ? loadComments(reset) : load(reset));
+  const mapView = () => $('#view').value === 'map';
+  function reload(reset) {
+    if (overview && !mapView()) {
+      overview.remove();
+      overview = null;
+    }
+    return commentsView() ? loadComments(reset) : mapView() ? loadMap() : load(reset);
+  }
   $('#view').addEventListener('change', () => {
     $('#cstatus').hidden = !commentsView();
-    $('#status').hidden = commentsView();
-    $('.admin-title').textContent = commentsView() ? 'Kommentarer' : 'Bidrag';
+    $('#status').hidden = commentsView() || mapView();
+    $('.admin-noloc').hidden = commentsView() || mapView();
+    $('.admin-title').textContent = commentsView() ? 'Kommentarer' : mapView() ? 'Kort' : 'Bidrag';
     reload(true).catch((e) => alert(e.message));
   });
   $('#cstatus').addEventListener('change', () => loadComments(true).catch((e) => alert(e.message)));
   $('#status').addEventListener('change', () => load(true).catch((e) => alert(e.message)));
+  $('#noloc').addEventListener('change', () => load(true).catch((e) => alert(e.message)));
   $('#more').addEventListener('click', () => reload(false).catch((e) => alert(e.message)));
   $('#logout').addEventListener('click', logout);
   $('#export').addEventListener('click', async () => {

@@ -22,6 +22,8 @@
 //   PATCH  /api/admin/submissions/:id        { status }
 //   DELETE /api/admin/submissions/:id        delete contribution and all its files
 //   POST   /api/admin/items/:id/retry        re-queue a failed file
+//   PATCH  /api/admin/items/:id/location     { lat, lon } (null = fjern placeringen)
+//   GET    /api/admin/map                    alle filer med placering (alle statusser)
 //   GET    /api/admin/queue-size             number of files waiting for processing
 //   POST   /api/admin/queue/claim            claim files for processing
 //   POST   /api/admin/items/:id/result       report processing result
@@ -341,6 +343,8 @@ async function adminApi(request, env, url, path, method, ctx) {
     if (method === 'DELETE') return adminDelete(env, m[1]);
   }
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/retry$/)) && method === 'POST') return adminRetry(env, m[1]);
+  if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/location$/)) && method === 'PATCH') return adminSetLocation(request, env, m[1]);
+  if (path === '/api/admin/map' && method === 'GET') return adminMap(env);
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/result$/)) && method === 'POST') return adminResult(request, env, m[1]);
   if (path === '/api/admin/queue-size' && method === 'GET') return adminQueueSize(env);
   if (path === '/api/admin/queue/claim' && method === 'POST') return adminClaim(request, env);
@@ -470,7 +474,7 @@ async function getContribution(env, id) {
 
 async function getMap(env) {
   const { results } = await env.DB.prepare(
-    `SELECT i.*, s.title AS s_title FROM items i JOIN submissions s ON s.id = i.submission_id
+    `SELECT i.*, s.title AS s_title, s.period AS s_period, s.story AS s_story FROM items i JOIN submissions s ON s.id = i.submission_id
      WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'
        AND i.lat IS NOT NULL AND i.lon IS NOT NULL
      ORDER BY s.published_at DESC LIMIT 2000`,
@@ -484,6 +488,8 @@ async function getMap(env) {
         lat: i.lat,
         lon: i.lon,
         title: i.s_title,
+        period: i.s_period,
+        excerpt: truncate(plainText(i.s_story), 160),
         thumb: mediaUrl(env, i.thumb_key),
       })),
     },
@@ -1268,6 +1274,37 @@ async function requireAdmin(request, env) {
   }
 }
 
+// Sæt (eller fjern) placeringen på én fil – bruges af kortet med nålen i admin.
+async function adminSetLocation(request, env, id) {
+  const b = await readJson(request, 1000);
+  const lat = num(b.lat);
+  const lon = num(b.lon);
+  if ((lat === null) !== (lon === null)) throw new HttpError(400, 'invalid_data');
+  if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lon) > 180)) throw new HttpError(400, 'invalid_data');
+  const r = (v) => (v === null ? null : Math.round(v * 1e6) / 1e6);
+  const res = await env.DB.prepare(`UPDATE items SET lat = ?, lon = ? WHERE id = ?`).bind(r(lat), r(lon), id).run();
+  if (!res.meta.changes) throw new HttpError(404, 'not_found');
+  return json({ ok: true, lat: r(lat), lon: r(lon) });
+}
+
+// Alle filer med placering, uanset status, til oversigtskortet i admin.
+async function adminMap(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT i.id, i.submission_id, i.kind, i.lat, i.lon, i.thumb_key, s.title, s.status, s.period, s.story
+     FROM items i JOIN submissions s ON s.id = i.submission_id
+     WHERE i.lat IS NOT NULL AND i.lon IS NOT NULL AND s.is_test = 0 AND s.status != 'uploading'
+     ORDER BY s.created_at DESC LIMIT 3000`,
+  ).all();
+  const points = [];
+  for (const i of results) {
+    points.push({
+      submissionId: i.submission_id, itemId: i.id, kind: i.kind, lat: i.lat, lon: i.lon, status: i.status,
+      title: i.title, period: i.period, excerpt: truncate(plainText(i.story), 160), thumb: await signedMediaUrl(env, i.thumb_key),
+    });
+  }
+  return json({ points });
+}
+
 async function adminList(env, url) {
   const status = url.searchParams.get('status');
   // Højst 100: filerne hentes med én IN (...) og D1 tillader højst 100 parametre.
@@ -1282,6 +1319,14 @@ async function adminList(env, url) {
   if (before) {
     where.push('created_at < ?');
     params.push(before);
+  }
+  if (url.searchParams.get('id')) {
+    where.push('id = ?');
+    params.push(url.searchParams.get('id'));
+  }
+  // Bidrag med billeder, video eller lyd, hvor mindst én fil mangler placering.
+  if (url.searchParams.get('noloc')) {
+    where.push(`EXISTS (SELECT 1 FROM items WHERE submission_id = submissions.id AND kind IN ('image', 'video', 'audio') AND (lat IS NULL OR lon IS NULL))`);
   }
   const { results: subs } = await env.DB.prepare(
     `SELECT * FROM submissions ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT ?`,

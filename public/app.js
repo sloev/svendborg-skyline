@@ -1271,15 +1271,33 @@
     }).addTo(map);
     getJson('/api/map')
       .then(({ points }) => {
-        const markers = [];
+        // Én nål pr. bidrag og sted (flere billeder fra samme sted giver ellers nåle oven i hinanden).
+        const groups = new Map();
         for (const p of points) {
+          const key = `${p.submissionId}:${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
+          if (!groups.has(key)) groups.set(key, { ...p, count: 0, thumb: null });
+          const g = groups.get(key);
+          g.count++;
+          g.thumb = g.thumb || p.thumb;
+        }
+        const markers = [];
+        for (const p of groups.values()) {
+          const open = () => (location.hash = `#bidrag/${p.submissionId}`);
           const popup = el(
             'div',
             { class: 'map-popup' },
-            p.thumb ? el('img', { src: p.thumb, alt: '' }) : null,
-            el('button', { type: 'button', class: 'link', text: p.title || t('map.open'), onclick: () => (location.hash = `#bidrag/${p.submissionId}`) }),
+            p.thumb ? el('img', { src: p.thumb, alt: '', loading: 'lazy', onclick: open }) : el('div', { class: 'map-popup-icon', text: KIND_ICON[p.kind] || '📍' }),
+            el('strong', { class: 'map-popup-title', text: p.title || t('map.open') }),
+            p.period ? el('span', { class: 'map-popup-meta', text: p.period }) : null,
+            p.excerpt ? el('p', { class: 'map-popup-text', text: p.excerpt }) : null,
+            el('button', { type: 'button', class: 'btn btn-primary map-popup-more', text: `${t('map.more')} →`, onclick: open }),
           );
-          markers.push(L.circleMarker([p.lat, p.lon], { radius: 7, color: '#fff', weight: 2, fillColor: '#1d8a74', fillOpacity: 0.9 }).bindPopup(popup).addTo(map));
+          markers.push(
+            L.circleMarker([p.lat, p.lon], { radius: 8, color: '#fff', weight: 2, fillColor: '#1d8a74', fillOpacity: 0.9 })
+              .bindPopup(popup, { maxWidth: 240, minWidth: 200 })
+              .bindTooltip(p.title || '', { direction: 'top', offset: [0, -6] })
+              .addTo(map),
+          );
         }
         if (markers.length) map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2), { maxZoom: 16 });
       })

@@ -170,8 +170,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 
 /* ---------- map */
 .map { height: min(70vh, 560px); border-radius: var(--radius); box-shadow: var(--shadow); background: #dfe7ea; }
-.map-popup img { width: 180px; border-radius: 8px; margin-bottom: 6px; }
+.map-popup { display: grid; gap: 4px; }
+.map-popup img { width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+.map-popup-icon { font-size: 2rem; text-align: center; padding: 10px 0; background: #eef3f2; border-radius: 8px; }
+.map-popup-title { font-size: 1rem; line-height: 1.25; }
+.map-popup-meta { color: #5b6b73; font-size: .85rem; }
+.map-popup-text { margin: 2px 0 4px; font-size: .88rem; line-height: 1.35; }
 .map-popup button { font: inherit; }
+.map-popup .map-popup-more { justify-self: start; padding: 6px 14px; font-size: .9rem; }
 
 /* ---------- privacy */
 .privacy ul { padding-left: 1.1em; }

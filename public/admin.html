@@ -2,14 +2,15 @@
 <html lang="da">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev http://localhost:8787 https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev http://localhost:8787; connect-src 'self' https://*.workers.dev http://localhost:8787; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.workers.dev http://localhost:8787 https://*.tile.openstreetmap.org https://unpkg.com; media-src 'self' blob: https://*.workers.dev http://localhost:8787; connect-src 'self' https://*.workers.dev http://localhost:8787; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Administration – Siloerne på Østre Kaj</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=20261004c">
-  <link rel="stylesheet" href="admin.css?v=20261004c">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="style.css?v=20261005a">
+  <link rel="stylesheet" href="admin.css?v=20261005a">
 </head>
 <body>
   <main class="admin">
@@ -27,6 +28,7 @@
           <select id="view" aria-label="Visning">
             <option value="subs">Bidrag</option>
             <option value="comments">Kommentarer</option>
+            <option value="map">Kort</option>
           </select>
           <select id="cstatus" hidden aria-label="Kommentarer">
             <option value="pending">Afventer godkendelse</option>
@@ -41,6 +43,7 @@
             <option value="hidden">Skjulte</option>
             <option value="uploading">Ufærdige uploads</option>
           </select>
+          <label class="check admin-noloc"><input type="checkbox" id="noloc"> <span>Mangler placering</span></label>
           <button type="button" id="export">Hent eksport (JSON)</button>
           <button type="button" id="logout">Log ud</button>
         </div>
@@ -50,8 +53,9 @@
       <div class="center"><button class="btn btn-ghost" id="more" hidden>Vis flere</button></div>
     </div>
   </main>
-  <script src="config.js?v=20261004c"></script>
-  <script src="editor.js?v=20261004c"></script>
-  <script src="admin.js?v=20261004c" defer></script>
+  <script src="config.js?v=20261005a"></script>
+  <script src="editor.js?v=20261005a"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="admin.js?v=20261005a" defer></script>
 </body>
 </html>

@@ -413,7 +413,7 @@ window.I18N = (() => {
       'f.note': 'Bemærk', 'f.stillProcessing': '{n} fil(er) gøres stadig klar til visning',
       'share.title': 'Siloerne på Østre Kaj', 'share.copied': 'Link kopieret ✓', 'share.copy': 'Kopiér link',
       'report.prompt': 'Hvorfor skal bidraget fjernes? (f.eks. spam, krænkende, mit eget billede brugt uden lov)',
-      'report.thanks': 'Tak – vi kigger på det.', 'map.open': 'Se bidraget', 'lang.label': 'Sprog',
+      'report.thanks': 'Tak – vi kigger på det.', 'map.open': 'Se bidraget', 'map.more': 'Læs mere', 'lang.label': 'Sprog',
     },
     en: {
       "q.title": "Title",
@@ -565,7 +565,7 @@ window.I18N = (() => {
       'f.note': 'Note', 'f.stillProcessing': '{n} file(s) still being prepared for display',
       'share.title': 'The silos on Østre Kaj', 'share.copied': 'Link copied ✓', 'share.copy': 'Copy link',
       'report.prompt': 'Why should this contribution be removed? (e.g. spam, offensive, my own photo used without permission)',
-      'report.thanks': 'Thank you – we will look into it.', 'map.open': 'See the contribution', 'lang.label': 'Language',
+      'report.thanks': 'Thank you – we will look into it.', 'map.open': 'See the contribution', 'map.more': 'Read more', 'lang.label': 'Language',
     },
     de: {
       "q.title": "Überschrift",
@@ -717,7 +717,7 @@ window.I18N = (() => {
       'f.note': 'Hinweis', 'f.stillProcessing': '{n} Datei(en) werden noch für die Anzeige vorbereitet',
       'share.title': 'Die Silos am Østre Kaj', 'share.copied': 'Link kopiert ✓', 'share.copy': 'Link kopieren',
       'report.prompt': 'Warum soll dieser Beitrag entfernt werden? (z. B. Spam, beleidigend, mein eigenes Foto ohne Erlaubnis)',
-      'report.thanks': 'Danke – wir sehen uns das an.', 'map.open': 'Beitrag ansehen', 'lang.label': 'Sprache',
+      'report.thanks': 'Danke – wir sehen uns das an.', 'map.open': 'Beitrag ansehen', 'map.more': 'Weiterlesen', 'lang.label': 'Sprache',
     },
   };
 
