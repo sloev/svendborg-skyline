@@ -293,6 +293,9 @@
   }
 
   // Redigér alle felter på et bidrag og dets filer.
+  const ENT_DA = { person: 'person', ship: 'skib', building: 'bygning', company: 'firma', place: 'sted', vehicle: 'køretøj', event: 'begivenhed' };
+  const ENT_TYPE = Object.fromEntries(Object.entries(ENT_DA).map(([k, v]) => [v, k]));
+
   function editor(s) {
     const box = el('article', { class: 'row editing' }, el('p', { class: 'meta', text: 'Henter …' }));
     getOptions().then((cfg) => {
@@ -337,6 +340,15 @@
           input('Licens', 'license', s.license, { maxlength: '80' }),
           input('Licens-link (URL)', 'license_url', s.license_url, { type: 'url' }),
         ),
+        el('label', { class: 'field' }, el('span', { text: 'Navne i bidraget (én pr. linje: person, skib, bygning, firma, sted, køretøj eller begivenhed – fx »skib: LISTER«)' }), (() => {
+          const ta = el('textarea', { name: 'entities', rows: '4', placeholder: 'person: Finn Johannessen\nbygning: FAF-siloen' });
+          let list = [];
+          try {
+            list = JSON.parse(s.entities || '[]');
+          } catch {}
+          ta.value = list.map(([t, n]) => `${ENT_DA[t] || t}: ${n}`).join('\n');
+          return ta;
+        })()),
         s.items.length ? el('h4', { text: 'Filer' }) : null,
         s.items.map((i) =>
           el(
@@ -368,6 +380,8 @@
           perspective: f.perspective.value, relation: f.relation.value, credit: f.credit.value, email: f.email.value,
           show_credit: f.show_credit.checked, contact_ok: f.contact_ok.checked,
           source_url: f.source_url.value, license: f.license.value, license_url: f.license_url.value,
+          entities: f.entities.value.split('\n').map((l) => l.match(/^\s*([^:]+?)\s*:\s*(.+?)\s*$/)).filter(Boolean)
+            .map(([, t, n]) => [ENT_TYPE[t.toLowerCase()] || t.toLowerCase(), n]),
           items: [...form.querySelectorAll('.edit-item')].map((fs) => {
             const v = (n) => fs.querySelector(`[name=${n}]`).value.trim();
             return { id: fs.dataset.id, taken_at: v('taken_at'), camera: v('camera'), lat: v('lat').replace(',', '.'), lon: v('lon').replace(',', '.') };

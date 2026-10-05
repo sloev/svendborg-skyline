@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20261005c">
+  <link rel="stylesheet" href="style.css?v=20261005d">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -226,6 +226,18 @@
           <select id="perspective-filter" data-options="perspectives" aria-label="Perspektiv" data-i18n-aria="filter.persp.aria"><option value="" data-i18n="filter.persp">Alle perspektiver</option></select>
         </div>
       </div>
+      <div class="finder">
+        <div class="search" id="search">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input type="search" id="q" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="q-list" placeholder="Søg efter personer, skibe, bygninger, firmaer, steder eller årstal" data-i18n-ph="search.ph" aria-label="Søg i bidragene" data-i18n-aria="search.aria">
+          <ul class="search-list" id="q-list" role="listbox" hidden></ul>
+        </div>
+        <div class="years" id="years" hidden>
+          <div class="years-head"><span data-i18n="years.h">Hvornår?</span> <span class="muted" id="years-hint" data-i18n="years.hint">Tryk på et årti – og på et til for at vælge en periode.</span></div>
+          <div class="years-bars" id="years-bars" role="group" aria-label="Årti" data-i18n-aria="years.aria"></div>
+        </div>
+        <div class="active-filters" id="active-filters" hidden></div>
+      </div>
       <div class="masonry" id="feed" aria-live="polite"></div>
       <p class="empty muted" id="feed-empty" hidden data-i18n="feed.empty">Ingen bidrag endnu, der passer. Bliv den første, og <a href="#del">del dit</a>.</p>
       <div class="center"><button class="btn btn-ghost" id="more" type="button" hidden data-i18n="more">Vis flere</button></div>
@@ -233,6 +245,10 @@
       <div class="archive-dl" id="archive-dl" hidden>
         <a class="btn btn-ghost" id="archive-link" href="#" download><span aria-hidden="true">⬇</span> <span data-i18n="archive.btn">Hent hele arkivet som PDF</span></a>
         <p class="muted" id="archive-meta"></p>
+      </div>
+      <div class="archive-dl export-dl" id="export-dl">
+        <a class="btn btn-ghost" id="export-link" href="#" download><span aria-hidden="true">⬇</span> <span data-i18n="export.btn">Hent datasættet (JSON)</span></a>
+        <p class="muted" data-i18n="export.meta">Alle tekster, datoer, steder, navne og krediteringer som én komprimeret JSON-fil (.json.gz). Billeder, video, lyd og PDF'er er faste links, så filen er lille. Tjek krediteringen og licensen på hvert bidrag før genbrug.</p>
       </div>
     </section>
 
@@ -286,6 +302,7 @@
         <h3 id="viewer-title"></h3>
         <p class="viewer-meta" id="viewer-meta"></p>
         <div class="viewer-story" id="viewer-story"></div>
+        <div class="viewer-tags" id="viewer-tags" hidden></div>
         <dl class="viewer-facts" id="viewer-facts"></dl>
         <div class="sharebar" id="viewer-sharebar" aria-label="Del" data-i18n-aria="share.label"></div>
         <div class="viewer-actions">
@@ -317,9 +334,9 @@
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="config.js?v=20261005c"></script>
-  <script src="i18n.js?v=20261005c"></script>
-  <script src="editor.js?v=20261005c"></script>
-  <script src="app.js?v=20261005c" defer></script>
+  <script src="config.js?v=20261005d"></script>
+  <script src="i18n.js?v=20261005d"></script>
+  <script src="editor.js?v=20261005d"></script>
+  <script src="app.js?v=20261005d" defer></script>
 </body>
 </html>

@@ -851,6 +851,10 @@
   const moreBtn = $('#more');
   const filters = { kind: '', relation: '', perspective: '' };
   let cursor = null;
+  let hasMore = false;
+  let feedIds = null; // ved søgning: de bidrag (id'er), der passer, i samme rækkefølge som feedet
+  let chunk = 0;
+  const CHUNK = 90; // så mange id'er kan workeren tage i ét kald
   let feedToken = 0;
   const known = new Map();
 
@@ -859,11 +863,18 @@
     if (reset) cancelAutoMore();
     if (reset) {
       cursor = null;
+      chunk = 0;
+      feedIds = matchingIds();
       feed.textContent = '';
       for (let i = 0; i < 4; i++) feed.append(el('div', { class: 'tile skeleton' }));
     }
     const qs = new URLSearchParams({ limit: '24' });
     for (const [k, v] of Object.entries(filters)) if (v) qs.set(k, v);
+    if (years && !years.none) {
+      qs.set('from', String(years.from));
+      qs.set('to', String(years.to));
+    }
+    if (feedIds) qs.set('ids', feedIds.slice(chunk * CHUNK, (chunk + 1) * CHUNK).join(','));
     if (cursor) qs.set('before', cursor);
     try {
       const data = await getJson(`/api/contributions?${qs}`, fresh ? { cache: 'reload' } : {});
@@ -874,7 +885,12 @@
         feed.append(tile(c));
       }
       cursor = data.next;
-      moreBtn.hidden = !cursor;
+      hasMore = !!cursor;
+      if (!cursor && feedIds && (chunk + 1) * CHUNK < feedIds.length) {
+        chunk++;
+        hasMore = true;
+      }
+      moreBtn.hidden = !hasMore;
       $('#feed-empty').hidden = feed.children.length > 0;
     } catch (err) {
       if (token !== feedToken) return;
@@ -997,7 +1013,7 @@
   }
   async function loadMore() {
     cancelAutoMore();
-    if (loadingMore || !cursor) return;
+    if (loadingMore || !hasMore) return;
     loadingMore = true;
     moreLoading.hidden = false;
     moreLoading.classList.add('busy');
@@ -1046,6 +1062,261 @@
     loadFeed(true);
   });
 
+  // ------------------------------------------------------------------ søgning og årstal
+  // Søgeindekset (/api/search-index) er en lille, færdigbygget fil med alle offentlige bidrag
+  // (id, titel, årstal, filtyper) og de navne, der er knyttet til dem. Al søgning sker i browseren;
+  // feedet hentes derefter med ?ids=… (og ?from=…&to=… for årstal).
+
+  const ENT_ICON = { person: '👤', ship: '🚢', building: '🏛️', company: '🏭', place: '📍', vehicle: '🚂', event: '📅', post: '📝', year: '🗓️', text: '🔎' };
+  const KIND_LETTER = { image: 'i', video: 'v', audio: 'a', document: 'd', story: 's' };
+  const fold = (x) =>
+    String(x || '').toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  let searchIndex = null;
+  let indexPromise = null;
+  let search = null; // { type, label, ids: [indeks i searchIndex.posts] }
+  let years = null; // { from, to } eller { none: true }
+  let anchor = null; // første tryk i årstalsvælgeren
+
+  function loadIndex() {
+    indexPromise ||= getJson('/api/search-index')
+      .then((ix) => {
+        for (const p of ix.posts) p.f = fold(p[1]);
+        for (const e of ix.entities) e.f = fold(e[1]);
+        searchIndex = ix;
+        renderYears();
+        return ix;
+      })
+      .catch((err) => {
+        indexPromise = null;
+        throw err;
+      });
+    return indexPromise;
+  }
+
+  // Bidragene, der passer til søgningen, årstallene og filtypen (så tomme sider undgås).
+  function matchingIds() {
+    if (!searchIndex || (!search && !(years && years.none))) return null;
+    const P = searchIndex.posts;
+    const letter = KIND_LETTER[filters.kind];
+    const base = search ? search.ids : P.map((_, n) => n);
+    return [...new Set(base)]
+      .filter((n) => {
+        const p = P[n];
+        if (!p || (letter && !p[4].includes(letter))) return false;
+        if (years && years.none) return p[2] == null;
+        if (years) return p[2] != null && p[3] >= years.from && p[2] <= years.to;
+        return true;
+      })
+      .sort((a, b) => a - b)
+      .map((n) => P[n][0]);
+  }
+
+  const words = (f) => f.split(' ');
+  const matches = (f, toks) => {
+    const w = words(f);
+    return toks.every((tk) => w.some((x) => x.startsWith(tk)));
+  };
+
+  function suggestions(q) {
+    const out = [];
+    const raw = q.trim();
+    let m;
+    if ((m = raw.match(/^(1[6-9]\d\d|20\d\d)\s*[-–]\s*(1[6-9]\d\d|20\d\d)$/))) {
+      const [a, b] = [Number(m[1]), Number(m[2])].sort((x, y) => x - y);
+      out.push({ type: 'year', label: `${a}–${b}`, years: { from: a, to: b } });
+    } else if ((m = raw.match(/^(1[6-9]\d|20\d)(\d)?(?:['’]?(?:erne|s|er))?$/))) {
+      const d = Number(m[1]) * 10;
+      if (m[2] !== undefined) {
+        const y = d + Number(m[2]);
+        out.push({ type: 'year', label: t('search.year', { y }), years: { from: y, to: y } });
+      }
+      out.push({ type: 'year', label: t('search.decade', { d }), years: { from: d, to: d + 9 } });
+    }
+    const toks = fold(raw).split(' ').filter(Boolean);
+    if (!toks.length || !searchIndex) return out;
+    const ents = searchIndex.entities
+      .filter((e) => matches(e.f, toks))
+      .sort((a, b) => Number(b.f.startsWith(toks[0])) - Number(a.f.startsWith(toks[0])) || b[2].length - a[2].length)
+      .slice(0, 8);
+    for (const e of ents) out.push({ type: e[0], label: e[1], ids: e[2] });
+    const posts = [];
+    searchIndex.posts.forEach((p, n) => matches(p.f, toks) && posts.push(n));
+    if (posts.length > 1) out.push({ type: 'text', label: t('search.title', { q: raw }), ids: posts, chip: raw });
+    for (const n of posts.slice(0, 4)) out.push({ type: 'post', label: searchIndex.posts[n][1], id: searchIndex.posts[n][0] });
+    return out;
+  }
+
+  const qInput = $('#q');
+  const qList = $('#q-list');
+  let sugg = [];
+  let active = -1;
+
+  function showSuggestions() {
+    const q = qInput.value;
+    sugg = q.trim() ? suggestions(q) : [];
+    active = -1;
+    qList.textContent = '';
+    if (!q.trim()) return closeSuggestions();
+    if (!sugg.length) qList.append(el('li', { class: 'search-none', text: searchIndex ? t('search.none') : '…' }));
+    sugg.forEach((s, k) =>
+      qList.append(
+        el(
+          'li',
+          { role: 'option', id: `q-opt-${k}`, 'aria-selected': 'false', onmousedown: (e) => e.preventDefault(), onclick: () => choose(s) },
+          el('span', { class: 'search-ic', 'aria-hidden': 'true', text: ENT_ICON[s.type] || '🔎' }),
+          el('span', { class: 'search-name', text: s.label }),
+          el('span', { class: 'search-type', text: s.ids ? `${t(`ent.${s.type}`)} · ${new Set(s.ids).size}` : t(`ent.${s.type}`) }),
+        ),
+      ),
+    );
+    qList.hidden = false;
+    qInput.setAttribute('aria-expanded', 'true');
+  }
+  function closeSuggestions() {
+    qList.hidden = true;
+    qInput.setAttribute('aria-expanded', 'false');
+    qInput.removeAttribute('aria-activedescendant');
+  }
+  function moveActive(d) {
+    if (!sugg.length) return;
+    active = (active + d + sugg.length) % sugg.length;
+    $$('li[role=option]', qList).forEach((li, k) => li.setAttribute('aria-selected', String(k === active)));
+    qInput.setAttribute('aria-activedescendant', `q-opt-${active}`);
+    $(`#q-opt-${active}`).scrollIntoView({ block: 'nearest' });
+  }
+
+  function choose(s) {
+    closeSuggestions();
+    qInput.value = '';
+    if (s.type === 'post') {
+      location.hash = `#bidrag/${s.id}`;
+      return;
+    }
+    if (s.years) {
+      setYears(s.years);
+      return;
+    }
+    search = { type: s.type, label: s.chip || s.label, ids: s.ids };
+    applyFilters();
+  }
+
+  function setYears(y) {
+    years = y;
+    anchor = null;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    renderActive();
+    renderYears();
+    loadFeed(true);
+  }
+
+  function renderActive() {
+    const box = $('#active-filters');
+    box.textContent = '';
+    const chip = (icon, label, n, clear) =>
+      box.append(
+        el(
+          'button',
+          { type: 'button', class: 'active-chip', 'aria-label': `${label} – ${t('search.clear')}`, onclick: clear },
+          el('span', { 'aria-hidden': 'true', text: icon }),
+          el('span', { text: label }),
+          n !== null ? el('span', { class: 'muted', text: `· ${t('search.n', { n })}` }) : null,
+          el('span', { class: 'x', 'aria-hidden': 'true', text: '✕' }),
+        ),
+      );
+    if (search) chip(ENT_ICON[search.type] || '🔎', search.label, new Set(search.ids).size, () => ((search = null), applyFilters()));
+    if (years) chip('🗓️', years.none ? t('years.none', { n: '' }).trim() : yearsLabel(years), null, () => setYears(null));
+    box.hidden = !box.children.length;
+  }
+  const yearsLabel = (y) => (y.from === y.to ? String(y.from) : y.to - y.from === 9 && y.from % 10 === 0 ? t('search.decade', { d: y.from }) : `${y.from}–${y.to}`);
+
+  // Årtier som et lille søjlediagram: tryk på et årti, og på et andet for en periode.
+  function renderYears() {
+    const box = $('#years');
+    const bars = $('#years-bars');
+    if (!searchIndex) return;
+    const P = searchIndex.posts;
+    const dated = P.filter((p) => p[2] != null);
+    if (!dated.length) return;
+    const lo = Math.floor(Math.min(...dated.map((p) => p[2])) / 10) * 10;
+    const hi = Math.floor(Math.max(...dated.map((p) => p[3])) / 10) * 10;
+    const counts = [];
+    for (let d = lo; d <= hi; d += 10) counts.push([d, dated.filter((p) => p[3] >= d && p[2] <= d + 9).length]);
+    const max = Math.max(...counts.map((c) => c[1]), 1);
+    bars.textContent = '';
+    for (const [d, n] of counts) {
+      const on = years && !years.none && d + 9 >= years.from && d <= years.to;
+      const bar = el('span', { class: 'bar' });
+      bar.style.height = `${n ? Math.max(6, Math.round((n / max) * 100)) : 0}%`;
+      bars.append(
+        el(
+          'button',
+          {
+            type: 'button', class: `yr${d % 100 === 0 ? ' century' : ''}${anchor === d ? ' anchor' : ''}`, 'aria-pressed': String(!!on),
+            title: `${t('search.decade', { d })}: ${t('search.n', { n })}`, 'aria-label': `${t('search.decade', { d })}: ${t('search.n', { n })}`,
+            onclick: () => pickDecade(d),
+          },
+          el('span', { class: 'bar-wrap' }, bar),
+          el('span', { class: 'yr-label', text: d % 100 === 0 || d === lo ? String(d) : `’${String(d).slice(2)}` }),
+        ),
+      );
+    }
+    const none = P.length - dated.length;
+    const head = $('.years-head', box);
+    $$('.yr-none', head).forEach((x) => x.remove());
+    head.append(
+      el('button', { type: 'button', class: 'yr-none', 'aria-pressed': String(!!(years && years.none)), onclick: () => setYears(years && years.none ? null : { none: true }), text: t('years.none', { n: none }) }),
+    );
+    box.hidden = false;
+  }
+
+  function pickDecade(d) {
+    if (anchor !== null && anchor !== d) {
+      const [a, b] = [Math.min(anchor, d), Math.max(anchor, d)];
+      return setYears({ from: a, to: b + 9 });
+    }
+    if (years && !years.none && years.from === d && years.to === d + 9) return setYears(null);
+    years = { from: d, to: d + 9 };
+    anchor = d;
+    renderActive();
+    renderYears();
+    loadFeed(true);
+  }
+
+  // Et navn i fremviseren: vis alle bidrag, hvor det optræder.
+  async function showEntity(type, name) {
+    try {
+      const ix = await loadIndex();
+      const e = ix.entities.find((x) => x[0] === type && x[1] === name);
+      if (!e) return;
+      search = { type, label: name, ids: e[2] };
+      if (viewer.open) viewer.close();
+      applyFilters();
+      $('#bidrag').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      console.warn(err);
+    }
+  }
+
+  qInput.addEventListener('focus', () => loadIndex().then(() => qInput.value && showSuggestions()).catch(() => {}));
+  qInput.addEventListener('input', showSuggestions);
+  qInput.addEventListener('blur', () => setTimeout(closeSuggestions, 100));
+  qInput.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') (e.preventDefault(), qList.hidden ? showSuggestions() : moveActive(1));
+    else if (e.key === 'ArrowUp') (e.preventDefault(), moveActive(-1));
+    else if (e.key === 'Escape') closeSuggestions();
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const s = sugg[active] || sugg.find((x) => x.type !== 'post') || sugg[0];
+      if (s) choose(s);
+    }
+  });
+  $('#export-link').href = `${API}/api/export`;
+  loadIndex().catch(() => {});
+
   // ------------------------------------------------------------------ viewer
 
   const viewer = $('#viewer');
@@ -1057,6 +1328,14 @@
     $('#viewer-title').textContent = c.title || (c.items.length ? t('v.contribution') : t('v.story'));
     $('#viewer-meta').textContent = [c.credit ? t('v.credit', { credit: c.credit }) : t('v.creditHidden'), c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
     window.SiloKit.render(c.story || '', $('#viewer-story'));
+    const tags = $('#viewer-tags');
+    tags.textContent = '';
+    const ents = Array.isArray(c.entities) ? c.entities : [];
+    if (ents.length) tags.append(el('span', { class: 'muted', text: t('v.mentions') }));
+    for (const [type, name] of ents) {
+      tags.append(el('button', { type: 'button', class: 'tag', title: t(`ent.${type}`), onclick: () => showEntity(type, name) }, el('span', { 'aria-hidden': 'true', text: ENT_ICON[type] || '•' }), ` ${name}`));
+    }
+    tags.hidden = !ents.length;
     const strip = $('#viewer-strip');
     strip.textContent = '';
     if (c.items.length > 1) {

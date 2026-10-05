@@ -6,6 +6,8 @@
 //   GET  /api/contributions                  published contributions (paginated, filterable)
 //   GET  /api/contributions/:id              one published contribution
 //   GET  /api/map                            published media with a GPS location
+//   GET  /api/search-index                   pregenerated search index (entities, titles, years)
+//   GET  /api/export                         the whole public archive as gzipped JSON (media as permalinks)
 //   POST /api/contributions/:id/report       flag a contribution
 //   GET  /api/contributions/:id/comments     approved comments on a contribution
 //   GET  /api/comments/ticket?submission=ID  signed, IP-bound ticket + proof-of-work difficulty
@@ -24,6 +26,8 @@
 //   POST   /api/admin/items/:id/retry        re-queue a failed file
 //   PATCH  /api/admin/items/:id/location     { lat, lon } (null = fjern placeringen)
 //   GET    /api/admin/map                    alle filer med placering (alle statusser)
+//   PATCH  /api/admin/submissions/:id/meta   { entities: [[type, navn], …] }
+//   POST   /api/admin/reindex                genberegn årstal for alle bidrag og byg søgeindekset
 //   GET    /api/admin/queue-size             number of files waiting for processing
 //   POST   /api/admin/queue/claim            claim files for processing
 //   POST   /api/admin/items/:id/result       report processing result
@@ -318,6 +322,8 @@ async function api(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return getStats(env);
   if (path === '/api/contributions' && method === 'GET') return listContributions(env, url);
   if (path === '/api/map' && method === 'GET') return getMap(env);
+  if (path === '/api/search-index' && method === 'GET') return getSearchIndex(env, ctx);
+  if (path === '/api/export' && method === 'GET') return exportArchive(env);
   if (path === '/api/archive' && method === 'GET') return getArchive(env);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)$/)) && method === 'GET') return getContribution(env, m[1]);
   if ((m = path.match(/^\/api\/contributions\/([\w-]+)\/comments$/)) && method === 'GET') return listComments(env, m[1]);
@@ -338,13 +344,17 @@ async function adminApi(request, env, url, path, method, ctx) {
   let m;
   if (path === '/api/admin/submissions' && method === 'GET') return adminList(env, url);
   if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)$/))) {
-    if (method === 'PATCH') return adminSetStatus(request, env, m[1]);
-    if (method === 'PUT') return adminEdit(request, env, m[1]);
-    if (method === 'DELETE') return adminDelete(env, m[1]);
+    // Søgeindekset bygges igen i baggrunden, når et bidrag ændres.
+    const done = (res) => (ctx.waitUntil(buildSearchIndex(env).catch((e) => console.error('index', e.message))), res);
+    if (method === 'PATCH') return done(await adminSetStatus(request, env, m[1]));
+    if (method === 'PUT') return done(await adminEdit(request, env, m[1]));
+    if (method === 'DELETE') return done(await adminDelete(env, m[1]));
   }
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/retry$/)) && method === 'POST') return adminRetry(env, m[1]);
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/location$/)) && method === 'PATCH') return adminSetLocation(request, env, m[1]);
   if (path === '/api/admin/map' && method === 'GET') return adminMap(env);
+  if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)\/meta$/)) && method === 'PATCH') return adminSetMeta(request, env, ctx, m[1]);
+  if (path === '/api/admin/reindex' && method === 'POST') return adminReindex(env);
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/result$/)) && method === 'POST') return adminResult(request, env, m[1]);
   if (path === '/api/admin/queue-size' && method === 'GET') return adminQueueSize(env);
   if (path === '/api/admin/queue/claim' && method === 'POST') return adminClaim(request, env);
@@ -441,6 +451,19 @@ async function listContributions(env, url) {
     where.push('s.perspective = ?');
     params.push(perspective);
   }
+  // Søgning: et bestemt sæt bidrag (fra søgeindekset) og/eller et årsinterval.
+  const ids = (url.searchParams.get('ids') || '').split(',').filter((x) => /^[\w-]{36}$/.test(x)).slice(0, 90);
+  if (url.searchParams.has('ids')) {
+    if (!ids.length) return json({ contributions: [], next: null });
+    where.push(`s.id IN (${ids.map(() => '?').join(',')})`);
+    params.push(...ids);
+  }
+  const yFrom = Number(url.searchParams.get('from')) || null;
+  const yTo = Number(url.searchParams.get('to')) || null;
+  if (yFrom || yTo) {
+    where.push('s.year_from IS NOT NULL AND s.year_to >= ? AND s.year_from <= ?');
+    params.push(yFrom || 0, yTo || 9999);
+  }
   if (['image', 'video', 'audio', 'document'].includes(kind)) {
     where.push(`EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = ? AND i.status = 'ready')`);
     params.push(kind);
@@ -533,6 +556,14 @@ function publicSubmission(env, s, items) {
     title: s.title,
     story: s.story,
     period: s.period,
+    years: [s.year_from ?? null, s.year_to ?? null],
+    entities: (() => {
+      try {
+        return JSON.parse(s.entities || '[]');
+      } catch {
+        return [];
+      }
+    })(),
     place: s.place,
     perspective: s.perspective,
     perspectiveLabel: PERSPECTIVES[s.perspective] || '',
@@ -567,6 +598,173 @@ function mediaUrl(env, key) {
   if (!key) return null;
   const base = (env.MEDIA_BASE_URL || env.PUBLIC_ORIGIN || '').replace(/\/+$/, '');
   return `${base}/${key}`; // keys start with media/
+}
+
+// ---------------------------------------------------------------- strukturerede data og søgning
+//
+// Hvert bidrag kan have en liste af entiteter ([type, navn]) og et årsinterval (year_from–year_to).
+// Årstallene udledes af feltet "Hvornår" (f.eks. "1950'erne", "ca. 1890", "marts 1987", "1898–1901")
+// og ellers af filernes optagedato. Entiteterne sættes af admin (eller tools/udtraek-entiteter.mjs).
+// Søgeindekset er en lille, forudberegnet JSON-fil i R2, som bygges igen, når noget ændres.
+
+const ENTITY_TYPES = ['person', 'ship', 'building', 'company', 'place', 'vehicle', 'event'];
+const SEARCH_INDEX = 'media/arkiv/search.json';
+const YEAR_MIN = 1700;
+// (Ikke new Date() her: i en Worker er uret 1970 under opstart.)
+const YEAR_MAX = 2100;
+
+function cleanEntities(list) {
+  const seen = new Set();
+  const out = [];
+  for (const e of Array.isArray(list) ? list.slice(0, 60) : []) {
+    const type = Array.isArray(e) ? e[0] : e && e.type;
+    const name = clean(Array.isArray(e) ? e[1] : e && e.name, 80);
+    if (!ENTITY_TYPES.includes(type) || !name) continue;
+    const key = `${type}:${name.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([type, name]);
+  }
+  return out;
+}
+
+// "1950'erne" → [1950, 1959], "midten af 1980'erne" → [1983, 1987], "1898–1901" → [1898, 1901],
+// "ca. 1890" → [1890, 1890], "efter 2007" → [2007, null→2007]. Uden årstal: [null, null].
+function yearsOf(text) {
+  const t = String(text || '').toLowerCase();
+  const found = [];
+  for (const m of t.matchAll(/\b(1[7-9]\d\d|20\d\d)(?:['’]?(?:erne|ernes|s))?\b/g)) {
+    const y = Number(m[1]);
+    if (y < YEAR_MIN || y > YEAR_MAX) continue;
+    const decade = /^\d{4}['’]?(erne|ernes|s)$/.test(m[0]) && y % 10 === 0;
+    if (decade) {
+      const before = t.slice(Math.max(0, m.index - 12), m.index);
+      if (/midten af\s*$/.test(before)) found.push(y + 3, y + 7);
+      else if (/(starten|begyndelsen) af\s*$/.test(before)) found.push(y, y + 3);
+      else if (/(slutningen|sidst i|udgangen af)\s*$/.test(before)) found.push(y + 7, y + 9);
+      else found.push(y, y + 9);
+    } else found.push(y);
+  }
+  if (!found.length) return [null, null];
+  return [Math.min(...found), Math.max(...found)];
+}
+
+async function syncYears(env, subId) {
+  const sub = await env.DB.prepare(`SELECT period FROM submissions WHERE id = ?`).bind(subId).first();
+  if (!sub) return;
+  let [from, to] = yearsOf(sub.period);
+  if (from === null) {
+    const r = await env.DB.prepare(
+      `SELECT MIN(substr(taken_at, 1, 4)) AS a, MAX(substr(taken_at, 1, 4)) AS b FROM items WHERE submission_id = ? AND taken_at IS NOT NULL`,
+    )
+      .bind(subId)
+      .first();
+    if (r && r.a) [from, to] = [Number(r.a), Number(r.b)];
+  }
+  await env.DB.prepare(`UPDATE submissions SET year_from = ?, year_to = ? WHERE id = ?`).bind(from, to, subId).run();
+}
+
+async function adminSetMeta(request, env, ctx, id) {
+  const b = await readJson(request, 50_000);
+  const entities = cleanEntities(b.entities);
+  const res = await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(entities), id).run();
+  if (!res.meta.changes) throw new HttpError(404, 'not_found');
+  ctx.waitUntil(buildSearchIndex(env).catch((e) => console.error('index', e.message)));
+  return json({ ok: true, entities });
+}
+
+async function adminReindex(env) {
+  const { results } = await env.DB.prepare(`SELECT id FROM submissions WHERE status != 'uploading'`).all();
+  for (const r of results) await syncYears(env, r.id);
+  const index = await buildSearchIndex(env);
+  return json({ ok: true, submissions: results.length, posts: index.posts.length, entities: index.entities.length });
+}
+
+// Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=historie)],
+// entities = [type, navn, [indeks i posts …]]. Kun offentlige bidrag.
+async function buildSearchIndex(env) {
+  const { results: subs } = await env.DB.prepare(
+    `SELECT id, title, story, year_from, year_to, entities FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
+  ).all();
+  const { results: kinds } = await env.DB.prepare(
+    `SELECT i.submission_id AS id, GROUP_CONCAT(DISTINCT i.kind) AS k FROM items i JOIN submissions s ON s.id = i.submission_id
+     WHERE s.status = 'published' AND i.status = 'ready' GROUP BY i.submission_id`,
+  ).all();
+  const kindOf = Object.fromEntries(kinds.map((r) => [r.id, r.k]));
+  const letter = { image: 'i', video: 'v', audio: 'a', document: 'd' };
+  const posts = [];
+  const ents = new Map();
+  subs.forEach((s, n) => {
+    const k = String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('') + (String(s.story || '').length >= 80 ? 's' : '');
+    posts.push([s.id, s.title || '', s.year_from, s.year_to, k]);
+    let list = [];
+    try {
+      list = JSON.parse(s.entities || '[]');
+    } catch {}
+    for (const [type, name] of list) {
+      const key = `${type}:${name.toLowerCase()}`;
+      if (!ents.has(key)) ents.set(key, [type, name, []]);
+      ents.get(key)[2].push(n);
+    }
+  });
+  const entities = [...ents.values()].sort((a, b) => b[2].length - a[2].length || a[1].localeCompare(b[1], 'da'));
+  const index = { v: 1, built: new Date().toISOString(), types: ENTITY_TYPES, posts, entities };
+  await env.BUCKET.put(SEARCH_INDEX, JSON.stringify(index), { httpMetadata: { contentType: 'application/json' } });
+  return index;
+}
+
+async function getSearchIndex(env, ctx) {
+  const obj = await env.BUCKET.get(SEARCH_INDEX);
+  const body = obj ? await obj.text() : JSON.stringify(await buildSearchIndex(env));
+  return new Response(body, {
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=120' },
+  });
+}
+
+// Hele det offentlige arkiv som ét datasæt: gzippet JSON med alle tekster, metadata og entiteter.
+// Billeder, video, lyd og PDF'er er permanente links (de tunge filer ligger ikke i selve filen).
+async function exportArchive(env) {
+  const { results: subs } = await env.DB.prepare(
+    `SELECT * FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at`,
+  ).all();
+  const out = [];
+  for (let i = 0; i < subs.length; i += 90) {
+    const part = subs.slice(i, i + 90);
+    const items = await withItems(env, part);
+    part.forEach((s, n) => {
+      const p = items[n];
+      let entities = [];
+      try {
+        entities = JSON.parse(s.entities || '[]');
+      } catch {}
+      out.push({
+        id: p.id, title: p.title, story: p.story, period: p.period, years: [s.year_from, s.year_to], place: p.place,
+        perspective: p.perspective, relation: p.relation, credit: p.credit, source: p.source, publishedAt: p.publishedAt,
+        entities: entities.map(([type, name]) => ({ type, name })),
+        url: env.SITE_URL ? `${env.SITE_URL}#bidrag/${p.id}` : null,
+        files: p.items.map((f) => ({ kind: f.kind, url: f.full || f.src, web: f.src, thumb: f.thumb, poster: f.poster, width: f.width, height: f.height,
+          duration: f.duration, takenAt: f.takenAt, camera: f.camera, lat: f.lat, lon: f.lon })),
+      });
+    });
+  }
+  const data = {
+    name: 'Siloerne på Østre Kaj – fællesarkiv',
+    site: env.SITE_URL || null,
+    generatedAt: new Date().toISOString(),
+    schema: 1,
+    note: 'Hvert bidrag har sin egen kreditering og eventuelle kilde/licens. Mange billeder er ikke frit licenserede – tjek feltet source før genbrug.',
+    count: out.length,
+    contributions: out,
+  };
+  const gz = new Blob([JSON.stringify(data)]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Response(gz, {
+    headers: {
+      'content-type': 'application/gzip',
+      'content-disposition': `attachment; filename="siloerne-paa-oestre-kaj-${new Date().toISOString().slice(0, 10)}.json.gz"`,
+      'cache-control': 'public, max-age=600',
+
+    },
+  });
 }
 
 // ---------------------------------------------------------------- public: write
@@ -785,6 +983,7 @@ async function completeSubmission(request, env, ctx, subId) {
   }
 
   // Alt venter på en administrator, medmindre MODERATION er sat til "post" (vises med det samme).
+  await syncYears(env, subId);
   const status = env.MODERATION === 'post' ? 'published' : 'review';
   await env.DB.prepare(`UPDATE submissions SET status = ?, published_at = ? WHERE id = ?`)
     .bind(status, new Date().toISOString(), subId)
@@ -1386,7 +1585,9 @@ async function adminEdit(request, env, id) {
       url(b.source_url), clean(b.license, 80), url(b.license_url), id,
     )
     .run();
+  if (Array.isArray(b.entities)) await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(cleanEntities(b.entities)), id).run();
   for (const it of Array.isArray(b.items) ? b.items.slice(0, 50) : []) {
+    // (årstallene genberegnes efter løkken)
     const taken = clean(it.taken_at, 25);
     if (taken && !/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$/.test(taken)) throw new HttpError(400, 'invalid_data');
     const lat = num(it.lat);
@@ -1396,6 +1597,7 @@ async function adminEdit(request, env, id) {
       .bind(taken ? taken.replace(' ', 'T') : null, clean(it.camera, 200) || null, lat, lon, String(it.id || ''), id)
       .run();
   }
+  await syncYears(env, id);
   return json({ ok: true });
 }
 
@@ -1524,6 +1726,9 @@ async function adminResult(request, env, id) {
       .bind(id)
       .run();
   }
+  // Filens optagedato kan give bidraget et årstal, hvis "Hvornår" ikke gør.
+  const owner = await env.DB.prepare(`SELECT submission_id FROM items WHERE id = ?`).bind(id).first();
+  if (owner) await syncYears(env, owner.submission_id);
   await deleteOriginal(env, id);
   return json({ ok: true });
 }
@@ -1585,6 +1790,7 @@ async function adminImport(request, env) {
       ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size),
     ),
   ]);
+  await syncYears(env, subId);
   return json({ id: subId, items: items.map((it) => ({ id: it.id, name: it.name })) });
 }
 

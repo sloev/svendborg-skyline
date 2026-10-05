@@ -1,0 +1,597 @@
+{
+  "_om": "Ordbog over navne, som udtraek-entiteter.mjs leder efter i titel, tekst, periode, sted og kreditering. Første navn er det, der vises; resten er stavemåder, der også tæller. Store og små bogstaver skal passe.",
+  "building": {
+    "FAF-siloen": [
+      "FAF-silo",
+      "FAF-siloen",
+      "FAF’s silo",
+      "FAFs silo",
+      "den røde silo",
+      "røde silo",
+      "FAF-siloerne",
+      "Fag siloen"
+    ],
+    "DLG-siloen": [
+      "DLG-silo",
+      "DLG-siloen",
+      "DLG's silo",
+      "DLGs silo",
+      "DLG-siloerne"
+    ],
+    "Petersen & Jensens silopakhus (1901)": [
+      "1901-bygningen",
+      "1901-siloen",
+      "Jensens Silopakhus",
+      "Jensens silopakhus",
+      "silopakhuset fra 1901",
+      "pakhuset fra 1901"
+    ],
+    "Toldkammeret": [
+      "Toldkammeret",
+      "Toldkammer",
+      "toldkammeret",
+      "Toldbygningen"
+    ],
+    "Christiansmøllen": [
+      "Christiansmøllen",
+      "Christiansmølle"
+    ],
+    "Svendborg Gasværk": [
+      "Svendborg Gasværk",
+      "gasværket",
+      "Gasværket"
+    ],
+    "Svendborg Banegård": [
+      "banegården",
+      "Banegården",
+      "Svendborg Station",
+      "Svendborg station"
+    ],
+    "Hotel Ærø": [
+      "Hotel Ærø"
+    ],
+    "Ny Missionshotel": [
+      "Ny Missionshotel"
+    ],
+    "Vor Frue Kirke": [
+      "Vor Frue Kirke",
+      "Vor Frue"
+    ],
+    "Nordre Skole": [
+      "Nordre Skole"
+    ],
+    "Pakhus 5 (Smørkælderen)": [
+      "Smørkælderen",
+      "pakhus 5",
+      "Pakhus 5"
+    ]
+  },
+  "company": {
+    "FAF – Fyns Andels Foderstofforretning": [
+      "FAF",
+      "Fyns Andels Foderstofforretning",
+      "Fyns Andels-Foderstofforretning"
+    ],
+    "DLG": [
+      "DLG",
+      "Dansk Landbrugs Grovvareselskab"
+    ],
+    "Nordisk Kellogg's": [
+      "Nordisk Kellogg's",
+      "Nordisk Kelloggs",
+      "Nordisk Kellogg",
+      "Kellogg's",
+      "Kelloggs",
+      "Kellogg"
+    ],
+    "Svendborg Boghvede- og Havremølle": [
+      "Svendborg Boghvede",
+      "Boghvede- og Havremølle",
+      "Boghvedemøllen"
+    ],
+    "Svendborg Dampmølle": [
+      "Svendborg Dampmølle",
+      "Dampmøllen"
+    ],
+    "Øxenbjerg Dampmølle": [
+      "Øxenbjerg Dampmølle",
+      "Øxenbjerg Mølle"
+    ],
+    "Petersen & Jensen": [
+      "Petersen & Jensen",
+      "Petersen og Jensen",
+      "Petersen & Jensens"
+    ],
+    "Svendborg Skibsværft": [
+      "Svendborg Skibsværft",
+      "Svendborg Skibsværfts",
+      "Svendborg Værft",
+      "skibsværftet",
+      "Skibsværftet"
+    ],
+    "J. Ring-Andersens Stål- og Træskibsværft": [
+      "Ring-Andersen",
+      "Ring Andersens",
+      "Ring Andersen",
+      "Ring-Andersens",
+      "Ring andersen",
+      "Ring-Andersen værft"
+    ],
+    "A.E. Sørensen": [
+      "A.E. Sørensen",
+      "A. E. Sørensen",
+      "A.E. Sørensens",
+      "A. E. Sørensens"
+    ],
+    "DSB": [
+      "DSB"
+    ],
+    "SFvJ – Syd-Fyenske Veteranjernbane": [
+      "SFvJ",
+      "Syd-Fyenske Veteranjernbane",
+      "Sydfyenske Veteranjernbane",
+      "Fyenske Veteranjernbane"
+    ],
+    "Sydfyns Frøavl": [
+      "Sydfyns Frøavl",
+      "Frøavlen"
+    ],
+    "Hønsefoderfabrikken GNY": [
+      "GNY",
+      "Hønsefoderfabrikken"
+    ],
+    "Svendborg Vinkompagni": [
+      "Svendborg Vinkompagni",
+      "Vinkompagniet"
+    ],
+    "Baagøe & Riber": [
+      "Baagøe & Riber",
+      "Baagøe og Riber",
+      "Baagøe"
+    ],
+    "Svendborg Hydraulik": [
+      "Svendborg Hydraulik"
+    ],
+    "Svendborg Tagpapfabrik": [
+      "Svendborg Tagpapfabrik"
+    ],
+    "J. Lauritzen": [
+      "J. Lauritzen",
+      "J. Lauritzens"
+    ],
+    "Svendborg Kommune": [
+      "Svendborg Kommune",
+      "Svendborg Kommunes",
+      "kommunen"
+    ],
+    "Svendborg Havn (havnevæsenet)": [
+      "Svendborg Havnevæsen",
+      "havnevæsenet",
+      "Havnevæsenet",
+      "Svendborg Havns"
+    ],
+    "Svendborg Byhistoriske Arkiv": [
+      "Svendborg Byhistoriske Arkiv",
+      "Byhistorisk Arkiv",
+      "byhistoriske arkiv",
+      "Byhistoriske Arkiv"
+    ],
+    "Svendborg Museum": [
+      "Svendborg Museum",
+      "Svendborg Museums"
+    ],
+    "Bevar Svendborg Havn": [
+      "Bevar Svendborg Havn"
+    ],
+    "Fyns Amts Avis": [
+      "Fyns Amts Avis",
+      "Fyns Amts Avis'"
+    ],
+    "Det Kongelige Bibliotek": [
+      "Det Kongelige Bibliotek",
+      "Det Kongelige Biblioteks",
+      "Det Kgl. Bibliotek"
+    ],
+    "Magica Film Production": [
+      "Magica Film Production",
+      "Magica Film"
+    ],
+    "Drone Fyn": [
+      "Drone Fyn"
+    ],
+    "Kanal Fyn": [
+      "Kanal Fyn",
+      "Kanal Fyns"
+    ],
+    "ORION-FILM": [
+      "ORION-FILM",
+      "Orion Film",
+      "Orion-Film"
+    ],
+    "Rambøll": [
+      "Rambøll"
+    ],
+    "Historisk Atlas": [
+      "Historisk Atlas",
+      "historiskatlas"
+    ],
+    "Odense Bys Museer": [
+      "Odense Bys Museer"
+    ],
+    "Danmarks Jernbanemuseum": [
+      "Danmarks Jernbanemuseum",
+      "Jernbanemuseet"
+    ],
+    "Fremtidens Havn": [
+      "Fremtidens Havn"
+    ]
+  },
+  "place": {
+    "Østre Havn": [
+      "Østre Havn",
+      "Østre havn",
+      "Svendborg Østre Havn"
+    ],
+    "Østre Kaj": [
+      "Østre Kaj",
+      "Østre Kajgade",
+      "østre kaj"
+    ],
+    "Østre Havnevej": [
+      "Østre Havnevej"
+    ],
+    "Frederiksø": [
+      "Frederiksø",
+      "Frederiksøen"
+    ],
+    "Jessens Mole": [
+      "Jessens Mole",
+      "Jessens mole"
+    ],
+    "Hudes Plads": [
+      "Hudes Plads"
+    ],
+    "Nordre Havn": [
+      "Nordre Havn",
+      "Nordre Kaj"
+    ],
+    "Havnepladsen": [
+      "Havnepladsen"
+    ],
+    "Troensegaardsvej": [
+      "Troensegaardsvej",
+      "Troensegaard"
+    ],
+    "Øxenbjerg": [
+      "Øxenbjerg"
+    ],
+    "Kongebakken": [
+      "Kongebakken"
+    ],
+    "Ørkild": [
+      "Ørkild"
+    ],
+    "Svendborgsund": [
+      "Svendborgsund",
+      "Svendborg Sund",
+      "sundet"
+    ],
+    "Tåsinge": [
+      "Tåsinge",
+      "Taasinge"
+    ],
+    "Thurø": [
+      "Thurø"
+    ],
+    "Faaborg": [
+      "Faaborg",
+      "Fåborg"
+    ],
+    "Nyborg": [
+      "Nyborg"
+    ],
+    "Odense": [
+      "Odense"
+    ],
+    "Svendborgsundbroen": [
+      "sundbroen",
+      "Sundbroen",
+      "Svendborgsundbroen"
+    ],
+    "Ærøskøbing": [
+      "Ærøskøbing"
+    ]
+  },
+  "vehicle": {
+    "Ardelt 137 (havnekran)": [
+      "Ardelt 137",
+      "Ardelt-kranen",
+      "Ardelt"
+    ],
+    "Frichs 137": [
+      "Frichs 137",
+      "Frichs"
+    ],
+    "Köf 259": [
+      "Köf 259"
+    ],
+    "Köf 275": [
+      "Köf 275"
+    ],
+    "MY 1104": [
+      "MY 1104"
+    ],
+    "MY 1147": [
+      "MY 1147"
+    ],
+    "MY 1132": [
+      "MY 1132"
+    ],
+    "MZ 1414": [
+      "MZ 1414"
+    ],
+    "MZ 1427": [
+      "MZ 1427"
+    ],
+    "FAF-silovognene": [
+      "FAF-vogne",
+      "FAF-vognene",
+      "silovogne",
+      "silovognene",
+      "FAF silovogne"
+    ]
+  },
+  "ship": {
+    "YAN DANG SHAN": [
+      "YAN DANG SHAN"
+    ],
+    "NANUK S": [
+      "NANUK S"
+    ],
+    "PAIVI": [
+      "PAIVI"
+    ],
+    "ANGELINA": [
+      "ANGELINA"
+    ],
+    "RONJA": [
+      "RONJA"
+    ],
+    "CAROLINE S": [
+      "CAROLINE S"
+    ],
+    "NAVIGATOR": [
+      "NAVIGATOR"
+    ],
+    "MERIDIAN": [
+      "MERIDIAN"
+    ],
+    "STERNÖ": [
+      "STERNÖ"
+    ],
+    "MISTRAL": [
+      "MISTRAL"
+    ],
+    "ST X MARIS-STELLA IV": [
+      "ST X MARIS-STELLA IV"
+    ],
+    "HG 77": [
+      "HG 77"
+    ],
+    "PORHOV": [
+      "PORHOV"
+    ],
+    "INGVILD": [
+      "INGVILD"
+    ],
+    "NORVIND": [
+      "NORVIND"
+    ],
+    "HELLEVIK": [
+      "HELLEVIK"
+    ],
+    "LISBETH": [
+      "LISBETH"
+    ],
+    "LISTER": [
+      "LISTER"
+    ],
+    "RMS NEUDORF": [
+      "RMS NEUDORF"
+    ],
+    "KAROLI": [
+      "KAROLI"
+    ],
+    "KARMA": [
+      "KARMA"
+    ],
+    "LENE D": [
+      "LENE D"
+    ],
+    "CLAUS": [
+      "CLAUS"
+    ],
+    "LIAM": [
+      "LIAM"
+    ],
+    "Ærøsund (færge)": [
+      "Ærøsund"
+    ],
+    "Helge (sundfærge)": [
+      "Sundfærgen Helge",
+      "M/S Helge",
+      "færgen Helge"
+    ],
+    "Helga": [
+      "M/S Helga"
+    ],
+    "Nordvik": [
+      "M/S Nordvik",
+      "Nordvik"
+    ],
+    "Højestene (færge)": [
+      "Højestene"
+    ],
+    "Lilla Dan": [
+      "Lilla Dan"
+    ],
+    "Ellen Bo": [
+      "Ellen Bo"
+    ],
+    "Lone Stevns": [
+      "Lone Stevns"
+    ],
+    "Sea Hawk": [
+      "Sea Hawk"
+    ],
+    "Fylla": [
+      "Fylla"
+    ],
+    "Kruszwica": [
+      "Kruszwika",
+      "Kruszwica"
+    ]
+  },
+  "person": {
+    "Finn Johannessen": [
+      "Finn Johannessen",
+      "Finn Johannessens",
+      "Finn J."
+    ],
+    "Flemming Søeborg": [
+      "Flemming Søeborg",
+      "Flemming Søeborgs"
+    ],
+    "John Hansen": [
+      "John Hansen"
+    ],
+    "Johnni Lassen": [
+      "Johnni Lassen"
+    ],
+    "Claus E. Hansen": [
+      "Claus Hansen",
+      "Claus E. Hansen",
+      "Claus Hansens"
+    ],
+    "Troels Loll": [
+      "Troels Loll"
+    ],
+    "Thomas Angermann": [
+      "Thomas Angermann"
+    ],
+    "Lars Rindsig": [
+      "Lars Rindsig"
+    ],
+    "Finn Byrum": [
+      "Finn Byrum"
+    ],
+    "Thomas Dahlstrøm Nielsen": [
+      "Thomas Dahlstrøm Nielsen"
+    ],
+    "Andree Stephan": [
+      "Andree Stephan"
+    ],
+    "Vivi Frederiksen Gedde": [
+      "Vivi Frederiksen Gedde",
+      "Vivi Frederiksen"
+    ],
+    "Sylvest Jensen": [
+      "Sylvest Jensen"
+    ],
+    "Hans Jørgen Hansen": [
+      "Hans Jørgen Hansen"
+    ],
+    "Thorvald Schleimann": [
+      "Thorvald Schleimann",
+      "Thorwald Schleimann"
+    ],
+    "Eyvind Jensen": [
+      "Eyvind Jensen"
+    ],
+    "Roland Petersen": [
+      "Roland Petersen"
+    ],
+    "Gudrun Fussing": [
+      "Gudrun Fussing"
+    ],
+    "J. A. Braae": [
+      "J. A. Braae",
+      "J.A. Braae"
+    ],
+    "Joh. Hermann": [
+      "Joh. Hermann",
+      "Johannes Hermann"
+    ],
+    "Jesper Kiel": [
+      "Jesper Kiel"
+    ],
+    "Karl Magnus Bidstrup": [
+      "Karl Magnus Bidstrup"
+    ],
+    "Lisbet Corfitzen": [
+      "Lisbet Corfitzen"
+    ],
+    "Steen J. Winkel": [
+      "Steen J. Winkel"
+    ],
+    "Per Rasmussen": [
+      "Per Rasmussen"
+    ],
+    "Per Schou": [
+      "Per Schou"
+    ],
+    "Carsten K. Christiansen": [
+      "Carsten K Christiansen",
+      "Carsten K. Christiansen"
+    ],
+    "Jesper Stæhr": [
+      "Jesper Stæhr"
+    ],
+    "Rasmus Kiertzner": [
+      "Rasmus Kiertzner"
+    ],
+    "Carsten Laurits Pedersen": [
+      "Carsten Laurits Pedersen"
+    ],
+    "Henrik Harnow": [
+      "Henrik Harnow"
+    ],
+    "Anders Wedel Berthelsen": [
+      "Anders Wedel Berthelsen"
+    ],
+    "Ulrik Borgermann": [
+      "Ulrik Borgermann"
+    ],
+    "Theodor Petersen": [
+      "Theodor Petersen"
+    ],
+    "Jørgen Ring Andersen": [
+      "Jørgen Ring Andersen",
+      "Jørgen Ring-Andersen"
+    ],
+    "Julius Larsen": [
+      "Julius Larsen"
+    ]
+  },
+  "event": {
+    "Nedrivningen af siloerne": [
+      "nedrivningen",
+      "Nedrivningen",
+      "nedrivning",
+      "rives ned",
+      "revet ned"
+    ],
+    "Bevaringssagen": [
+      "bevaringsværdig",
+      "bevaringsværdige",
+      "fredning",
+      "fredet",
+      "Fredningen"
+    ],
+    "Havnebanens nedlæggelse": [
+      "havnebanen blev nedlagt",
+      "havnesporet blev",
+      "sidste godstog"
+    ]
+  }
+}

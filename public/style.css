@@ -96,7 +96,7 @@ h3 { font-size: 1.25rem; }
 .field { display: block; margin-bottom: 16px; }
 .field > span { display: block; font-weight: 600; margin-bottom: 6px; font-size: .95rem; }
 .field em { font-weight: 400; color: var(--muted); font-style: normal; }
-input[type=text], input[type=email], textarea, select {
+input[type=text], input[type=search], input[type=email], textarea, select {
   width: 100%; font: inherit; color: inherit; background: #fbfaf7; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 13px; }
 textarea { resize: vertical; min-height: 140px; }
 input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rgba(29, 138, 116, .18); }
@@ -362,3 +362,40 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .comment-form { display: grid; gap: 0.6rem; }
 .comment-form textarea { resize: vertical; }
 .comment-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+/* Søgning og årstal */
+.finder { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin: -8px 0 24px; }
+.search input::-webkit-search-cancel-button { cursor: pointer; }
+.search { position: relative; }
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: .7; }
+.search input { width: 100%; padding: 12px 14px 12px 42px; font-size: 1rem; border-radius: 999px; }
+.search-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, .18); max-height: min(60vh, 420px); overflow-y: auto; }
+.search-list li[role=option] { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+.search-list li[role=option]:hover, .search-list li[aria-selected=true] { background: var(--line); }
+.search-list .search-none { padding: 10px; color: var(--muted, #666); }
+.search-ic { width: 1.6em; text-align: center; flex: none; }
+.search-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.search-type { flex: none; font-size: .82rem; opacity: .7; }
+.years-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-weight: 600; margin-bottom: 6px; }
+.years-head .yr-none { margin-left: auto; }
+.years-head .muted { font-weight: 400; font-size: .88rem; }
+.years-bars { display: flex; align-items: end; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
+.years-bars .yr { flex: 1 0 22px; display: flex; flex-direction: column; align-items: stretch; gap: 3px; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+.years-bars .bar-wrap { height: 54px; display: flex; align-items: end; border-bottom: 1.5px solid var(--line); }
+.years-bars .bar { display: block; width: 100%; background: var(--sea); opacity: .4; border-radius: 4px 4px 0 0; transition: background .15s; }
+.years-bars .yr:hover .bar { opacity: .7; }
+.years-bars .yr[aria-pressed=true] .bar { background: var(--navy); opacity: 1; }
+.years-bars .yr.anchor .bar { outline: 2px solid var(--navy); outline-offset: 1px; }
+.years-bars .yr-label { font-size: .7rem; text-align: center; opacity: .75; white-space: nowrap; }
+.years-bars .yr.century .yr-label { font-weight: 700; opacity: 1; }
+.yr-none { flex: none; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 5px 10px; font: 500 .8rem var(--sans); cursor: pointer; white-space: nowrap; }
+.yr-none[aria-pressed=true] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.active-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.active-chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--navy); background: var(--navy); color: #fff; border-radius: 999px; padding: 6px 12px; font: 500 .92rem var(--sans); cursor: pointer; }
+.active-chip .muted { color: inherit; opacity: .8; }
+.active-chip .x { margin-left: 2px; opacity: .85; }
+.viewer-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+.viewer-tags .muted { font-size: .85rem; margin-right: 2px; }
+.viewer-tags .tag { border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: 500 .85rem var(--sans); cursor: pointer; }
+.viewer-tags .tag:hover { border-color: var(--navy); }
+.export-dl { margin-top: 1rem; border-top: 0; padding-top: 0; }
