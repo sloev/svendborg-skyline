@@ -1,0 +1,4295 @@
+[
+ {
+  "id": "6249cf87-3101-468f-82bc-9c6b2eb708ba",
+  "title": "Flere billeder fra havnerundfarten 1973–1985 (Finn Johannessen)",
+  "entities": [
+   [
+    "building",
+    "Christiansmøllen"
+   ],
+   [
+    "building",
+    "Nordre Skole"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "place",
+    "Hudes Plads"
+   ],
+   [
+    "place",
+    "Thurø"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "4a565517-31b1-44a6-97ed-6cefcba6ef08",
+  "title": "Oliekajen, flydedokken og værftets sidste tid 1960–1975",
+  "entities": [
+   [
+    "building",
+    "Svendborg Gasværk"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "place",
+    "Svendborgsundbroen"
+   ],
+   [
+    "ship",
+    "Ærøsund (færge)"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "63a94447-c572-4eb2-afb3-92601fcf7c26",
+  "title": "Svendborg Skibsværft 1960–1975",
+  "entities": [
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "ship",
+    "Helga"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "40b80410-24aa-4b2b-a6ea-c66d29515a9a",
+  "title": "Ring Andersens træskibsværft på Holmen 1894–1976",
+  "entities": [
+   [
+    "company",
+    "J. Ring-Andersens Stål- og Træskibsværft"
+   ],
+   [
+    "company",
+    "J. Lauritzen"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Thurø"
+   ],
+   [
+    "ship",
+    "Helge (sundfærge)"
+   ],
+   [
+    "ship",
+    "Lilla Dan"
+   ],
+   [
+    "ship",
+    "Fylla"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ],
+   [
+    "person",
+    "Jørgen Ring Andersen"
+   ]
+  ]
+ },
+ {
+  "id": "6cfd445b-cdf8-485b-96ba-5dfeefb8abe6",
+  "title": "Nordre Havn og Hudes Plads 1960–1980",
+  "entities": [
+   [
+    "building",
+    "Christiansmøllen"
+   ],
+   [
+    "building",
+    "Nordre Skole"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
+   ],
+   [
+    "place",
+    "Hudes Plads"
+   ],
+   [
+    "place",
+    "Nordre Havn"
+   ],
+   [
+    "place",
+    "Thurø"
+   ],
+   [
+    "ship",
+    "Ellen Bo"
+   ],
+   [
+    "ship",
+    "Lone Stevns"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "f8debb4c-1e81-4e7d-bd8c-134517973bea",
+  "title": "Toldkammeret og Skarøbåden 1968–1980",
+  "entities": [
+   [
+    "building",
+    "Toldkammeret"
+   ],
+   [
+    "building",
+    "Vor Frue Kirke"
+   ],
+   [
+    "company",
+    "Sydfyns Frøavl"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "35147c2a-dcb5-4e99-99e0-47a54e292030",
+  "title": "Jessens Mole og Firkanten 1964–1976",
+  "entities": [
+   [
+    "building",
+    "Vor Frue Kirke"
+   ],
+   [
+    "place",
+    "Jessens Mole"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "98280a63-21fe-4b5c-8e5d-d63239d10c58",
+  "title": "Gasværket og inderhavnen 1968–2005",
+  "entities": [
+   [
+    "building",
+    "Svendborg Gasværk"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "J. Ring-Andersens Stål- og Træskibsværft"
+   ],
+   [
+    "place",
+    "Jessens Mole"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ],
+   [
+    "event",
+    "Nedrivningen af siloerne"
+   ]
+  ]
+ },
+ {
+  "id": "1f1766ce-dd16-45ad-807e-aa27443da9a3",
+  "title": "Dampmøllen, Baagøe & Riber og gasværket 1900–2005",
+  "entities": [
+   [
+    "building",
+    "Svendborg Gasværk"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "Baagøe & Riber"
+   ],
+   [
+    "company",
+    "Svendborg Museum"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ],
+   [
+    "event",
+    "Nedrivningen af siloerne"
+   ]
+  ]
+ },
+ {
+  "id": "23554f23-f75a-4d98-b3b7-553d09652f73",
+  "title": "Havnepladsen, Missionshotellet og Brogade 1970–2012",
+  "entities": [
+   [
+    "building",
+    "Hotel Ærø"
+   ],
+   [
+    "building",
+    "Ny Missionshotel"
+   ],
+   [
+    "place",
+    "Jessens Mole"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "8b2db86e-3dd0-4525-99dc-6bd340697865",
+  "title": "Havnepladsen, færgerne og hotellerne 1970–1985",
+  "entities": [
+   [
+    "building",
+    "Svendborg Gasværk"
+   ],
+   [
+    "building",
+    "Hotel Ærø"
+   ],
+   [
+    "building",
+    "Ny Missionshotel"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "place",
+    "Jessens Mole"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ],
+   [
+    "ship",
+    "Helge (sundfærge)"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "5a1ea693-25db-4041-9777-067a132905ec",
+  "title": "Svendborg Havn fra 1880'erne til 1972 – udsigter og sammenligninger",
+  "entities": [
+   [
+    "building",
+    "Hotel Ærø"
+   ],
+   [
+    "building",
+    "Ny Missionshotel"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "J. Ring-Andersens Stål- og Træskibsværft"
+   ],
+   [
+    "place",
+    "Hudes Plads"
+   ],
+   [
+    "place",
+    "Tåsinge"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "fde009ab-6075-403b-9bc8-d2e34f18b04f",
+  "title": "Østre Havn med siloerne (Finn Johannessen, 1985)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "c03c6af1-1ec4-464d-be32-0a9f00dc35ba",
+  "title": "Frederikskajen, Østre Havn og roklubben (Finn Johannessen, 1982)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "ab7f6327-9f70-479b-99b0-ddec1bf4378b",
+  "title": "Svendborg Roklub for enden af Østre Havn (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "34679233-f11b-41fb-b2db-d79660d08a48",
+  "title": "Vinter ved Øxenbjerg Dampmølle på Østre Havn (Finn Johannessen, 1970)",
+  "entities": [
+   [
+    "company",
+    "Øxenbjerg Dampmølle"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "9afd3acc-70ff-42da-a4d7-5d0e58c4c312",
+  "title": "Østre Havn en vinterdag (Finn Johannessen, 1970)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "29a7a1ba-937f-4809-ac13-6480f03232dd",
+  "title": "Der lastes roer på Frederikskaj (Finn Johannessen, 1960)",
+  "entities": [
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "a530a7e3-00cc-4082-b6b1-6e3ae8c9c924",
+  "title": "»Kulkranen« på Frederikskaj (Finn Johannessen, 1966–1974)",
+  "entities": [
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "dd3e14ba-c56e-4210-b99a-8cad62facde2",
+  "title": "Solita af Middelfart ved Frederikskaj, over for Østre Havn (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "8d2ba5c9-066d-4bac-ad24-4af56acc77d2",
+  "title": "Boghvedemøllen ved Østre Havn (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "d26473c7-3f88-4f7d-8a49-0211193d501c",
+  "title": "Østre Havn med pakhuse og siloer (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "db68f952-2dd1-489b-9c7c-ad52f4e833e1",
+  "title": "Skibe ved silokajen på Østre Havn (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "ade74237-6e21-4883-86ae-8f959f99a891",
+  "title": "Gården Søholm, omgivet af industribygninger (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "a4b119f2-f708-45b3-8ebb-2ebf7633a6a9",
+  "title": "Lodsbåden for udadgående foran siloerne (Finn Johannessen, december 1974)",
+  "entities": [
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "8003836b-ecc9-48d0-8979-a102227abac1",
+  "title": "Ved siloerne på Østre Havn (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "e6e9a39e-a179-4507-988c-08b62e8df4be",
+  "title": "Petersen & Jensen er blevet til FAF (Finn Johannessen, 1975)",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "5cdc4db5-3bee-4947-8d83-b05f83f892c2",
+  "title": "Petersen & Jensens pakhus på Østre Havn (Finn Johannessen, 1961)",
+  "entities": [
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "997d827d-0288-43a9-aa7c-b06c57b21453",
+  "title": "Siloerne på Østre Havn (Finn Johannessen, 1960–1962)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "a9273571-e666-4b26-8ae2-c42956eb5c31",
+  "title": "Østre Havn med kornsiloerne – én under opførelse (Finn Johannessen, 1960)",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "9abeee5d-e503-4839-bf0a-afe308b68b29",
+  "title": "Den første FAF-silo i ensom majestæt, set fra Vindebyfærgen (Finn Johannessen, 1957)",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Finn Johannessen"
+   ]
+  ]
+ },
+ {
+  "id": "8d236adf-0cc6-4512-8502-feb0746f9d74",
+  "title": "Gods på havnen – fra udstillingen »Svendborg Havn før og nu«",
+  "entities": []
+ },
+ {
+  "id": "4c1523e0-be8c-4a60-8c7d-fb1add70ec83",
+  "title": "Luftfoto fra en turistbrochure, 1991 – med tre FAF-vogne",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ]
+  ]
+ },
+ {
+  "id": "6d1cd7a5-bd2a-40be-8726-317099d55632",
+  "title": "FAF's silovogne på havnen, 1991 og 1994",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ],
+   [
+    "ship",
+    "Ærøsund (færge)"
+   ],
+   [
+    "person",
+    "Flemming Søeborg"
+   ],
+   [
+    "person",
+    "John Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "df40f1ea-e82e-4e5c-b73f-04bf605c99c8",
+  "title": "Havnebanens sidste år: Kellogg's-vogne 1993 og Köf 275 ved Ærøfærgen",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "vehicle",
+    "Köf 275"
+   ],
+   [
+    "person",
+    "Flemming Søeborg"
+   ]
+  ]
+ },
+ {
+  "id": "10770d63-f6ab-496a-b896-b9b87a8a4ff4",
+  "title": "Udsigt fra en af silobygningerne ca. 1960 – og havnen på postkort 1975–85",
+  "entities": [
+   [
+    "building",
+    "Christiansmøllen"
+   ],
+   [
+    "place",
+    "Ørkild"
+   ],
+   [
+    "person",
+    "Flemming Søeborg"
+   ]
+  ]
+ },
+ {
+  "id": "40ab2f3a-a478-48b0-b0b9-836c52b7fa3f",
+  "title": "Vogne udveksles hos Kellogg's, 18. juli 1995",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "person",
+    "Johnni Lassen"
+   ]
+  ]
+ },
+ {
+  "id": "e1e1900b-9fce-4023-857e-48b118eaded5",
+  "title": "Kellogg's-vogne på vej til Odense, 11. oktober 1995",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "vehicle",
+    "MY 1147"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "e380ba43-1c1d-4ef1-9fe2-441b021f33e4",
+  "title": "Godstoget til Svendborg 9. april 1990 – vin, foder og Kellogg's",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Vinkompagni"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "Köf 259"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "ba2eb643-f912-421c-9528-172363c52df0",
+  "title": "Rangering ved Ærøfærgen og vogne hos Kellogg's, 17. oktober 1990",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "51c6ee7f-0849-4ce6-a55b-4083dde2a517",
+  "title": "Ardelt 137 rangerer på havnen ved FAF og Ærøfærgen, marts 1987",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DSB"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "Ardelt 137 (havnekran)"
+   ],
+   [
+    "vehicle",
+    "Frichs 137"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ],
+   [
+    "ship",
+    "Ærøsund (færge)"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "b50e5905-0e6e-472f-a751-2f76eb36f1a8",
+  "title": "Levende billeder og lyd: FAF-vognene på film og havnen i Kanal Fyns båndarkiv",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "SFvJ – Syd-Fyenske Veteranjernbane"
+   ],
+   [
+    "company",
+    "Kanal Fyn"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ]
+  ]
+ },
+ {
+  "id": "5dda5a90-24a5-4c65-9a9c-c9fc92b5e1a3",
+  "title": "Fra 2.325 til over 4.000 godsvogne – og så var det slut. Svendborg i bladet Jernbanen 1978–1997",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "DSB"
+   ],
+   [
+    "place",
+    "Faaborg"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ],
+   [
+    "person",
+    "John Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "4483e8be-50b8-4d80-9f25-06e8d2f589d3",
+  "title": "FAF's silovogne til Ærø – og hvor de endte",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DSB"
+   ],
+   [
+    "company",
+    "SFvJ – Syd-Fyenske Veteranjernbane"
+   ],
+   [
+    "company",
+    "Danmarks Jernbanemuseum"
+   ],
+   [
+    "place",
+    "Faaborg"
+   ],
+   [
+    "place",
+    "Nyborg"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ]
+  ]
+ },
+ {
+  "id": "6472ba11-02d0-45dc-a2fa-70beba61a89f",
+  "title": "»Endeløs tomhed« – da havnebanen lukkede, 1995–96",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "person",
+    "Flemming Søeborg"
+   ]
+  ]
+ },
+ {
+  "id": "28011021-6461-4024-a853-fda5038c5517",
+  "title": "Kellogg's-gods, foderpiller til Ærø og rødvin – godstogene til Svendborg 1990–1995",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Vinkompagni"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "place",
+    "Ærøskøbing"
+   ],
+   [
+    "vehicle",
+    "MY 1147"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "992ee529-2fb6-401e-aacf-8f882129c97c",
+  "title": "Før Østre Havn: havnen og byen set fra Ørkild, 1880–1900",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Ørkild"
+   ],
+   [
+    "person",
+    "Lisbet Corfitzen"
+   ]
+  ]
+ },
+ {
+  "id": "c3076396-55f9-4570-8f58-d7f5a7d3c356",
+  "title": "Svendborg Havn set fra oven i 1963",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Lisbet Corfitzen"
+   ]
+  ]
+ },
+ {
+  "id": "f5f717e0-f24f-4ef7-a37d-8f91426ede48",
+  "title": "Nedrivning ved de gamle siloer, februar 2025",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Per Rasmussen"
+   ]
+  ]
+ },
+ {
+  "id": "0faf14bb-6cad-48a5-a818-0924d4107be8",
+  "title": "Nanok S solgt til Kina – havnen og FAF-siloen i midtfirserne",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "YAN DANG SHAN"
+   ],
+   [
+    "ship",
+    "NANUK S"
+   ],
+   [
+    "person",
+    "Steen J. Winkel"
+   ]
+  ]
+ },
+ {
+  "id": "dd0a5f94-365b-433a-b55f-0ec3170ec046",
+  "title": "En måge på pælen foran DLG-siloen, januar 2022",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Lisbet Corfitzen"
+   ]
+  ]
+ },
+ {
+  "id": "df7afb9c-eb8e-454d-bac2-0ddb2003ac06",
+  "title": "Siloerne fra M/S Helge på aftensejlads, september 2021",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Svendborg Museum"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "ship",
+    "Helge (sundfærge)"
+   ],
+   [
+    "person",
+    "Lisbet Corfitzen"
+   ]
+  ]
+ },
+ {
+  "id": "1fc70c64-b9d1-46a8-b29b-17dd6d76e82f",
+  "title": "DLG's gule bulktrailere på fabrikken i Svendborg",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Carsten K. Christiansen"
+   ]
+  ]
+ },
+ {
+  "id": "95b3dc8c-7791-415d-8808-42a452f53ea1",
+  "title": "Siloerne i morgenrøde fra Kongebakken – skal de rives ned? Januar 2024",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Kongebakken"
+   ],
+   [
+    "person",
+    "Jesper Kiel"
+   ],
+   [
+    "event",
+    "Nedrivningen af siloerne"
+   ],
+   [
+    "event",
+    "Bevaringssagen"
+   ]
+  ]
+ },
+ {
+  "id": "f132f786-f8d3-419d-848e-09d75c455b43",
+  "title": "»Havnen skal fortsat kunne fungere som havn« – Østre Kaj før borgermødet, maj 2023",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Jesper Kiel"
+   ]
+  ]
+ },
+ {
+  "id": "bfe16095-554c-4a7b-a4c4-8528a1d01650",
+  "title": "Idéer til Østre Havn, når DLG flytter ud – juni 2023",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Troensegaardsvej"
+   ]
+  ]
+ },
+ {
+  "id": "5870de5d-d294-4c80-8739-c388051c3714",
+  "title": "Et 240 m2 banner til Landsstævnet på DLG-siloen, juni 2022",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "3d9ba2b6-88c1-49fd-af88-63bd7c8c7013",
+  "title": "Rundvisning i silobygningerne – hvilke skal bevares? Oktober 2025",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Karl Magnus Bidstrup"
+   ]
+  ]
+ },
+ {
+  "id": "c5372461-a33e-4f08-b503-af33db9eb36b",
+  "title": "»I 2027 forlader DLG de sidste siloer« – Svendborg Kommune inviterer til borgermøde",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "90f6e797-0b03-4cf1-aab5-624406bfac68",
+  "title": "Siloerne i regn og tusmørke, august 2017",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "a3e94ebd-7da5-4de8-b266-6db259669d61",
+  "title": "Et skib ved silokajen, december 2018",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "af17f875-973d-45fc-acc3-69f8037d43bd",
+  "title": "Solopgang bag siloerne, oktober 2018",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "ebd8c4f1-9f01-43a5-b167-81d3cdf2f152",
+  "title": "Paivi laster bentonit-ler til Norge ved DLG-siloen, juni 2018",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "PAIVI"
+   ]
+  ]
+ },
+ {
+  "id": "e4c049d2-4a09-4b7a-bcd6-8a4c09d5d59e",
+  "title": "Kapsejlads i hjemmebyggede både foran DLG-siloen, maj 2019",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "ea9f1996-0891-4e35-b163-799eef44b20f",
+  "title": "Morgensol over havnen og silotårnet, februar 2019",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "daf48da4-d6b4-479d-ba45-4add07cc84c6",
+  "title": "Korn i lastrummet foran DLG-siloen, december 2018",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "53f70198-c498-484c-96be-f4a865fa06d6",
+  "title": "Nytårssol over siloerne, 2. januar 2025",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "cef8e0fa-ccc8-4c0d-81f2-9e49aa31e16a",
+  "title": "Siloerne i lyserød solnedgang, august 2019",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "2f9c4dc6-e6d7-43c9-8503-9846b935c081",
+  "title": "Solnedgang bag siloerne, oktober 2022",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "5b5c0e39-dccb-4789-b64b-bba1868cf807",
+  "title": "Sea Hawk foran DLG-siloen, sommeren 2021",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "Sea Hawk"
+   ]
+  ]
+ },
+ {
+  "id": "9e151034-cdd1-4172-bea8-fe7cc272c42d",
+  "title": "Nordvik losser et 34 tons tungt stykgods ved siloerne, januar 2014",
+  "entities": [
+   [
+    "company",
+    "Svendborg Hydraulik"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "Nordvik"
+   ]
+  ]
+ },
+ {
+  "id": "2d596b02-f7d2-45c9-8590-2e273dccad0e",
+  "title": "Solsikkekerner losses på DLG-kajen, mens der sættes nyt fendertræ op",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "ANGELINA"
+   ],
+   [
+    "ship",
+    "Helga"
+   ]
+  ]
+ },
+ {
+  "id": "4539e9b5-bd0b-4960-bde3-5b033004ff84",
+  "title": "Siloerne bag masterne – sejlskibe, lystbåde og solnedgang",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "RONJA"
+   ]
+  ]
+ },
+ {
+  "id": "16c74f30-8d6b-44ca-980c-fcd6bda2933b",
+  "title": "Silotårnet i morgendis – gamle papirbilleder",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "784611e8-6cc9-4126-9047-ae6957f85514",
+  "title": "FAF-siloen om natten – Jesper Stæhr, 2015",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "Christiansmøllen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Jesper Stæhr"
+   ]
+  ]
+ },
+ {
+  "id": "5ba9bfc8-7d37-44f3-93c7-cdff0ff7ef73",
+  "title": "Caroline S og Navigator ved siloerne, juli 2011",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "CAROLINE S"
+   ],
+   [
+    "ship",
+    "NAVIGATOR"
+   ]
+  ]
+ },
+ {
+  "id": "79e561a7-4b2e-4e40-aa85-e9226812fc4a",
+  "title": "Flere skibe ved siloerne: Meridian, Sternö, Mistral og Maris-Stella IV",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "MERIDIAN"
+   ],
+   [
+    "ship",
+    "STERNÖ"
+   ],
+   [
+    "ship",
+    "MISTRAL"
+   ],
+   [
+    "ship",
+    "ST X MARIS-STELLA IV"
+   ],
+   [
+    "ship",
+    "HG 77"
+   ]
+  ]
+ },
+ {
+  "id": "e807d41d-1114-4661-9c90-4729e497a722",
+  "title": "Skibene ved siloerne: Porhov, Janis, Ingvild, Norvind og Hellevik",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "PORHOV"
+   ],
+   [
+    "ship",
+    "INGVILD"
+   ],
+   [
+    "ship",
+    "NORVIND"
+   ],
+   [
+    "ship",
+    "HELLEVIK"
+   ]
+  ]
+ },
+ {
+  "id": "b54d32d1-4775-42e9-925e-fc58ea9d229f",
+  "title": "Salt, jord, grus og tømmer over kajen ved siloerne",
+  "entities": [
+   [
+    "building",
+    "Vor Frue Kirke"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "LISBETH"
+   ]
+  ]
+ },
+ {
+  "id": "e6095344-4596-4178-9156-c6d45b6c33c5",
+  "title": "Inde i kornlageret",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "d313e127-2c5a-4dd6-95d4-5c81144ec841",
+  "title": "Korn lastes ved DLG-siloen – læssemaskiner, tragte og lastbiler",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "LISTER"
+   ],
+   [
+    "ship",
+    "RMS NEUDORF"
+   ]
+  ]
+ },
+ {
+  "id": "8d2006a1-08d0-4a91-bb13-974fe3bd8e21",
+  "title": "Jord læsses ud på kajen og i skibene",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "KAROLI"
+   ]
+  ]
+ },
+ {
+  "id": "7f205633-05fb-457d-b8eb-d5093b61a18b",
+  "title": "Skibene ved silokajen: Karma, Lene D, Claus, Ingvild og Lister",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "ship",
+    "INGVILD"
+   ],
+   [
+    "ship",
+    "LISTER"
+   ],
+   [
+    "ship",
+    "KARMA"
+   ],
+   [
+    "ship",
+    "LENE D"
+   ],
+   [
+    "ship",
+    "CLAUS"
+   ]
+  ]
+ },
+ {
+  "id": "1f447a96-aa49-4dc8-a127-eb3315c8c7d9",
+  "title": "Korn lastes i skibene – set fra toppen af siloen",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "ship",
+    "LIAM"
+   ]
+  ]
+ },
+ {
+  "id": "9c13d652-557f-482e-a813-ea38d6bec7fd",
+  "title": "»Bevar havnen« – demonstration foran DLG-siloen",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "f1594d93-ad69-43f6-8978-0f7aa54e5b55",
+  "title": "Siloerne set fra havnen og byen – sommer og vinter",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ]
+  ]
+ },
+ {
+  "id": "a9d8d672-9a13-4c7a-9683-87a787741e84",
+  "title": "Bentonit fra Tåsinge lastes ved siloerne, oktober 2025",
+  "entities": [
+   [
+    "company",
+    "Bevar Svendborg Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Troensegaardsvej"
+   ],
+   [
+    "place",
+    "Tåsinge"
+   ]
+  ]
+ },
+ {
+  "id": "ceb60cc6-b22b-49ab-a0f4-243cfbb82443",
+  "title": "Svendborg Havn set fra FAF-siloen i 2007 – på Historisk Atlas",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "J. Ring-Andersens Stål- og Træskibsværft"
+   ],
+   [
+    "company",
+    "Historisk Atlas"
+   ],
+   [
+    "company",
+    "Odense Bys Museer"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "person",
+    "Henrik Harnow"
+   ]
+  ]
+ },
+ {
+  "id": "4d0c1785-cd8f-43d9-a77e-07de480a33f2",
+  "title": "De gamle silobygninger set fra vandet, juli 2024",
+  "entities": [
+   [
+    "person",
+    "Troels Loll"
+   ]
+  ]
+ },
+ {
+  "id": "b6f74e48-f585-44ea-a7b1-d4a009170eef",
+  "title": "FAF-siloen og de gamle siloer, februar 2011",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "person",
+    "Thomas Angermann"
+   ]
+  ]
+ },
+ {
+  "id": "6d8b7fe0-4940-46d5-b5b6-a97e2f04b238",
+  "title": "FAF-siloen og skibene i havnen, marts 2010",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Lars Rindsig"
+   ]
+  ]
+ },
+ {
+  "id": "ebf0629e-54fe-4a2c-b5c2-d9e08bf5c1c4",
+  "title": "Før siloerne: Troensegaards værft og dampmølle ved Øxenbjerg, ca. 1890",
+  "entities": [
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "place",
+    "Troensegaardsvej"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ],
+   [
+    "person",
+    "Joh. Hermann"
+   ],
+   [
+    "event",
+    "Bevaringssagen"
+   ]
+  ]
+ },
+ {
+  "id": "4556bee6-e9bf-42a2-98a4-549e9cbfde04",
+  "title": "Svendborg – Øhavets Hovedstad: FAF-siloen set fra luften før år 2000",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "be5c90ba-1046-44b4-874c-87bd11658c98",
+  "title": "Sydfyn og øerne fra oven: FAF-siloen og Østre Havn set fra luften",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "person",
+    "Finn Byrum"
+   ],
+   [
+    "person",
+    "Per Schou"
+   ],
+   [
+    "person",
+    "Anders Wedel Berthelsen"
+   ]
+  ]
+ },
+ {
+  "id": "38bfa459-4faa-434b-a014-abfa976f2bc2",
+  "title": "»Havnen er stadig sig selv« – Fyns Amts Avis, februar 2008",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Fyns Amts Avis"
+   ]
+  ]
+ },
+ {
+  "id": "e0ee84d7-35a7-4b4b-ae1e-47b8f9cf5668",
+  "title": "FAF i 1973: 200.000 tons foder, 6.000 andelshavere – og Island",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "76c7955f-6df1-4be7-a707-438f76d43d6f",
+  "title": "Silopakhuset som kunstværksted – endnu et afgangsprojekt",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "78578578-6a30-4947-8d65-27792b444f53",
+  "title": "Industribyen der lukkede: havnen 1970–2007",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "26dccea2-ec39-45de-9778-1173e1661376",
+  "title": "Silovogne på havnebanen: FAF's godsvogne 1987–1995",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "DSB"
+   ],
+   [
+    "company",
+    "SFvJ – Syd-Fyenske Veteranjernbane"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Faaborg"
+   ],
+   [
+    "vehicle",
+    "Ardelt 137 (havnekran)"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "35cfc259-d2d8-4140-97f4-0828e4a75bd7",
+  "title": "Naboerne på Østre Havnevej: tagpap, kalk, hønsefoder og gødning",
+  "entities": [
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Hønsefoderfabrikken GNY"
+   ],
+   [
+    "company",
+    "Svendborg Tagpapfabrik"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Thorvald Schleimann"
+   ]
+  ]
+ },
+ {
+  "id": "f73b1c49-6e23-4dfe-b998-6170110dee1a",
+  "title": "Havremøllen og Kellogg's i arkivet: siloer, brande og pakkemaskiner",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Eyvind Jensen"
+   ],
+   [
+    "person",
+    "Ulrik Borgermann"
+   ]
+  ]
+ },
+ {
+  "id": "dcd30462-b50c-4e5b-bf85-7cc70042afde",
+  "title": "FAF-siloerne i arkivets billeder – fra byggeriet i 1954 til i dag",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "Christiansmøllen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "ship",
+    "Kruszwica"
+   ],
+   [
+    "person",
+    "Eyvind Jensen"
+   ],
+   [
+    "person",
+    "Roland Petersen"
+   ],
+   [
+    "person",
+    "Gudrun Fussing"
+   ]
+  ]
+ },
+ {
+  "id": "6f1d7bac-ea67-491e-b56a-55e606c9903c",
+  "title": "Da Østre Havn blev bygget: vigen ved Øxenbjerg fyldes op 1898–1901",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "Øxenbjerg Dampmølle"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Hudes Plads"
+   ],
+   [
+    "place",
+    "Nordre Havn"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ],
+   [
+    "person",
+    "J. A. Braae"
+   ]
+  ]
+ },
+ {
+  "id": "6e35936c-6475-46a9-9e88-34ef1c2f811b",
+  "title": "Den hvide og den røde silo set fra Frederiksø",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "5ad873de-aaa4-427c-9833-fdcff59e64dd",
+  "title": "Siloerne og skonnerterne i Svendborg Havn",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ]
+  ]
+ },
+ {
+  "id": "d7fd99c6-c8a7-4b3c-9267-0a8d14d506cb",
+  "title": "Den hvide FAF-silo bag de gamle sejlskibe",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "6d0d2c65-c1d3-4672-a326-bf713ade3164",
+  "title": "FAF lastet til Island, 1973 (klip med speak)",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "b9bcf949-d267-4483-8e01-2048164ed5a4",
+  "title": "Foderproduktion og sækkelager, 1973 (klip med speak)",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "218e458c-2be2-407d-b40b-d209e11a1da4",
+  "title": "Fra høst til FAF-siloen i Svendborg, 1973 (klip med speak)",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "08fbdbf8-d7af-4e2c-8dc4-b9b8ed984e34",
+  "title": "Fodersække lastes til Island",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "6a9ed0b8-9c19-4b92-8163-6573443ba3de",
+  "title": "FAF's laboratorium, 1973",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "c45777b1-12e3-4893-97cd-cb4f21dc87ba",
+  "title": "Sækkelageret, 1973",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "65c2a70d-5774-41b0-92c6-29f293d62228",
+  "title": "Sædekornsrensning, 1973",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "b355721e-1c00-4c5e-823d-ab21f2aef4c5",
+  "title": "Korn i sække tømmes ved indleveringen",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "27cb10a7-c64e-4ddb-8058-7cb7bf1fbb2e",
+  "title": "Luftfoto over Svendborgsund, 1973",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "place",
+    "Tåsinge"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "767ddf09-5e57-41d4-aef7-0fd00bd74180",
+  "title": "FAF-siloen i Svendborg, 1973",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Magica Film Production"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "person",
+    "Hans Jørgen Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "5c2289b3-87d1-407f-b80e-0c2e1e54be1e",
+  "title": "Juletid. Losning og lastning.",
+  "entities": []
+ },
+ {
+  "id": "90b2f12a-f3e5-43f3-82ea-9b9aabdb395b",
+  "title": "Havnen",
+  "entities": []
+ },
+ {
+  "id": "870ae5cf-2f6f-4f13-9f8b-02f087573ab0",
+  "title": "Havnen",
+  "entities": []
+ },
+ {
+  "id": "bd2bda90-3873-4d91-a558-c2a74577dc2c",
+  "title": "FAF",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "eb9ef79c-d716-4aff-96f6-2c707b6c6c6c",
+  "title": "Østre Kaj",
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "8b7f2011-6f1a-4eda-bbcc-0187538f9bf1",
+  "title": "Østre Havn",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ]
+  ]
+ },
+ {
+  "id": "9ed919f4-0a87-483a-9a49-9d34dc6b4641",
+  "title": "Jul i Svendborg. Fag siloen i baggrunden.",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ]
+  ]
+ },
+ {
+  "id": "4f660598-faad-4274-96b3-85363c8ba8ea",
+  "title": "Caroline S",
+  "entities": [
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "d52572ff-7cf2-4890-9400-97354f636ad9",
+  "title": "Det fra værftet.",
+  "entities": [
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "e39611e6-e93b-4275-964b-b9425980fabb",
+  "title": "Havnen",
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "db88ede9-34ad-46d6-9d34-711bf3c89736",
+  "title": "A E Sørensen",
+  "entities": [
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "7a6ecd88-6653-48cd-8f50-9b09ff23bb72",
+  "title": "Silver rudder 2026",
+  "entities": [
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "5ac595ae-9b21-46b1-81a2-4352c7890234",
+  "title": "Set fra Hudes Pakhus.",
+  "entities": [
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "d2bde877-2adc-44f8-8253-73896125c9fc",
+  "title": "Folkene på Foskamøllen – fra 135 ansatte til 300 fyringer",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Eyvind Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "720cf8c1-ffe1-4480-859d-e06b87dfb743",
+  "title": "»17 gode og spændende år« – reparatør på Nordisk Kellogg's",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Carsten Laurits Pedersen"
+   ]
+  ]
+ },
+ {
+  "id": "968a68ad-249a-48aa-b3f1-a5e8091b05c6",
+  "title": "Før siloerne: kornmagasinet fra 1858 – Det gule Pakhus",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ]
+  ]
+ },
+ {
+  "id": "9767843a-b8f2-41b9-a3ae-c6fafe535f2c",
+  "title": "Naboen på Østre Havnevej: Havremøllen, der blev til Kellogg's",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "company",
+    "Svendborg Museum"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Theodor Petersen"
+   ]
+  ]
+ },
+ {
+  "id": "e0dc1f1a-0b31-4316-bf94-8acc6e2cff03",
+  "title": "Siloernes fremtid: nedrivning som udgangspunkt – og et open call",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "event",
+    "Nedrivningen af siloerne"
+   ]
+  ]
+ },
+ {
+  "id": "8714fccb-89f7-4da9-99b7-3229f331a576",
+  "title": "DLG lukker foderfabrikken i Svendborg",
+  "entities": [
+   [
+    "company",
+    "DLG"
+   ]
+  ]
+ },
+ {
+  "id": "17ac15d3-c78f-4bf6-b1a0-ec81ed005b18",
+  "title": "Leif og Kim på toppen af FAF-siloen",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ]
+  ]
+ },
+ {
+  "id": "381e045a-c872-4106-a008-e4b75a6bd522",
+  "title": "Korn og foderstof på Østre Havn – det, kommuneplanen vil bevare",
+  "entities": [
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Øxenbjerg Dampmølle"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "place",
+    "Hudes Plads"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ]
+  ]
+ },
+ {
+  "id": "a1e981e2-b3f3-4e51-8d16-aad5341359f3",
+  "title": "FAF kommer til havnen – og bygger de store siloer",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "place",
+    "Troensegaardsvej"
+   ],
+   [
+    "person",
+    "Theodor Petersen"
+   ]
+  ]
+ },
+ {
+  "id": "75cafb81-32d5-496e-b7c9-58a6f3b53551",
+  "title": "Den første bygning på Østre Kaj: Petersen & Jensens silopakhus fra 1901",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Nordre Havn"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
+   ]
+  ]
+ },
+ {
+  "id": "0b9fd921-2aab-41ee-bf13-1a55b1b428fa",
+  "title": "Siloerne bag Svendborg Værft, december 2015 (klip)",
+  "entities": [
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "Drone Fyn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "ccf1fb7c-0774-4a1a-b5ff-1fa2517cb3b5",
+  "title": "Svendborg Havn med siloerne, december 2015",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "Drone Fyn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "848f1a8e-2b8f-4fb7-abdc-471a76e64a1c",
+  "title": "Droneflyvning langs siloerne i sne, januar 2021 (klip)",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "daa98b5d-1a49-411f-9e38-899bafc045c8",
+  "title": "Færgen Højestene foran den røde silo",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "ship",
+    "Højestene (færge)"
+   ]
+  ]
+ },
+ {
+  "id": "2eee8843-a236-46c9-bd32-3673c2f2ca30",
+  "title": "Den røde og den grå silo set fra vandet",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "ship",
+    "Højestene (færge)"
+   ]
+  ]
+ },
+ {
+  "id": "52d1a9de-1cc8-4636-bbfc-457397446fc1",
+  "title": "Ærøfærgen sejler ind mod siloerne, 2016 (klip)",
+  "entities": [
+   [
+    "company",
+    "Drone Fyn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "45fa0753-50d3-4ab2-80e5-3b08732d2d7c",
+  "title": "Siloerne i aftenlys bag Ærøfærgen, 2016",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "Drone Fyn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "79c9a170-9b57-43b9-bbaa-e23cbc7a2541",
+  "title": "Siloen på Østre Kaj i luftfotos fra 1950'erne (klip)",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "e24025af-e766-4be6-9a6f-a80612bde751",
+  "title": "Den høje silo på Østre Kaj, 1950'erne",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "6d63e03e-fbc7-4547-a267-86a717a7901c",
+  "title": "Siloerne og pakhusene på Østre Havn, 1950'erne",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "39c7ef30-296d-4c8d-9155-389e221fd4e8",
+  "title": "Havnebassinet med siloen på Østre Kaj, 1950'erne",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "7261c38a-2c86-493f-ac12-4ad2c86809c1",
+  "title": "Østre Havn og siloen fra luften, 1950'erne",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "71ebe13c-ae1c-40eb-8642-d0e0bf84c821",
+  "title": "The stage is confined",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "96a94fb4-8b71-4753-8cd5-32b3e59c0317",
+  "title": "Tørreriet fra 1985",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "9f2565ef-e65b-45f3-80d3-69c311d96157",
+  "title": "Tagetagen",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "ec284128-9e52-4139-8c52-ae4d89a80440",
+  "title": "Træsiloernes bund",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "ed68b07e-92f3-46b6-9d70-ca10f09ab1fb",
+  "title": "Det gamle silopakhus (bygning A)",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "546aa581-3edb-4b94-8942-674c85d901cd",
+  "title": "Østre Kaj fra luften, 2025",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "f14b9b05-fbcb-490b-9094-8446ab0a2807",
+  "title": "Østre Havn fra luften",
+  "entities": [
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "dbdfbf0a-bc2f-4f61-8f15-ea6146aaae55",
+  "title": "Dronefoto af Østre Kaj",
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "person",
+    "Rasmus Kiertzner"
+   ]
+  ]
+ },
+ {
+  "id": "f4c18d44-50da-44c2-a8a5-beecea3c6b51",
+  "title": "Svendborg Havn fra luften",
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "145e58d0-be7e-4621-be4b-73bb701532df",
+  "title": "Gamle lagerhaller på Østre Kaj",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "event",
+    "Bevaringssagen"
+   ]
+  ]
+ },
+ {
+  "id": "214ca9df-3678-4c7e-8534-827350f3a739",
+  "title": "1901-bygningens gavl",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ]
+  ]
+ },
+ {
+  "id": "92ff7dbb-4e99-4ffe-9b5a-104bf0dfdcdb",
+  "title": "1901-bygningen",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "38fff019-351c-44a5-a39e-11f8051d4f7d",
+  "title": "Den røde silo",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "aa298100-4ecc-43ef-8883-ebfe7954d4ba",
+  "title": "Den hvide silo",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "d7f7a047-1788-471d-a851-dd642d81fedd",
+  "title": "Østre Kaj set fra vandet",
+  "entities": [
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "613306e3-a0b2-48e1-8ce9-8a53cf86709d",
+  "title": "Siloerne på Østre Kaj",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "ab30eb8b-7ed8-4552-adec-3b13239506f5",
+  "title": "Østre Kaj fra vandet",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Fremtidens Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "4224bcac-cb5f-492f-83c9-ceeaa219a2c3",
+  "title": "Den hvide silo med FAF-skiltet",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Gudrun Fussing"
+   ]
+  ]
+ },
+ {
+  "id": "01b085a1-22d1-4b5d-a4bb-d738581829c4",
+  "title": "Svendborg Østre Havn, postkort",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "b350ae37-54e4-41c7-98fe-66634668084d",
+  "title": "Siloen projektørbelyst",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ]
+  ]
+ },
+ {
+  "id": "74e330f9-8513-47e8-a9ea-ef1f272ab565",
+  "title": "Østre Havn med den nye silo",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "1d5b3ec0-b93a-4d4d-85d6-67d6b8c1293a",
+  "title": "Foderstoffabrikken under opførelse",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "person",
+    "Eyvind Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "3f69e41c-6dad-462f-a5b7-cc633bc27bc9",
+  "title": "Silobundene i pakhus 4",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "8eec4ee0-8e9b-4b77-8c06-5459c4f833af",
+  "title": "Overetagen over silorørene",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "8794a593-da57-4861-8c3b-76f4551abcc3",
+  "title": "Tagkonstruktionen",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "294adcd4-47e2-4b54-9f67-abc42627d233",
+  "title": "Stålbjælker og træbjælkelag",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "1a00ce19-b235-4381-af1c-b58fb76f05ee",
+  "title": "Transportanlægget på tagetagen",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "72abc465-2a69-461c-b1ae-eec2047b51a5",
+  "title": "Op gennem en træsilo",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "3a69c054-b60e-449f-9ad1-2b10ecea1e5f",
+  "title": "Gangen under træsiloerne",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "c86e0a40-e446-484d-b176-08d98d186a6e",
+  "title": "Pilotering til den nye silo",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "company",
+    "Fyns Amts Avis"
+   ],
+   [
+    "person",
+    "Roland Petersen"
+   ]
+  ]
+ },
+ {
+  "id": "fd2f7921-be0e-4164-8991-654cdc44a4f0",
+  "title": "Den nye silo og pakhus 2 og 4",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ]
+  ]
+ },
+ {
+  "id": "b3b01f3b-9c0a-4555-83ec-a1f653c20337",
+  "title": "Fragtskib ved pakhus 1",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "172c1eca-2ffc-48f8-9a7b-5ac95c5cb4f2",
+  "title": "Skib ved pakhusene",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
+ },
+ {
+  "id": "8077394a-aa83-49d0-8b9e-fbeb7f1d0833",
+  "title": "Dampskib ved kajen, Østre Havn",
+  "entities": [
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "8d116867-5c72-4f15-9aa9-03ffc6d2382e",
+  "title": "Pakhusene på Østre Havnevej med godsvogne",
+  "entities": [
+   [
+    "building",
+    "Pakhus 5 (Smørkælderen)"
+   ],
+   [
+    "company",
+    "Svendborg Kommune"
+   ],
+   [
+    "company",
+    "Rambøll"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ]
+  ]
+ },
+ {
+  "id": "95a773ea-6caf-4c78-9b2c-6f874738d0db",
+  "title": "Pakhus 1 (bygning A) fra luften",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "cfb4d25e-ed76-4606-b18e-28374a020b63",
+  "title": "Sædekornpakhuset (pakhus 12)",
+  "entities": [
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "39be948a-cdca-4ca7-812f-1f590f84cffd",
+  "title": "Petersen & Jensens pakhuse (bygning C og D)",
+  "entities": [
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Det Kongelige Bibliotek"
+   ],
+   [
+    "person",
+    "Sylvest Jensen"
+   ]
+  ]
+ },
+ {
+  "id": "c08bd431-2781-48fa-ae07-337a5ca103c7",
+  "title": "Østre Havn fra luften",
+  "entities": [
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "375e766a-9e95-4e74-913e-38cf7b617a87",
+  "title": "Sække og arbejdere i pakhus 13",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "person",
+    "Thorvald Schleimann"
+   ]
+  ]
+ },
+ {
+  "id": "feee19f8-0423-4f0f-abe8-0fad13cb5f03",
+  "title": "Hønsefoderfabrikken Gny, pakhus 13",
+  "entities": [
+   [
+    "company",
+    "Hønsefoderfabrikken GNY"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "person",
+    "Thorvald Schleimann"
+   ]
+  ]
+ },
+ {
+  "id": "0ccbb9cd-23fa-40d1-9801-223073fd3f5b",
+  "title": "Kontorbygningen med godsvogne",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ]
+  ]
+ },
+ {
+  "id": "b235ebdd-3a6f-4de4-b19c-45432a55b2ad",
+  "title": "Kontorbygningen før udvidelsen",
+  "entities": [
+   [
+    "building",
+    "Pakhus 5 (Smørkælderen)"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ]
+  ]
+ },
+ {
+  "id": "c315218b-2380-4a05-811a-eb69c72d0750",
+  "title": "Smørkælderen under pakhus 5",
+  "entities": [
+   [
+    "building",
+    "Pakhus 5 (Smørkælderen)"
+   ]
+  ]
+ },
+ {
+  "id": "0f9019ac-80aa-4882-83b5-c416cafd999c",
+  "title": "Silopakhuset (pakhus 5)",
+  "entities": [
+   [
+    "building",
+    "Pakhus 5 (Smørkælderen)"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ]
+  ]
+ },
+ {
+  "id": "3a025493-88c1-4881-bfb5-4ba87b85150c",
+  "title": "Østre Havn set fra land",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "62c8e359-e2f8-49a7-87b5-b72345df0de5",
+  "title": "Østre Havn med Petersen & Jensens pakhus",
+  "entities": [
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "56ceb971-f7db-4a9c-b4a2-8e17f03f2097",
+  "title": "Anlæg af Østre Havnekaj",
+  "entities": [
+   [
+    "company",
+    "Svendborg Byhistoriske Arkiv"
+   ],
+   [
+    "person",
+    "J. A. Braae"
+   ]
+  ]
+ },
+ {
+  "id": "5ad8a0b0-05bd-4ab4-abfd-faed78c52493",
+  "title": "Ring andersen værft med siloer i baggrunden",
+  "entities": [
+   [
+    "company",
+    "J. Ring-Andersens Stål- og Træskibsværft"
+   ]
+  ]
+ },
+ {
+  "id": "c6c101c3-84d7-4a6e-902a-6a55da8baf7d",
+  "title": "Måger foran siloer",
+  "entities": []
+ },
+ {
+  "id": "a005315c-83db-47ab-850e-96734832080d",
+  "title": "",
+  "entities": [
+   [
+    "person",
+    "Vivi Frederiksen Gedde"
+   ]
+  ]
+ },
+ {
+  "id": "ba1a82ef-0495-4645-8dfe-d3b083c2ba55",
+  "title": "Svendborg harbour panorama",
+  "entities": [
+   [
+    "place",
+    "Tåsinge"
+   ]
+  ]
+ },
+ {
+  "id": "e27edbf7-b8c9-4396-a422-68765a4028ca",
+  "title": "Svendborg havn, 2021",
+  "entities": [
+   [
+    "person",
+    "Thomas Dahlstrøm Nielsen"
+   ]
+  ]
+ },
+ {
+  "id": "bd1ce1b6-85af-46dc-a477-eb3827a20775",
+  "title": "SvendborgHavnebane11NordreHavn",
+  "entities": []
+ },
+ {
+  "id": "7ef79094-52d3-4c06-846d-16a5273c95f1",
+  "title": "SvendborgSetFraE02",
+  "entities": []
+ },
+ {
+  "id": "e5bd5278-97a7-4f62-9015-49a7947f214f",
+  "title": "FynSvendborgFrederiksø01",
+  "entities": [
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "38ce7a75-1583-4225-9c16-2bf11a850959",
+  "title": "FynSvendborgUdsigtOverHavnen",
+  "entities": []
+ },
+ {
+  "id": "2c134552-307a-49c6-bde5-47a8be4f6712",
+  "title": "Svendborg 3862",
+  "entities": [
+   [
+    "person",
+    "Andree Stephan"
+   ]
+  ]
+ },
+ {
+  "id": "c3d51502-9df0-40dd-96c7-5d284e058d74",
+  "title": "Svendborg udsigt",
+  "entities": []
+ },
+ {
+  "id": "170678db-c8c3-45c4-a443-19c3834a26c5",
+  "title": "Silo Svendborg Denmark 1960",
+  "entities": []
+ },
+ {
+  "id": "f63344b3-3d94-4bd1-84ac-4a838a4d44c0",
+  "title": "",
+  "entities": []
+ }
+]
