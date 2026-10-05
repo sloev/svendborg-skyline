@@ -99,6 +99,9 @@
     applyStatic();
     loadStats();
     loadFeed(true);
+    renderActive();
+    if (searchIndex) renderYears();
+    if (view === 'insights') renderInsights();
     updateGpsHint();
     if (storyEditor) storyEditor.labels();
     renderDrafts();
@@ -1208,6 +1211,7 @@
   }
 
   function applyFilters() {
+    if (!search && location.hash.startsWith('#find/')) history.replaceState(null, '', '#bidrag');
     renderActive();
     renderYears();
     loadFeed(true);
@@ -1270,8 +1274,15 @@
     head.append(
       el('button', { type: 'button', class: 'yr-none', 'aria-pressed': String(!!(years && years.none)), onclick: () => setYears(years && years.none ? null : { none: true }), text: t('years.none', { n: none }) }),
     );
-    box.hidden = false;
+    $('#years-toggle').hidden = false;
   }
+
+  // Årstalsvælgeren er foldet sammen, så feedet ikke skubbes ned; et valgt årstal står som chip.
+  $('#years-toggle').addEventListener('click', (e) => {
+    const open = $('#years').hidden;
+    $('#years').hidden = !open;
+    e.currentTarget.setAttribute('aria-expanded', String(open));
+  });
 
   function pickDecade(d) {
     if (anchor !== null && anchor !== d) {
@@ -1301,6 +1312,115 @@
     }
   }
 
+  // ------------------------------------------------------------------ visninger: arkivet og indsigt
+  // #indsigt viser siden med navne og downloads; alle andre adresser viser arkivet.
+  // #find/<type>/<navn> viser arkivet filtreret på et navn (kan deles som link).
+
+  const ENT_ORDER = ['building', 'ship', 'company', 'person', 'place', 'vehicle', 'event'];
+  let view = 'archive';
+  let insType = 'building';
+
+  function setView(v) {
+    if (v === view) return false;
+    view = v;
+    document.body.classList.toggle('view-insights', v === 'insights');
+    $$('.topbar nav a[href="#indsigt"]').forEach((a) => (v === 'insights' ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+    if (v === 'archive') window.dispatchEvent(new Event('resize')); // kortet skal måle sig selv igen
+    return true;
+  }
+
+  function route() {
+    const h = location.hash;
+    if (h === '#indsigt') {
+      setView('insights');
+      window.scrollTo(0, 0);
+      renderInsights();
+      return;
+    }
+    const changed = setView('archive');
+    const m = h.match(/^#find\/(\w+)\/(.+)$/);
+    if (m) {
+      showEntity(m[1], decodeURIComponent(m[2]));
+      return;
+    }
+    // Kom man fra indsigt, var målet skjult, da browseren prøvede at rulle til det.
+    if (changed && h.length > 1 && !h.startsWith('#bidrag/')) {
+      try {
+        const target = document.getElementById(decodeURIComponent(h.slice(1)));
+        if (target) target.scrollIntoView();
+      } catch {}
+    } else if (changed && !h) window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', route);
+
+  async function renderInsights() {
+    const list = $('#ins-list');
+    const tabs = $('#ins-tabs');
+    let ix;
+    try {
+      ix = await loadIndex();
+    } catch {
+      list.textContent = t('search.loadErr');
+      return;
+    }
+    const P = ix.posts;
+    const photosOf = (ids) => ids.reduce((sum, n) => sum + (P[n] ? P[n][5] || 0 : 0), 0);
+    const stats = $('#ins-stats');
+    stats.textContent = '';
+    const stat = (n, label) => stats.append(el('div', {}, el('dt', { text: label }), el('dd', { text: fmtNum.format(n) })));
+    stat(P.length, t('ins.stat.posts'));
+    stat(photosOf(P.map((_, n) => n)), t('ins.stat.photos'));
+    stat(ix.entities.length, t('ins.stat.names'));
+    stat(P.filter((p) => p[2] != null).length, t('ins.stat.dated'));
+
+    const byType = Object.fromEntries(ENT_ORDER.map((ty) => [ty, ix.entities.filter((e) => e[0] === ty)]));
+    if (!byType[insType].length) insType = ENT_ORDER.find((ty) => byType[ty].length) || insType;
+    tabs.textContent = '';
+    for (const ty of ENT_ORDER) {
+      if (!byType[ty].length) continue;
+      tabs.append(
+        el(
+          'button',
+          { type: 'button', role: 'tab', 'aria-selected': String(ty === insType), 'aria-pressed': String(ty === insType), onclick: () => ((insType = ty), renderInsights()) },
+          `${ENT_ICON[ty]} ${t(`ents.${ty}`)} `,
+          el('span', { class: 'n', text: byType[ty].length }),
+        ),
+      );
+    }
+    const rows = byType[insType]
+      .map((e) => ({ e, photos: photosOf(e[2]), posts: e[2].length }))
+      .sort((a, b) => b.photos - a.photos || b.posts - a.posts || a.e[1].localeCompare(b.e[1], 'da'));
+    const max = Math.max(1, ...rows.map((r) => Math.max(r.photos, r.posts)));
+    list.textContent = '';
+    for (const { e, photos, posts } of rows) {
+      const meter = el('span', { class: 'meter', 'aria-hidden': 'true' });
+      meter.style.width = `${Math.round((Math.max(photos, posts) / max) * 100)}%`;
+      list.append(
+        el(
+          'li',
+          {},
+          el(
+            'a',
+            { href: `#find/${e[0]}/${encodeURIComponent(e[1])}` },
+            meter,
+            el('span', { class: 'ins-name', text: e[1] }),
+            el('span', { class: 'ins-count', text: [photos ? t('ins.photos', { n: photos }) : '', t('search.n', { n: posts })].filter(Boolean).join(' · ') }),
+          ),
+        ),
+      );
+    }
+  }
+
+  // Svæveknap til toppen, når man er rullet et stykke ned.
+  const toTop = $('#to-top');
+  const showTop = () => toTop.classList.toggle('on', window.scrollY > window.innerHeight * 1.2);
+  window.addEventListener('scroll', showTop, { passive: true });
+  showTop();
+  toTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    $('.brand').focus({ preventScroll: true });
+  });
+
   qInput.addEventListener('focus', () => loadIndex().then(() => qInput.value && showSuggestions()).catch(() => {}));
   qInput.addEventListener('input', showSuggestions);
   qInput.addEventListener('blur', () => setTimeout(closeSuggestions, 100));
@@ -1316,6 +1436,7 @@
   });
   $('#export-link').href = `${API}/api/export`;
   loadIndex().catch(() => {});
+  route();
 
   // ------------------------------------------------------------------ viewer
 

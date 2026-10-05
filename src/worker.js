@@ -680,23 +680,24 @@ async function adminReindex(env) {
   return json({ ok: true, submissions: results.length, posts: index.posts.length, entities: index.entities.length });
 }
 
-// Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=historie)],
+// Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=historie), antal billeder],
 // entities = [type, navn, [indeks i posts …]]. Kun offentlige bidrag.
 async function buildSearchIndex(env) {
   const { results: subs } = await env.DB.prepare(
     `SELECT id, title, story, year_from, year_to, entities FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
   ).all();
   const { results: kinds } = await env.DB.prepare(
-    `SELECT i.submission_id AS id, GROUP_CONCAT(DISTINCT i.kind) AS k FROM items i JOIN submissions s ON s.id = i.submission_id
+    `SELECT i.submission_id AS id, GROUP_CONCAT(DISTINCT i.kind) AS k, SUM(i.kind = 'image') AS n FROM items i JOIN submissions s ON s.id = i.submission_id
      WHERE s.status = 'published' AND i.status = 'ready' GROUP BY i.submission_id`,
   ).all();
   const kindOf = Object.fromEntries(kinds.map((r) => [r.id, r.k]));
+  const photos = Object.fromEntries(kinds.map((r) => [r.id, r.n || 0]));
   const letter = { image: 'i', video: 'v', audio: 'a', document: 'd' };
   const posts = [];
   const ents = new Map();
   subs.forEach((s, n) => {
     const k = String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('') + (String(s.story || '').length >= 80 ? 's' : '');
-    posts.push([s.id, s.title || '', s.year_from, s.year_to, k]);
+    posts.push([s.id, s.title || '', s.year_from, s.year_to, k, photos[s.id] || 0]);
     let list = [];
     try {
       list = JSON.parse(s.entities || '[]');
