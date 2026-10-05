@@ -152,13 +152,16 @@ function periodDate(period) {
 }
 
 function sortKey(c) {
-  return earliestTaken(c) || periodDate(c.period) || c.publishedAt || '';
+  // Tilnærmede dateringer (»ca. 1930«) sorteres efter deres årstal.
+  const t = earliestTaken(c);
+  return (/^\d{4}/.test(t) ? t : (t.match(/\d{4}/) || [''])[0]) || periodDate(c.period) || c.publishedAt || '';
 }
 
 function formatDate(v) {
   if (!v) return '';
   if (/^\d{4}$/.test(v)) return v;
   if (/^\d{4}-\d{2}$/.test(v)) return new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' }).format(new Date(`${v}-15T12:00:00`));
+  if (!/^\d{4}-\d{2}-\d{2}/.test(v)) return v;
   const d = new Date(v);
   return isNaN(d) ? v : fmtDate.format(d);
 }

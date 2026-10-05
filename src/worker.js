@@ -631,8 +631,18 @@ function mediaUrl(env, key) {
 
 const ENTITY_TYPES = ['person', 'ship', 'building', 'company', 'place', 'vehicle', 'event'];
 const SEARCH_INDEX = 'media/arkiv/search.json';
-// Optagelsesdato: hel dato (evt. med klokkeslæt) eller kun år/måned for gamle billeder.
-const TAKEN_RE = /^\d{4}(-\d{2}(-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?)?)?$/;
+// Optagelsesdato: hel dato (evt. med klokkeslæt) eller kun år/måned for gamle billeder – eller en
+// tilnærmet datering med et årstal i, når mere ikke vides: »ca. 1930«, »1950'erne«, »1946–1969«,
+// »før 1918«, »efter 2011«. Den tilnærmede vises, som den står.
+const TAKEN_EXACT = /^\d{4}(-\d{2}(-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?)?)?$/;
+// »2024-06-19 21:07« → »2024-06-19T21:07«; tilnærmede dateringer røres ikke.
+const takenValue = (v) => {
+  const t = clean(v, 40);
+  return /^\d{4}-\d{2}-\d{2} \d/.test(t) ? t.replace(' ', 'T') : t;
+};
+const TAKEN_RE = {
+  test: (v) => TAKEN_EXACT.test(v) || (/^[\p{L}\d .,'’–\-/()?]{4,40}$/u.test(v) && /\b(1[6-9]\d\d|20\d\d)/.test(v) && !/^\d{4}-/.test(v)),
+};
 const YEAR_MIN = 1700;
 // (Ikke new Date() her: i en Worker er uret 1970 under opstart.)
 const YEAR_MAX = 2100;
@@ -678,12 +688,14 @@ async function syncYears(env, subId) {
   if (!sub) return;
   let [from, to] = yearsOf(sub.period);
   if (from === null) {
-    const r = await env.DB.prepare(
-      `SELECT MIN(substr(taken_at, 1, 4)) AS a, MAX(substr(taken_at, 1, 4)) AS b FROM items WHERE submission_id = ? AND taken_at IS NOT NULL`,
-    )
-      .bind(subId)
-      .first();
-    if (r && r.a) [from, to] = [Number(r.a), Number(r.b)];
+    // Ingen årstal i perioden: brug filernes datoer (også tilnærmede som »1950'erne«).
+    const { results } = await env.DB.prepare(`SELECT taken_at FROM items WHERE submission_id = ? AND taken_at IS NOT NULL`).bind(subId).all();
+    for (const r of results) {
+      const [a, b] = TAKEN_EXACT.test(r.taken_at) ? [Number(r.taken_at.slice(0, 4)), Number(r.taken_at.slice(0, 4))] : yearsOf(r.taken_at);
+      if (a === null) continue;
+      from = from === null ? a : Math.min(from, a);
+      to = to === null ? b : Math.max(to, b);
+    }
   }
   await env.DB.prepare(`UPDATE submissions SET year_from = ?, year_to = ? WHERE id = ?`).bind(from, to, subId).run();
 }
@@ -705,7 +717,7 @@ async function adminSetMeta(request, env, ctx, id) {
   // Datoer pr. fil: { <fil-id>: '1975' | '1975-06' | '1975-06-21' | '' }
   if (b.dates && typeof b.dates === 'object') {
     for (const [itemId, v] of Object.entries(b.dates).slice(0, 50)) {
-      const taken = clean(v, 25).replace(' ', 'T');
+      const taken = takenValue(v);
       if (taken && !TAKEN_RE.test(taken)) throw new HttpError(400, 'invalid_data');
       await env.DB.prepare(`UPDATE items SET taken_at = ? WHERE id = ? AND submission_id = ?`).bind(taken || null, itemId, id).run();
     }
@@ -1638,13 +1650,13 @@ async function adminEdit(request, env, id) {
   if (Array.isArray(b.entities)) await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(cleanEntities(b.entities)), id).run();
   for (const it of Array.isArray(b.items) ? b.items.slice(0, 50) : []) {
     // (årstallene genberegnes efter løkken)
-    const taken = clean(it.taken_at, 25);
+    const taken = takenValue(it.taken_at);
     if (taken && !TAKEN_RE.test(taken)) throw new HttpError(400, 'invalid_data');
     const lat = num(it.lat);
     const lon = num(it.lon);
     if ((lat !== null && Math.abs(lat) > 90) || (lon !== null && Math.abs(lon) > 180)) throw new HttpError(400, 'invalid_data');
     await env.DB.prepare(`UPDATE items SET taken_at = ?, camera = ?, lat = ?, lon = ? WHERE id = ? AND submission_id = ?`)
-      .bind(taken ? taken.replace(' ', 'T') : null, clean(it.camera, 200) || null, lat, lon, String(it.id || ''), id)
+      .bind(taken || null, clean(it.camera, 200) || null, lat, lon, String(it.id || ''), id)
       .run();
     if (typeof it.caption === 'string') {
       await env.DB.prepare(`UPDATE items SET caption = ? WHERE id = ? AND submission_id = ?`).bind(clean(it.caption, LIMITS.caption), String(it.id || ''), id).run();
@@ -1824,7 +1836,7 @@ async function adminImport(request, env) {
     const size = Number(f.size);
     if (!kind || !Number.isInteger(size) || size <= 0 || size > 95 * 1024 * 1024) throw new HttpError(400, 'file_type', { name });
     const id = crypto.randomUUID();
-    const takenAt = clean(f.takenAt, 25).replace(' ', 'T');
+    const takenAt = takenValue(f.takenAt);
     if (takenAt && !TAKEN_RE.test(takenAt)) throw new HttpError(400, 'invalid_data');
     return { id, idx, name, kind, size, type: String(f.type || ''), caption: clean(f.caption, LIMITS.caption), takenAt: takenAt || null, key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
   });

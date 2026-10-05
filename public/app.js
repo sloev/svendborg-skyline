@@ -168,6 +168,8 @@
     // Kun årstal eller år og måned (gamle billeder): vis ikke en falsk dag.
     if (/^\d{4}$/.test(v)) return v;
     if (/^\d{4}-\d{2}$/.test(v)) return new Intl.DateTimeFormat(I.LOCALE[lang], { month: 'long', year: 'numeric' }).format(new Date(`${v}-15T12:00:00`));
+    // Tilnærmede dateringer (»ca. 1930«, »1950'erne«) vises, som de står.
+    if (!/^\d{4}-\d{2}-\d{2}/.test(v)) return v;
     const d = new Date(v);
     return isNaN(d) ? v : fmtDate.format(d);
   }

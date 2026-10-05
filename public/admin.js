@@ -359,7 +359,7 @@
             el(
               'div',
               { class: 'grid-2' },
-              input('Optaget (ÅÅÅÅ, ÅÅÅÅ-MM eller ÅÅÅÅ-MM-DD TT:MM)', 'taken_at', (i.taken_at || '').replace('T', ' ').slice(0, 16), { placeholder: '2024-06-21 21:14' }),
+              input('Optaget (ÅÅÅÅ-MM-DD TT:MM, ÅÅÅÅ-MM, ÅÅÅÅ – eller fx »ca. 1930«, »1950\'erne«, »1946–1969«)', 'taken_at', /^\d{4}-\d{2}-\d{2}T/.test(i.taken_at || '') ? i.taken_at.replace('T', ' ').slice(0, 16) : i.taken_at || '', { placeholder: '2024-06-21 21:14', maxlength: '40' }),
               input('Kamera', 'camera', i.camera, { maxlength: '200' }),
               input('Breddegrad (lat)', 'lat', i.lat, { inputmode: 'decimal', placeholder: '55.0612' }),
               input('Længdegrad (lon)', 'lon', i.lon, { inputmode: 'decimal', placeholder: '10.6160' }),
