@@ -558,6 +558,10 @@
    [
     "person",
     "Finn Johannessen"
+   ],
+   [
+    "place",
+    "Østre Havn"
    ]
   ]
  },
@@ -568,6 +572,10 @@
    [
     "person",
     "Finn Johannessen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
    ]
   ]
  },
@@ -687,6 +695,10 @@
    [
     "vehicle",
     "FAF-silovognene"
+   ],
+   [
+    "place",
+    "Svendborgsund"
    ]
   ]
  },
@@ -763,6 +775,10 @@
    [
     "person",
     "Johnni Lassen"
+   ],
+   [
+    "company",
+    "DSB"
    ]
   ]
  },
@@ -2785,23 +2801,50 @@
    [
     "person",
     "Hans Jørgen Hansen"
+   ],
+   [
+    "place",
+    "Østre Havn"
    ]
   ]
  },
  {
   "id": "5c2289b3-87d1-407f-b80e-0c2e1e54be1e",
   "title": "Juletid. Losning og lastning.",
-  "entities": []
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
  },
  {
   "id": "90b2f12a-f3e5-43f3-82ea-9b9aabdb395b",
   "title": "Havnen",
-  "entities": []
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ]
+  ]
  },
  {
   "id": "870ae5cf-2f6f-4f13-9f8b-02f087573ab0",
   "title": "Havnen",
-  "entities": []
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
  },
  {
   "id": "bd2bda90-3873-4d91-a558-c2a74577dc2c",
@@ -2814,6 +2857,10 @@
    [
     "place",
     "Frederiksø"
+   ],
+   [
+    "building",
+    "FAF-siloen"
    ]
   ]
  },
@@ -2838,6 +2885,10 @@
    [
     "place",
     "Øxenbjerg"
+   ],
+   [
+    "company",
+    "Øxenbjerg Dampmølle"
    ]
   ]
  },
@@ -2848,6 +2899,14 @@
    [
     "building",
     "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "ship",
+    "CAROLINE S"
    ]
   ]
  },
@@ -2862,6 +2921,18 @@
    [
     "person",
     "Vivi Frederiksen Gedde"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "ship",
+    "CAROLINE S"
    ]
   ]
  },
@@ -2872,6 +2943,10 @@
    [
     "person",
     "Vivi Frederiksen Gedde"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
    ]
   ]
  },
@@ -2896,6 +2971,10 @@
    [
     "person",
     "Vivi Frederiksen Gedde"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
    ]
   ]
  },
@@ -2906,6 +2985,14 @@
    [
     "person",
     "Vivi Frederiksen Gedde"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
    ]
   ]
  },
@@ -3554,6 +3641,10 @@
    [
     "place",
     "Østre Havn"
+   ],
+   [
+    "place",
+    "Frederiksø"
    ]
   ]
  },
@@ -3688,6 +3779,10 @@
    [
     "place",
     "Østre Kaj"
+   ],
+   [
+    "company",
+    "DLG"
    ]
   ]
  },
@@ -3706,6 +3801,10 @@
    [
     "place",
     "Østre Kaj"
+   ],
+   [
+    "building",
+    "FAF-siloen"
    ]
   ]
  },
@@ -3720,6 +3819,10 @@
    [
     "place",
     "Østre Kaj"
+   ],
+   [
+    "building",
+    "FAF-siloen"
    ]
   ]
  },
@@ -4236,7 +4339,16 @@
  {
   "id": "c6c101c3-84d7-4a6e-902a-6a55da8baf7d",
   "title": "Måger foran siloer",
-  "entities": []
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ]
+  ]
  },
  {
   "id": "a005315c-83db-47ab-850e-96734832080d",
@@ -4265,13 +4377,30 @@
    [
     "person",
     "Thomas Dahlstrøm Nielsen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
    ]
   ]
  },
  {
   "id": "bd1ce1b6-85af-46dc-a477-eb3827a20775",
   "title": "SvendborgHavnebane11NordreHavn",
-  "entities": []
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ]
+  ]
  },
  {
   "id": "7ef79094-52d3-4c06-846d-16a5273c95f1",
@@ -4291,7 +4420,12 @@
  {
   "id": "38ce7a75-1583-4225-9c16-2bf11a850959",
   "title": "FynSvendborgUdsigtOverHavnen",
-  "entities": []
+  "entities": [
+   [
+    "place",
+    "Svendborgsund"
+   ]
+  ]
  },
  {
   "id": "2c134552-307a-49c6-bde5-47a8be4f6712",
@@ -4316,6 +4450,11 @@
  {
   "id": "f63344b3-3d94-4bd1-84ac-4a838a4d44c0",
   "title": "",
-  "entities": []
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ]
+  ]
  }
 ]
