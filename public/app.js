@@ -212,12 +212,29 @@
     loadStats();
     loadFeed(true);
     openFromHash();
+    countVisitor();
+  }
+
+  // Tæl denne browser med som besøgende én gang (der gemmes kun, at det er sket – intet id).
+  function countVisitor() {
+    try {
+      if (localStorage.getItem('silo-besoeg')) return;
+      localStorage.setItem('silo-besoeg', '1');
+    } catch {
+      return;
+    }
+    fetch(`${API}/api/visit`, { method: 'POST', keepalive: true }).catch(() => {});
   }
 
   async function loadStats(fresh = false) {
     try {
       const s = await getJson('/api/stats', fresh ? { cache: 'reload' } : {});
-      const set = (k, v) => ($(`[data-stat=${k}]`).textContent = fmtNum.format(v || 0));
+      const set = (k, v) => {
+        const dd = $(`[data-stat=${k}]`);
+        dd.textContent = fmtNum.format(v || 0);
+        dd.parentElement.hidden = !v && k !== 'contributions'; // tomme tal fylder bare
+      };
+      set('visitors', s.visitors);
       set('contributions', s.contributions);
       set('images', s.images);
       set('videos', s.videos);
@@ -319,13 +336,19 @@
       }
       storyEditor.setMarkdown(saved.fields.story || '');
       if (saved.kind) {
-        draft = { kind: saved.kind };
-        if (saved.file) {
-          const file = saved.file instanceof File ? saved.file : new File([saved.file], saved.fileName || 'fil', { type: saved.fileType || '', lastModified: saved.fileLastModified || Date.now() });
-          setDraftFile(file, saved.kind);
-        } else if (saved.fileName) {
-          draft.missing = { name: saved.fileName, size: saved.fileSize };
+        draft = { kind: saved.kind, files: [] };
+        // Ældre kladder har én fil (file/fileName); nye har en liste (files).
+        const list = Array.isArray(saved.files) ? saved.files : saved.fileName ? [{ file: saved.file, name: saved.fileName, type: saved.fileType, size: saved.fileSize, lastModified: saved.fileLastModified }] : [];
+        for (const f of list) {
+          if (!f.file) {
+            draft.missing = { name: f.name, size: f.size };
+            continue;
+          }
+          const file = f.file instanceof File ? f.file : new File([f.file], f.name || 'fil', { type: f.type || '', lastModified: f.lastModified || Date.now() });
+          const kind = kindOf(file);
+          if (kind) draft.files.push(fileEntry(file, kind, f.caption || ''));
         }
+        if (draft.missing && draft.files.length) draft.missing = null;
       }
     }
     $('#new-item-row').hidden = true;
@@ -348,7 +371,7 @@
   }
 
   function resetDraft() {
-    if (draft && draft.url) URL.revokeObjectURL(draft.url);
+    for (const f of (draft && draft.files) || []) if (f.url) URL.revokeObjectURL(f.url);
     draft = null;
     fileInput.value = '';
   }
@@ -367,17 +390,16 @@
       const input = form.elements[k];
       fields[k] = input.type === 'checkbox' ? input.checked : input.value;
     }
-    const file = draft && draft.file;
+    const files = ((draft && draft.files) || []).map((f) => ({ file: f.file, name: f.file.name, type: f.file.type, size: f.file.size, lastModified: f.file.lastModified, caption: f.caption }));
+    const first = files[0];
     return {
       id: draftId,
       kind: draft ? draft.kind : null,
       step,
       fields,
-      file: file || null,
-      fileName: file ? file.name : draft && draft.missing ? draft.missing.name : '',
-      fileType: file ? file.type : '',
-      fileSize: file ? file.size : draft && draft.missing ? draft.missing.size : 0,
-      fileLastModified: file ? file.lastModified : 0,
+      files,
+      fileName: first ? (files.length > 1 ? t('files.many', { n: files.length }) : first.name) : draft && draft.missing ? draft.missing.name : '',
+      fileSize: files.reduce((n, f) => n + f.size, 0),
       status: 'draft',
     };
   }
@@ -467,38 +489,59 @@
     }
   }
 
-  function pickFile(file) {
-    const kind = kindOf(file);
-    if (!kind) return showError(t('file.notMedia', { name: file.name }));
-    if (file.size === 0) return showError(t('file.empty', { name: file.name }));
-    if (file.size > config.maxFileMb * 1024 * 1024) return showError(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
-    resetDraft();
-    setDraftFile(file, kind);
-    prefill(file, kind);
+  // Et bidrag kan have flere filer (fx en serie billeder fra samme dag); hver fil får sin egen
+  // billedtekst. Nye filer lægges til dem, der allerede er valgt.
+  function addFiles(list) {
+    const fresh = !draft || draft.kind === 'story' || !draft.files.length;
+    if (fresh) {
+      resetDraft();
+      draft = { kind: null, files: [] };
+    }
+    const errors = [];
+    for (const file of list) {
+      const kind = kindOf(file);
+      if (!kind) errors.push(t('file.notMedia', { name: file.name }));
+      else if (file.size === 0) errors.push(t('file.empty', { name: file.name }));
+      else if (file.size > config.maxFileMb * 1024 * 1024) errors.push(t('file.tooBig', { name: file.name, mb: fmtNum.format(config.maxFileMb) }));
+      else if (draft.files.length >= config.maxFiles) errors.push(t('file.tooMany', { n: config.maxFiles }));
+      else if (!draft.files.some((f) => f.file.name === file.name && f.file.size === file.size)) draft.files.push(fileEntry(file, kind));
+    }
+    if (!draft.files.length) {
+      draft = null;
+      return showError(errors[0] || '');
+    }
+    draft.kind = draft.files[0].kind;
+    draft.missing = null;
+    if (fresh) prefill(draft.files[0].file, draft.kind);
     goStep(2);
+    if (errors.length) showError(errors.join(' '));
     saveDraftNow();
   }
 
-  function setDraftFile(file, kind) {
-    draft = { kind, file };
+  function fileEntry(file, kind, caption = '') {
+    const f = { file, kind, caption, url: null, gps: false };
     if ((kind === 'image' && /^image\/(jpeg|png|gif|webp|avif)$/.test(file.type)) || (kind === 'video' && file.size < 600 * 1024 * 1024)) {
-      draft.url = URL.createObjectURL(file);
+      f.url = URL.createObjectURL(file);
     }
     if (kind === 'image' || kind === 'video') {
       hasGps(file, kind).then((gps) => {
-        if (draft && draft.file === file && gps) {
-          draft.gps = true;
+        if (gps && draft && draft.files.includes(f)) {
+          f.gps = true;
           if (step === 2) renderPicked();
         }
       });
     }
+    return f;
   }
+
+  // Den type, felterne i trin 2 følger: billede/video, hvis der er nogen, ellers den første fil.
+  const fieldKind = () => (!draft || !draft.files || !draft.files.length ? 'story' : draft.files.some((f) => f.kind === 'image' || f.kind === 'video') ? 'image' : draft.files[0].kind);
 
   // Foreslå overskrift og beskrivelse ud fra filnavnet og filens egne oplysninger (EXIF/XMP, ID3,
   // MP4, PDF). Udfylder kun tomme felter – det, man selv har skrevet, overskrives aldrig.
   async function prefill(file, kind) {
     const meta = await Kit.readMeta(file, kind);
-    if (!draft || draft.file !== file) return;
+    if (!draft || !draft.files.length || draft.files[0].file !== file) return;
     const title = form.elements.title;
     if (meta.title && !title.value.trim()) title.value = meta.title;
     if (meta.description && !form.elements.story.value.trim()) storyEditor.setMarkdown(meta.description);
@@ -512,25 +555,93 @@
   function renderPicked() {
     const box = $('#picked');
     box.textContent = '';
+    box.classList.toggle('many', !!(draft && draft.files && draft.files.length > 1));
     if (!draft) return;
-    let preview = el('div', { class: 'picked-thumb', text: draft.kind === 'story' ? '✍️' : KIND_ICON[draft.kind] });
-    if (draft.url && draft.kind === 'image') preview = el('img', { class: 'picked-thumb', src: draft.url, alt: '' });
-    if (draft.url && draft.kind === 'video') preview = el('video', { class: 'picked-thumb', src: `${draft.url}#t=0.5`, muted: true, preload: 'metadata', playsinline: true });
-    box.append(
-      preview,
-      el(
-        'div',
-        { class: 'picked-info' },
-        el('strong', { text: t(`kind.${draft.kind}`) }),
-        draft.file ? el('span', { class: 'muted', text: `${draft.file.name} · ${formatSize(draft.file.size)}${draft.gps ? ' · 📍 GPS' : ''}` }) : null,
-        el('button', { type: 'button', class: 'link', text: t('btn.changeFile'), onclick: () => goStep(1) }),
-      ),
-    );
+    const thumb = (f) => {
+      if (f && f.url && f.kind === 'image') return el('img', { class: 'picked-thumb', src: f.url, alt: '' });
+      if (f && f.url && f.kind === 'video') return el('video', { class: 'picked-thumb', src: `${f.url}#t=0.5`, muted: true, preload: 'metadata', playsinline: true });
+      return el('div', { class: 'picked-thumb', text: !f ? '✍️' : KIND_ICON[f.kind] });
+    };
+    const info = (f) => `${f.file.name} · ${formatSize(f.file.size)}${f.gps ? ' · 📍 GPS' : ''}`;
+    const files = draft.files || [];
+    const more = el('button', { type: 'button', class: 'link', text: t('btn.addFiles'), onclick: () => fileInput.click() });
+    if (files.length <= 1) {
+      const f = files[0];
+      box.append(
+        el(
+          'div',
+          { class: 'picked-row' },
+          thumb(f),
+          el(
+            'div',
+            { class: 'picked-info' },
+            el('strong', { text: t(`kind.${f ? f.kind : 'story'}`) }),
+            f ? el('span', { class: 'muted', text: info(f) }) : null,
+            el('span', { class: 'picked-actions' }, el('button', { type: 'button', class: 'link', text: t('btn.changeFile'), onclick: () => goStep(1) }), f ? more : null),
+          ),
+        ),
+      );
+      return;
+    }
+    // Flere filer: gå dem igennem én for én og skriv en billedtekst til hver.
+    box.append(el('p', { class: 'picked-head' }, el('strong', { text: t('files.many', { n: files.length }) }), ' ', el('span', { class: 'muted', text: t('caps.hint') })));
+    const ol = el('ol', { class: 'picked-list' });
+    files.forEach((f, n) => {
+      const ta = el('textarea', { rows: '2', maxlength: '600', 'data-caption': String(n), placeholder: t('caps.ph'), 'aria-label': t('caps.label', { n: n + 1 }) });
+      ta.value = f.caption || '';
+      ta.addEventListener('input', () => {
+        f.caption = ta.value;
+        ta.classList.remove('invalid');
+      });
+      const move = (d) => {
+        const j = n + d;
+        if (j < 0 || j >= files.length) return;
+        [files[n], files[j]] = [files[j], files[n]];
+        draft.kind = files[0].kind;
+        renderPicked();
+        scheduleSave();
+      };
+      ol.append(
+        el(
+          'li',
+          { class: 'picked-item' },
+          el('span', { class: 'picked-n', text: String(n + 1) }),
+          thumb(f),
+          el(
+            'div',
+            { class: 'picked-cap' },
+            el('label', { class: 'muted', text: info(f) }),
+            ta,
+          ),
+          el(
+            'div',
+            { class: 'picked-tools' },
+            el('button', { type: 'button', class: 'icon-btn', 'aria-label': t('caps.up'), title: t('caps.up'), text: '↑', disabled: n === 0, onclick: () => move(-1) }),
+            el('button', { type: 'button', class: 'icon-btn', 'aria-label': t('caps.down'), title: t('caps.down'), text: '↓', disabled: n === files.length - 1, onclick: () => move(1) }),
+            el('button', {
+              type: 'button', class: 'icon-btn danger', 'aria-label': t('caps.remove', { name: f.file.name }), title: t('caps.removeShort'), text: '✕',
+              onclick: () => {
+                if (f.url) URL.revokeObjectURL(f.url);
+                files.splice(n, 1);
+                if (!files.length) {
+                  draft = null;
+                  return goStep(1);
+                }
+                draft.kind = files[0].kind;
+                renderFields();
+                scheduleSave();
+              },
+            }),
+          ),
+        ),
+      );
+    });
+    box.append(ol, el('p', { class: 'picked-more' }, more));
   }
 
   function renderFields() {
     renderPicked();
-    const kind = draft ? draft.kind : 'story';
+    const kind = fieldKind();
     const fields = FIELDS[kind];
     for (const box of $$('[data-field]', form)) {
       const name = box.dataset.field;
@@ -551,8 +662,17 @@
 
   // Tjek felterne i et trin. Returnerer en fejltekst eller ''.
   function validateStep(n) {
-    const kind = draft ? draft.kind : 'story';
+    const kind = fieldKind();
     if (n === 2) {
+      // Flere filer: hver skal have en billedtekst, så teksten hører til det rigtige billede.
+      if (draft && draft.files && draft.files.length > 1) {
+        const k = draft.files.findIndex((f) => String(f.caption || '').trim().length < 3);
+        if (k > -1) {
+          const ta = $(`[data-caption="${k}"]`, form);
+          if (ta) (ta.classList.add('invalid'), ta.focus());
+          return t('v.caption', { n: k + 1 });
+        }
+      }
       for (const name of REQUIRED[kind]) {
         const input = form.elements[name];
         const v = input.value.trim();
@@ -585,13 +705,14 @@
   }
   $('#story-only').addEventListener('click', () => {
     resetDraft();
-    draft = { kind: 'story' };
+    draft = { kind: 'story', files: [] };
     goStep(2);
     setTimeout(() => storyEditor.focus(), 50);
     saveDraftNow();
   });
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) pickFile(fileInput.files[0]);
+    if (fileInput.files.length) addFiles([...fileInput.files]);
+    fileInput.value = '';
   });
   ['dragenter', 'dragover'].forEach((ev) =>
     drop.addEventListener(ev, (e) => {
@@ -603,7 +724,7 @@
   drop.addEventListener('drop', (e) => {
     e.preventDefault();
     const files = e.dataTransfer && e.dataTransfer.files;
-    if (files && files[0]) pickFile(files[0]);
+    if (files && files.length) addFiles([...files]);
   });
 
   // Fortæl med det samme, hvis filen har en GPS-placering (den bliver offentlig).
@@ -670,7 +791,8 @@
     if (err) return showError(err);
     showError('');
     const d = new FormData(form);
-    const kind = draft ? draft.kind : 'story';
+    const kind = fieldKind();
+    const files = (draft && draft.files) || [];
     const btn = $('#submit');
     btn.disabled = true;
     try {
@@ -691,7 +813,7 @@
         phone: d.get('phone'),
         elapsedMs: Date.now() - formOpenedAt,
         turnstileToken,
-        files: draft && draft.file ? [{ name: draft.file.name, size: draft.file.size, type: draft.file.type, lastModified: draft.file.lastModified }] : [],
+        files: files.map((f) => ({ name: f.file.name, size: f.file.size, type: f.file.type, lastModified: f.file.lastModified, caption: files.length > 1 ? String(f.caption || '').trim() : '' })),
       };
       // Bidraget oprettes med det samme (Turnstile-tokenet gælder kun kort); filen sendes i baggrunden.
       const sub = await getJson('/api/submissions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
@@ -700,10 +822,10 @@
       const sentDraft = { ...collectDraft(), status: 'sending' };
       await Kit.drafts.save(sentDraft);
       const entry = {
-        title: payload.title || (draft && draft.file ? draft.file.name : payload.story.slice(0, 60)),
-        kind,
-        file: draft && draft.file,
-        size: draft && draft.file ? draft.file.size : 0,
+        title: payload.title || (files.length ? (files.length > 1 ? t('files.many', { n: files.length }) : files[0].file.name) : payload.story.slice(0, 60)),
+        kind: files.length ? files[0].kind : 'story',
+        files: files.map((f) => f.file),
+        size: files.reduce((n, f) => n + f.file.size, 0),
         sent: 0,
         state: 'queued',
         error: '',
@@ -712,7 +834,7 @@
       };
       uploads.unshift(entry);
       queue = queue.then(() => runUpload(entry, sub));
-      draft = null; // filen ejes nu af upload-køen
+      draft = null; // filerne ejes nu af upload-køen
       fileInput.value = '';
       draftId = null;
       form.hidden = true;
@@ -738,20 +860,22 @@
       if (!wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen').catch(() => null);
     } catch {}
     try {
-      if (entry.file) {
-        let last = 0;
-        await uploadFile(sub, sub.items[0].id, entry.file, (bytes) => {
-          entry.sent = bytes;
+      let last = 0;
+      let before = 0;
+      for (const [n, file] of entry.files.entries()) {
+        await uploadFile(sub, sub.items[n].id, file, (bytes) => {
+          entry.sent = before + bytes;
           if (Date.now() - last > 250) {
             last = Date.now();
             renderUploads();
           }
         });
+        before += file.size;
       }
       const done = await getJson(`/api/submissions/${sub.id}/complete`, { method: 'POST', headers: { 'x-upload-token': sub.uploadToken } });
       entry.state = 'done';
       entry.review = done.status === 'review';
-      entry.file = null;
+      entry.files = [];
       await Kit.drafts.remove(entry.draftId);
       loadStats(true);
       loadFeed(true, true);

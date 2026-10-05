@@ -3,6 +3,7 @@
 // Public:
 //   GET  /api/config                         settings the front-end needs
 //   GET  /api/stats                          counters for the front page
+//   POST /api/visit                          count a unique visitor (once per browser, no cookies)
 //   GET  /api/contributions                  published contributions (paginated, filterable)
 //   GET  /api/contributions/:id              one published contribution
 //   GET  /api/map                            published media with a GPS location
@@ -170,6 +171,8 @@ export default {
     ctx.waitUntil(abandonUploads(env, `created_at < ?`, [isoAgo(48 * 3600)], 'submissions'));
     // Kommentarer: den hashede IP-adresse bruges kun mod spam og ryddes efter 30 dage.
     ctx.waitUntil(env.DB.prepare(`UPDATE comments SET ip_hash = '' WHERE ip_hash != '' AND created_at < ?`).bind(isoAgo(30 * 86400)).run());
+    // Besøgstælleren: dagens hashes bruges kun til at undgå dobbelttælling og slettes efter to dage.
+    ctx.waitUntil(env.DB.prepare(`DELETE FROM visit_hashes WHERE day < ?`).bind(isoAgo(2 * 86400).slice(0, 10)).run());
   },
 };
 
@@ -320,6 +323,7 @@ async function api(request, env, ctx, url) {
 
   if (path === '/api/config' && method === 'GET') return getConfig(env);
   if (path === '/api/stats' && method === 'GET') return getStats(env);
+  if (path === '/api/visit' && method === 'POST') return countVisit(request, env);
   if (path === '/api/contributions' && method === 'GET') return listContributions(env, url);
   if (path === '/api/map' && method === 'GET') return getMap(env);
   if (path === '/api/search-index' && method === 'GET') return getSearchIndex(env, ctx);
@@ -427,7 +431,23 @@ async function getStats(env) {
      FROM items i JOIN submissions s ON s.id = i.submission_id
      WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'`,
   ).first();
-  return json(row, 200, { 'cache-control': 'public, max-age=60' });
+  const visits = await env.DB.prepare(`SELECT n FROM counters WHERE name = 'visitors'`).first();
+  return json({ ...row, visitors: visits ? visits.n : 0 }, 200, { 'cache-control': 'public, max-age=60' });
+}
+
+// Unikke besøgende uden cookies: siden kalder dette én gang pr. browser (den husker kun, at den har
+// været talt med). For at én enhed ikke tælles flere gange samme dag (fx i private vinduer) gemmes
+// en hash af IP og browser med et dagligt skiftende salt; den slettes efter to dage.
+const BOTS = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor|curl|wget|python|node-fetch/i;
+async function countVisit(request, env) {
+  const ua = request.headers.get('user-agent') || '';
+  if (!ua || BOTS.test(ua)) return json({ ok: true });
+  const day = new Date().toISOString().slice(0, 10);
+  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+  const hash = (await sha256(`${env.IP_SALT || ''}:visit:${day}:${ip}:${ua}`)).slice(0, 32);
+  const res = await env.DB.prepare(`INSERT OR IGNORE INTO visit_hashes (day, hash) VALUES (?, ?)`).bind(day, hash).run();
+  if (res.meta.changes) await env.DB.prepare(`UPDATE counters SET n = n + 1 WHERE name = 'visitors'`).run();
+  return json({ ok: true });
 }
 
 async function listContributions(env, url) {
@@ -822,7 +842,8 @@ async function createSubmission(request, env) {
   if (credit.length < 2) throw new HttpError(400, 'credit_missing');
   if (email && !/^[^\s@<>()",;:]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email)) throw new HttpError(400, 'email_invalid');
   if (body.consent !== true) throw new HttpError(400, 'consent_missing');
-  checkSpam([title, story, period, place, credit].join('\n'));
+  const captions = (Array.isArray(body.files) ? body.files : []).map((f) => clean(f && f.caption, LIMITS.caption));
+  checkSpam([title, story, period, place, credit, ...captions].join('\n'));
 
   // Den samme historie uden filer må ikke sendes igen (typisk spam-mønster). Samme beskrivelse på
   // flere billeder er fint.
@@ -864,6 +885,7 @@ async function createSubmission(request, env) {
       type,
       size,
       lastModified: Number.isFinite(f.lastModified) ? new Date(f.lastModified).toISOString() : '',
+      caption: captions[idx] || '',
       key: `originals/${subId}/${id}.${ext}`,
     });
   }
@@ -912,9 +934,9 @@ async function createSubmission(request, env) {
     ...items.map((it) =>
       env.DB.prepare(
         `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size,
-           original_last_modified, upload_id, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uploading')`,
-      ).bind(it.id, subId, it.position, it.kind, it.key, it.name, it.type, it.size, it.lastModified, it.uploadId),
+           original_last_modified, upload_id, status, caption)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uploading', ?)`,
+      ).bind(it.id, subId, it.position, it.kind, it.key, it.name, it.type, it.size, it.lastModified, it.uploadId, it.caption),
     ),
   ];
   await env.DB.batch(stmts);
