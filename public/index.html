@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20261005b">
+  <link rel="stylesheet" href="style.css?v=20261005c">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -229,6 +229,7 @@
       <div class="masonry" id="feed" aria-live="polite"></div>
       <p class="empty muted" id="feed-empty" hidden data-i18n="feed.empty">Ingen bidrag endnu, der passer. Bliv den første, og <a href="#del">del dit</a>.</p>
       <div class="center"><button class="btn btn-ghost" id="more" type="button" hidden data-i18n="more">Vis flere</button></div>
+      <div class="more-loading" id="more-loading" role="status" hidden><span class="more-bar" aria-hidden="true"><span></span></span><span data-i18n="more.loading">Henter flere bidrag …</span></div>
       <div class="archive-dl" id="archive-dl" hidden>
         <a class="btn btn-ghost" id="archive-link" href="#" download><span aria-hidden="true">⬇</span> <span data-i18n="archive.btn">Hent hele arkivet som PDF</span></a>
         <p class="muted" id="archive-meta"></p>
@@ -316,9 +317,9 @@
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="config.js?v=20261005b"></script>
-  <script src="i18n.js?v=20261005b"></script>
-  <script src="editor.js?v=20261005b"></script>
-  <script src="app.js?v=20261005b" defer></script>
+  <script src="config.js?v=20261005c"></script>
+  <script src="i18n.js?v=20261005c"></script>
+  <script src="editor.js?v=20261005c"></script>
+  <script src="app.js?v=20261005c" defer></script>
 </body>
 </html>

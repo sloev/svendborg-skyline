@@ -856,6 +856,7 @@
 
   async function loadFeed(reset, fresh = false) {
     const token = ++feedToken;
+    if (reset) cancelAutoMore();
     if (reset) {
       cursor = null;
       feed.textContent = '';
@@ -983,7 +984,52 @@
     return c.processing ? el('p', { class: 'processing-note', text: t('tile.processing', { files }) }) : null;
   }
 
-  moreBtn.addEventListener('click', () => loadFeed(false));
+  // Uendelig rulning: når "Vis flere" kommer til syne, vises en indikator i 5 sekunder (så man kan
+  // nå at læse sidefoden), og så hentes de næste bidrag. Ruller man væk, afbrydes nedtællingen.
+  const moreLoading = $('#more-loading');
+  const AUTO_MORE_MS = 5000;
+  let moreTimer = null;
+  let loadingMore = false;
+  function cancelAutoMore() {
+    clearTimeout(moreTimer);
+    moreTimer = null;
+    if (!loadingMore) moreLoading.hidden = true;
+  }
+  async function loadMore() {
+    cancelAutoMore();
+    if (loadingMore || !cursor) return;
+    loadingMore = true;
+    moreLoading.hidden = false;
+    moreLoading.classList.add('busy');
+    try {
+      await loadFeed(false);
+    } finally {
+      loadingMore = false;
+      moreLoading.hidden = true;
+      moreLoading.classList.remove('busy', 'counting');
+      // Står knappen stadig synlig (få bidrag på skærmen), starter næste nedtælling.
+      if (moreObserver && !moreBtn.hidden) {
+        moreObserver.unobserve(moreBtn);
+        moreObserver.observe(moreBtn);
+      }
+    }
+  }
+  const moreObserver = 'IntersectionObserver' in window
+    ? new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting) || moreBtn.hidden || loadingMore) return cancelAutoMore();
+      if (moreTimer) return;
+      moreLoading.hidden = false;
+      moreLoading.classList.remove('counting');
+      void moreLoading.offsetWidth; // genstart animationen
+      moreLoading.classList.add('counting');
+      moreTimer = setTimeout(() => {
+        moreTimer = null;
+        loadMore();
+      }, AUTO_MORE_MS);
+    })
+    : null;
+  if (moreObserver) moreObserver.observe(moreBtn);
+  moreBtn.addEventListener('click', () => loadMore());
   $('#kind-filter').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-kind]');
     if (!b) return;
