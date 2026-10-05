@@ -157,6 +157,8 @@ function sortKey(c) {
 
 function formatDate(v) {
   if (!v) return '';
+  if (/^\d{4}$/.test(v)) return v;
+  if (/^\d{4}-\d{2}$/.test(v)) return new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' }).format(new Date(`${v}-15T12:00:00`));
   const d = new Date(v);
   return isNaN(d) ? v : fmtDate.format(d);
 }

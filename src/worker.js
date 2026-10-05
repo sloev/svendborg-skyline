@@ -631,6 +631,8 @@ function mediaUrl(env, key) {
 
 const ENTITY_TYPES = ['person', 'ship', 'building', 'company', 'place', 'vehicle', 'event'];
 const SEARCH_INDEX = 'media/arkiv/search.json';
+// Optagelsesdato: hel dato (evt. med klokkeslæt) eller kun år/måned for gamle billeder.
+const TAKEN_RE = /^\d{4}(-\d{2}(-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?)?)?$/;
 const YEAR_MIN = 1700;
 // (Ikke new Date() her: i en Worker er uret 1970 under opstart.)
 const YEAR_MAX = 2100;
@@ -699,6 +701,15 @@ async function adminSetMeta(request, env, ctx, id) {
   }
   if (typeof b.story === 'string') {
     await env.DB.prepare(`UPDATE submissions SET story = ? WHERE id = ?`).bind(clean(b.story, LIMITS.story, true), id).run();
+  }
+  // Datoer pr. fil: { <fil-id>: '1975' | '1975-06' | '1975-06-21' | '' }
+  if (b.dates && typeof b.dates === 'object') {
+    for (const [itemId, v] of Object.entries(b.dates).slice(0, 50)) {
+      const taken = clean(v, 25).replace(' ', 'T');
+      if (taken && !TAKEN_RE.test(taken)) throw new HttpError(400, 'invalid_data');
+      await env.DB.prepare(`UPDATE items SET taken_at = ? WHERE id = ? AND submission_id = ?`).bind(taken || null, itemId, id).run();
+    }
+    await syncYears(env, id);
   }
   if (b.captions && typeof b.captions === 'object') {
     for (const [itemId, caption] of Object.entries(b.captions).slice(0, 50)) {
@@ -1628,7 +1639,7 @@ async function adminEdit(request, env, id) {
   for (const it of Array.isArray(b.items) ? b.items.slice(0, 50) : []) {
     // (årstallene genberegnes efter løkken)
     const taken = clean(it.taken_at, 25);
-    if (taken && !/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?$/.test(taken)) throw new HttpError(400, 'invalid_data');
+    if (taken && !TAKEN_RE.test(taken)) throw new HttpError(400, 'invalid_data');
     const lat = num(it.lat);
     const lon = num(it.lon);
     if ((lat !== null && Math.abs(lat) > 90) || (lon !== null && Math.abs(lon) > 180)) throw new HttpError(400, 'invalid_data');
@@ -1747,7 +1758,8 @@ async function adminResult(request, env, id) {
   }
   await env.DB.prepare(
     `UPDATE items SET status = 'ready', error = '', stored_bytes = ?, full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
-       duration = ?, taken_at = ?, camera = ?,
+       -- En dato sat ved import (fx et årstal for et gammelt foto) går forud for filens egen dato.
+       duration = ?, taken_at = COALESCE(taken_at, ?), camera = ?,
        -- Har filen ingen GPS, beholdes en placering, som en admin allerede har sat.
        lat = CASE WHEN ? IS NULL THEN lat ELSE ? END, lon = CASE WHEN ? IS NULL THEN lon ELSE ? END, metadata = ?, archive_path = COALESCE(?, archive_path),
        processed_at = ?, nsfw = ?
@@ -1812,7 +1824,9 @@ async function adminImport(request, env) {
     const size = Number(f.size);
     if (!kind || !Number.isInteger(size) || size <= 0 || size > 95 * 1024 * 1024) throw new HttpError(400, 'file_type', { name });
     const id = crypto.randomUUID();
-    return { id, idx, name, kind, size, type: String(f.type || ''), caption: clean(f.caption, LIMITS.caption), key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
+    const takenAt = clean(f.takenAt, 25).replace(' ', 'T');
+    if (takenAt && !TAKEN_RE.test(takenAt)) throw new HttpError(400, 'invalid_data');
+    return { id, idx, name, kind, size, type: String(f.type || ''), caption: clean(f.caption, LIMITS.caption), takenAt: takenAt || null, key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
   });
   await checkStorage(env, items.reduce((n, it) => n + it.size, 0));
   await env.DB.batch([
@@ -1827,9 +1841,9 @@ async function adminImport(request, env) {
     ),
     ...items.map((it) =>
       env.DB.prepare(
-        `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size, status, caption)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'uploading', ?)`,
-      ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size, it.caption),
+        `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size, status, caption, taken_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'uploading', ?, ?)`,
+      ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size, it.caption, it.takenAt),
     ),
   ]);
   await syncYears(env, subId);
