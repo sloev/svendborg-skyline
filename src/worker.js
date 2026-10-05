@@ -65,7 +65,7 @@ const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'am
 const DOC_EXT = ['pdf'];
 
 // Max længde på alle tekstfelter (tegn). Sendes også til siden via /api/config.
-const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200, commentName: 60, comment: 300 };
+const LIMITS = { title: 120, story: 8000, period: 60, place: 120, credit: 120, email: 254, reason: 500, fileName: 200, commentName: 60, comment: 300, caption: 600 };
 const FIELD_NAMES = { title: 'Overskrift', story: 'Historie', period: 'Hvornår', place: 'Hvor fra', credit: 'Kreditering', email: 'E-mail', commentName: 'Navn', comment: 'Kommentar' };
 
 // Grove spam-ord. Rammer de, afvises bidraget (siden handler om siloerne i Svendborg).
@@ -512,6 +512,7 @@ async function getMap(env) {
         lon: i.lon,
         title: i.s_title,
         period: i.s_period,
+        caption: i.caption || '',
         excerpt: truncate(plainText(i.s_story), 160),
         thumb: mediaUrl(env, i.thumb_key),
       })),
@@ -591,6 +592,7 @@ function publicItem(env, i) {
     camera: i.camera,
     lat: i.lat,
     lon: i.lon,
+    caption: i.caption || '',
   };
 }
 
@@ -664,13 +666,27 @@ async function syncYears(env, subId) {
   await env.DB.prepare(`UPDATE submissions SET year_from = ?, year_to = ? WHERE id = ?`).bind(from, to, subId).run();
 }
 
+// Strukturerede data på et bidrag. Kun de felter, der sendes med, ændres:
+// { entities: [[type, navn], …], story: '…', captions: { <fil-id>: 'billedtekst', … } }
 async function adminSetMeta(request, env, ctx, id) {
-  const b = await readJson(request, 50_000);
-  const entities = cleanEntities(b.entities);
-  const res = await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(entities), id).run();
-  if (!res.meta.changes) throw new HttpError(404, 'not_found');
+  const b = await readJson(request, 100_000);
+  const sub = await env.DB.prepare(`SELECT id FROM submissions WHERE id = ?`).bind(id).first();
+  if (!sub) throw new HttpError(404, 'not_found');
+  const out = { ok: true };
+  if (Array.isArray(b.entities)) {
+    out.entities = cleanEntities(b.entities);
+    await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(out.entities), id).run();
+  }
+  if (typeof b.story === 'string') {
+    await env.DB.prepare(`UPDATE submissions SET story = ? WHERE id = ?`).bind(clean(b.story, LIMITS.story, true), id).run();
+  }
+  if (b.captions && typeof b.captions === 'object') {
+    for (const [itemId, caption] of Object.entries(b.captions).slice(0, 50)) {
+      await env.DB.prepare(`UPDATE items SET caption = ? WHERE id = ? AND submission_id = ?`).bind(clean(caption, LIMITS.caption), itemId, id).run();
+    }
+  }
   ctx.waitUntil(buildSearchIndex(env).catch((e) => console.error('index', e.message)));
-  return json({ ok: true, entities });
+  return json(out);
 }
 
 async function adminReindex(env) {
@@ -744,7 +760,7 @@ async function exportArchive(env) {
         entities: entities.map(([type, name]) => ({ type, name })),
         url: env.SITE_URL ? `${env.SITE_URL}#bidrag/${p.id}` : null,
         files: p.items.map((f) => ({ kind: f.kind, url: f.full || f.src, web: f.src, thumb: f.thumb, poster: f.poster, width: f.width, height: f.height,
-          duration: f.duration, takenAt: f.takenAt, camera: f.camera, lat: f.lat, lon: f.lon })),
+          duration: f.duration, takenAt: f.takenAt, camera: f.camera, lat: f.lat, lon: f.lon, caption: f.caption })),
       });
     });
   }
@@ -1539,7 +1555,7 @@ async function adminList(env, url) {
   if (page.length) {
     ({ results: items } = await env.DB.prepare(
       `SELECT id, submission_id, position, kind, original_name, original_type, original_size, status, attempts, error,
-              full_key, display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted, nsfw
+              full_key, display_key, thumb_key, poster_key, taken_at, camera, lat, lon, archive_path, original_deleted, nsfw, caption
        FROM items WHERE submission_id IN (${page.map(() => '?').join(',')}) ORDER BY position`,
     )
       .bind(...page.map((s) => s.id))
@@ -1597,6 +1613,9 @@ async function adminEdit(request, env, id) {
     await env.DB.prepare(`UPDATE items SET taken_at = ?, camera = ?, lat = ?, lon = ? WHERE id = ? AND submission_id = ?`)
       .bind(taken ? taken.replace(' ', 'T') : null, clean(it.camera, 200) || null, lat, lon, String(it.id || ''), id)
       .run();
+    if (typeof it.caption === 'string') {
+      await env.DB.prepare(`UPDATE items SET caption = ? WHERE id = ? AND submission_id = ?`).bind(clean(it.caption, LIMITS.caption), String(it.id || ''), id).run();
+    }
   }
   await syncYears(env, id);
   return json({ ok: true });
@@ -1771,7 +1790,7 @@ async function adminImport(request, env) {
     const size = Number(f.size);
     if (!kind || !Number.isInteger(size) || size <= 0 || size > 95 * 1024 * 1024) throw new HttpError(400, 'file_type', { name });
     const id = crypto.randomUUID();
-    return { id, idx, name, kind, size, type: String(f.type || ''), key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
+    return { id, idx, name, kind, size, type: String(f.type || ''), caption: clean(f.caption, LIMITS.caption), key: `originals/${subId}/${id}.${extOf(name) || 'bin'}` };
   });
   await checkStorage(env, items.reduce((n, it) => n + it.size, 0));
   await env.DB.batch([
@@ -1786,9 +1805,9 @@ async function adminImport(request, env) {
     ),
     ...items.map((it) =>
       env.DB.prepare(
-        `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'uploading')`,
-      ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size),
+        `INSERT INTO items (id, submission_id, position, kind, original_key, original_name, original_type, original_size, status, caption)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'uploading', ?)`,
+      ).bind(it.id, subId, it.idx, it.kind, it.key, it.name, it.type, it.size, it.caption),
     ),
   ]);
   await syncYears(env, subId);

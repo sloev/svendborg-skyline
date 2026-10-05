@@ -981,10 +981,14 @@
     const dots = el('div', { class: 'car-dots', 'aria-hidden': 'true' }, slides.map((_, k) => el('span', { class: k === 0 ? 'on' : '' })));
     const at = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
     const go = (d) => track.scrollTo({ left: (at() + d) * track.clientWidth, behavior: 'smooth' });
+    // Billedteksten til det billede, karrusellen står på.
+    const hasCaps = slides.some((it) => it.caption);
+    const cap = hasCaps ? el('p', { class: 'car-cap', text: slides[0].caption || '' }) : null;
     track.addEventListener('scroll', () => {
       const k = Math.min(slides.length - 1, Math.max(0, at()));
       badge.textContent = `${k + 1}/${slides.length}`;
       [...dots.children].forEach((d, j) => d.classList.toggle('on', j === k));
+      if (cap) cap.textContent = slides[k].caption || '';
     }, { passive: true });
     const media = el(
       'div',
@@ -995,7 +999,7 @@
       badge,
       dots,
     );
-    return { media, slideAt: () => Math.min(slides.length - 1, Math.max(0, at())) };
+    return { media: cap ? el('div', { class: 'car-wrap' }, media, cap) : media, slideAt: () => Math.min(slides.length - 1, Math.max(0, at())) };
   }
 
   function processingNote(c) {
@@ -1462,7 +1466,7 @@
     if (c.items.length > 1) {
       c.items.forEach((it, n) =>
         strip.append(
-          el('button', { type: 'button', 'aria-label': t('v.showFile', { n: n + 1 }), onclick: () => showItem(n) }, it.thumb ? el('img', { src: it.thumb, alt: '', loading: 'lazy' }) : KIND_ICON[it.kind]),
+          el('button', { type: 'button', 'aria-label': t('v.showFile', { n: n + 1 }), title: it.caption || null, onclick: () => showItem(n) }, it.thumb ? el('img', { src: it.thumb, alt: '', loading: 'lazy' }) : KIND_ICON[it.kind]),
         ),
       );
     }
@@ -1470,7 +1474,7 @@
     renderShare(c);
     loadComments(c);
     if (!viewer.open) viewer.showModal();
-    history.replaceState(null, '', `#bidrag/${c.id}`);
+    history.replaceState(null, '', c.items.length > 1 && i > 0 && c.items[i] ? `#bidrag/${c.id}/${c.items[i].id}` : `#bidrag/${c.id}`);
   }
 
   function showItem(n) {
@@ -1494,6 +1498,14 @@
       }
     }
     $$('#viewer-strip button').forEach((b, k) => b.setAttribute('aria-current', String(k === n)));
+    // Billedtekst og nummer lige under billedet, så teksten ikke kan forveksles med et andet billede.
+    const many = c.items.length > 1;
+    $('#viewer-count').textContent = many && it ? `${n + 1}/${c.items.length}` : '';
+    $('#viewer-caption-text').textContent = (it && it.caption) || '';
+    $('#viewer-caption').hidden = !(it && (it.caption || many));
+    const img = it && it.caption && $('img', box);
+    if (img) img.alt = it.caption;
+    if (current && viewer.open) history.replaceState(null, '', many && n ? `#bidrag/${c.id}/${it.id}` : `#bidrag/${c.id}`);
 
     const facts = $('#viewer-facts');
     facts.textContent = '';
@@ -1764,13 +1776,13 @@
   });
 
   async function openFromHash() {
-    const m = location.hash.match(/^#bidrag\/([\w-]+)/);
+    const m = location.hash.match(/^#bidrag\/([\w-]{36})(?:\/([\w-]{36}))?/);
     if (!m) return;
     try {
       const cached = known.get(m[1]);
       // Brug ikke en gammel kopi, hvis filerne stadig var ved at blive gjort klar.
       const c = cached && !cached.processing ? cached : await getJson(`/api/contributions/${m[1]}`, { cache: 'reload' });
-      openViewer(c, 0);
+      openViewer(c, Math.max(0, c.items.findIndex((it) => it.id === m[2])));
     } catch (err) {
       console.warn(err);
     }
@@ -1802,14 +1814,14 @@
         }
         const markers = [];
         for (const p of groups.values()) {
-          const open = () => (location.hash = `#bidrag/${p.submissionId}`);
+          const open = () => (location.hash = `#bidrag/${p.submissionId}/${p.itemId}`);
           const popup = el(
             'div',
             { class: 'map-popup' },
             p.thumb ? el('img', { src: p.thumb, alt: '', loading: 'lazy', onclick: open }) : el('div', { class: 'map-popup-icon', text: KIND_ICON[p.kind] || '📍' }),
             el('strong', { class: 'map-popup-title', text: p.title || t('map.open') }),
             p.period ? el('span', { class: 'map-popup-meta', text: p.period }) : null,
-            p.excerpt ? el('p', { class: 'map-popup-text', text: p.excerpt }) : null,
+            p.caption || p.excerpt ? el('p', { class: 'map-popup-text', text: p.caption || p.excerpt }) : null,
             el('button', { type: 'button', class: 'btn btn-primary map-popup-more', text: `${t('map.more')} →`, onclick: open }),
           );
           markers.push(

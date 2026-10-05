@@ -355,6 +355,7 @@
             'fieldset',
             { class: 'edit-item', 'data-id': i.id },
             el('legend', { text: `${ICON[i.kind] || ''} ${i.original_name}` }),
+            i.thumb ? el('img', { class: 'edit-thumb', src: i.thumb, alt: '' }) : null,
             el(
               'div',
               { class: 'grid-2' },
@@ -363,6 +364,11 @@
               input('Breddegrad (lat)', 'lat', i.lat, { inputmode: 'decimal', placeholder: '55.0612' }),
               input('Længdegrad (lon)', 'lon', i.lon, { inputmode: 'decimal', placeholder: '10.6160' }),
             ),
+            el('label', { class: 'field' }, el('span', { text: 'Billedtekst (vises ved netop denne fil)' }), (() => {
+              const ta = el('textarea', { name: 'caption', rows: '2', maxlength: '600' });
+              ta.value = i.caption || '';
+              return ta;
+            })()),
           ),
         ),
         el(
@@ -384,7 +390,7 @@
             .map(([, t, n]) => [ENT_TYPE[t.toLowerCase()] || t.toLowerCase(), n]),
           items: [...form.querySelectorAll('.edit-item')].map((fs) => {
             const v = (n) => fs.querySelector(`[name=${n}]`).value.trim();
-            return { id: fs.dataset.id, taken_at: v('taken_at'), camera: v('camera'), lat: v('lat').replace(',', '.'), lon: v('lon').replace(',', '.') };
+            return { id: fs.dataset.id, taken_at: v('taken_at'), camera: v('camera'), lat: v('lat').replace(',', '.'), lon: v('lon').replace(',', '.'), caption: v('caption') };
           }),
         };
         await act(() => api('PUT', `/api/admin/submissions/${s.id}`, body));

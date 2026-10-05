@@ -196,13 +196,14 @@ function item(c, it) {
   if (it.camera) facts.push(it.camera);
   if (it.lat != null && it.lon != null) facts.push(`${Number(it.lat).toFixed(5)}, ${Number(it.lon).toFixed(5)}`);
   if (it.kind === 'image') {
-    return `<figure><img src="${esc(it.src)}" alt=""><figcaption>${esc(facts.join(' · '))}</figcaption></figure>`;
+    const cap = it.caption ? `<span class="cap">${esc(it.caption)}</span>${facts.length ? '<br>' : ''}` : '';
+    return `<figure><img src="${esc(it.src)}" alt=""><figcaption>${cap}${esc(facts.join(' · '))}</figcaption></figure>`;
   }
   const label = { video: 'Video', audio: 'Lydoptagelse', document: 'Dokument' }[it.kind] || 'Fil';
   const verb = { video: 'Se den', audio: 'Hør den', document: 'Læs det' }[it.kind] || 'Se den';
   const pic = it.poster || it.thumb;
   return `<figure class="media ${esc(it.kind)}">${pic ? `<img src="${esc(pic)}" alt="">` : ''}
-    <figcaption><strong>${label}${it.duration ? `, ${duration(it.duration)}` : ''}</strong>${facts.length ? ` · ${esc(facts.join(' · '))}` : ''}
+    <figcaption>${it.caption ? `<span class="cap">${esc(it.caption)}</span><br>` : ''}<strong>${label}${it.duration ? `, ${duration(it.duration)}` : ''}</strong>${facts.length ? ` · ${esc(facts.join(' · '))}` : ''}
     <br>${verb} på siden: <a href="${esc(link)}">${esc(link)}</a></figcaption></figure>`;
 }
 
@@ -260,6 +261,7 @@ function html() {
   figure.media img { width: 45mm; max-height: 45mm; object-fit: cover; margin: 0; flex: none; }
   figcaption { font: 8pt/1.4 Helvetica, Arial, 'Liberation Sans', sans-serif; color: #666; margin-top: 1.5mm; text-align: center; }
   figure.media figcaption { text-align: left; margin: 0; }
+  figcaption .cap { font-size: 9.5pt; color: #222; }
   .missing { font: italic 8.5pt Helvetica, Arial, sans-serif; color: #999; }
 </style></head><body>
 <section class="cover">

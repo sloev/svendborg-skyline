@@ -39,7 +39,7 @@ for (;;) {
 const out = [];
 const tally = {};
 for (const s of subs) {
-  const text = [s.title, s.story, s.period, s.place, s.credit].filter(Boolean).join('\n');
+  const text = [s.title, s.story, s.period, s.place, s.credit, ...s.items.map((i) => i.caption)].filter(Boolean).join('\n');
   const found = rules.filter((r) => r.re.test(text)).map((r) => [r.type, r.name]);
   let old = [];
   try {
