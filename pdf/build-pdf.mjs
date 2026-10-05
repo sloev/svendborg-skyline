@@ -265,7 +265,7 @@ function html() {
 <section class="cover">
   <p class="kicker">Svendborg · Østre Kaj</p>
   <h1>Siloerne på Østre Kaj<br>– fælles arkiv</h1>
-  <p>Billeder, videoer, lyd, dokumenter og historier om siloerne på havnen i Svendborg, samlet af byens borgere, før siloerne rives ned.</p>
+  <p>Billeder, videoer, lyd, dokumenter og historier om siloerne på havnen i Svendborg, samlet af byens borgere, nu hvor siloerne holder op med at fungere som siloer.</p>
   <p class="facts">${sorted.length} bidrag · ${first === last ? first : `${first}–${last}`} · sorteret ældst først<br>
   Udtræk dannet ${esc(formatDate(generatedAt))} · <a href="${esc(SITE_URL)}">${esc(SITE_URL)}</a><br>
   Ophavsretten tilhører de krediterede. Importeret materiale er vist under den angivne licens.</p>

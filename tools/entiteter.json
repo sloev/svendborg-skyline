@@ -1,5 +1,19 @@
 [
  {
+  "id": "beefe0ec-16a5-402b-ad4f-3350a932c154",
+  "title": "Lyt: »Svendborg Havn – byens blå hjerte« – og havnearbejderen, der bar 150 kg foder på ryggen",
+  "entities": [
+   [
+    "company",
+    "Svendborg Museum"
+   ],
+   [
+    "person",
+    "Julius Larsen"
+   ]
+  ]
+ },
+ {
   "id": "6249cf87-3101-468f-82bc-9c6b2eb708ba",
   "title": "Flere billeder fra havnerundfarten 1973–1985 (Finn Johannessen)",
   "entities": [
@@ -239,7 +253,7 @@
    ],
    [
     "event",
-    "Nedrivningen af siloerne"
+    "Debatten om nedrivning"
    ]
   ]
  },
@@ -269,7 +283,7 @@
    ],
    [
     "event",
-    "Nedrivningen af siloerne"
+    "Debatten om nedrivning"
    ]
   ]
  },
@@ -1194,7 +1208,7 @@
    ],
    [
     "event",
-    "Nedrivningen af siloerne"
+    "Debatten om nedrivning"
    ],
    [
     "event",
@@ -3039,7 +3053,7 @@
    ],
    [
     "event",
-    "Nedrivningen af siloerne"
+    "Debatten om nedrivning"
    ]
   ]
  },
