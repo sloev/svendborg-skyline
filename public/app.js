@@ -888,7 +888,11 @@
     const byline = [c.credit, relLabel(c.relation), dateText(c, c.items.find((i) => i.takenAt))].filter(Boolean).join(' · ');
     let media = null;
     let body;
-    if (first && first.thumb) {
+    let slideAt = () => 0; // hvilken fil karrusellen står på, når man åbner bidraget
+    const slides = c.items.filter((i) => i.thumb);
+    if (slides.length > 1) {
+      ({ media, slideAt } = carousel(c, slides));
+    } else if (first && first.thumb) {
       media = el(
         'div',
         { class: 'tile-media' },
@@ -922,7 +926,56 @@
         processingNote(c),
       );
     }
-    return el('button', { type: 'button', class: 'tile', 'aria-label': `${t('tile.open')}${c.title ? `: ${c.title}` : ''}`, onclick: () => openViewer(c, 0) }, media, body);
+    // Et div med role=button (ikke <button>), så karrusellens pile kan være rigtige knapper.
+    const open = () => openViewer(c, c.items.indexOf(slides[slideAt()]) > -1 ? c.items.indexOf(slides[slideAt()]) : 0);
+    return el(
+      'div',
+      {
+        class: 'tile', role: 'button', tabindex: '0', 'aria-label': `${t('tile.open')}${c.title ? `: ${c.title}` : ''}`,
+        onclick: (e) => !e.target.closest('.car-nav') && open(),
+        onkeydown: (e) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), open()),
+      },
+      media,
+      body,
+    );
+  }
+
+  // Bidrag med flere billeder: stryg (eller brug pilene) for at se dem i kortet.
+  function carousel(c, slides) {
+    const f = slides[0];
+    const track = el(
+      'div',
+      { class: 'car-track' },
+      slides.map((it, k) =>
+        el(
+          'div',
+          { class: 'car-slide' },
+          el('img', { src: it.thumb, alt: k === 0 ? c.title || t('v.contribution') : '', loading: 'lazy', draggable: 'false' }),
+          it.kind === 'video' ? el('span', { class: 'play', 'aria-hidden': 'true', text: '▶' }) : null,
+        ),
+      ),
+    );
+    // Kortets højde følger det første billede (sat via CSSOM, da CSP ikke tillader style-attributter).
+    if (f.width && f.height) track.style.aspectRatio = `${f.width} / ${f.height}`;
+    const badge = el('span', { class: 'badge', text: `1/${slides.length}` });
+    const dots = el('div', { class: 'car-dots', 'aria-hidden': 'true' }, slides.map((_, k) => el('span', { class: k === 0 ? 'on' : '' })));
+    const at = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    const go = (d) => track.scrollTo({ left: (at() + d) * track.clientWidth, behavior: 'smooth' });
+    track.addEventListener('scroll', () => {
+      const k = Math.min(slides.length - 1, Math.max(0, at()));
+      badge.textContent = `${k + 1}/${slides.length}`;
+      [...dots.children].forEach((d, j) => d.classList.toggle('on', j === k));
+    }, { passive: true });
+    const media = el(
+      'div',
+      { class: 'tile-media car' },
+      track,
+      el('button', { type: 'button', class: 'car-nav prev', 'aria-label': t('v.prev'), text: '‹', onclick: (e) => (e.stopPropagation(), go(-1)) }),
+      el('button', { type: 'button', class: 'car-nav next', 'aria-label': t('v.next'), text: '›', onclick: (e) => (e.stopPropagation(), go(1)) }),
+      badge,
+      dots,
+    );
+    return { media, slideAt: () => Math.min(slides.length - 1, Math.max(0, at())) };
   }
 
   function processingNote(c) {
@@ -1023,6 +1076,27 @@
       lic.append(` · ${t('f.changed')}`);
       facts.append(el('dt', { text: t('f.license') }), lic);
     }
+  }
+
+  // Stryg til siden i fremviseren for at skifte billede.
+  {
+    let x0 = null;
+    let y0 = 0;
+    const media = $('#viewer-media');
+    media.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || e.target.closest('video, audio')) return (x0 = null);
+      x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
+    }, { passive: true });
+    media.addEventListener('touchend', (e) => {
+      if (x0 === null || !current || current.items.length < 2) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      const dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const n = current.items.length;
+      showItem(dx < 0 ? (index + 1) % n : (index - 1 + n) % n);
+    }, { passive: true });
   }
 
   viewer.addEventListener('close', () => {

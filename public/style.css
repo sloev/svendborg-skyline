@@ -154,6 +154,21 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .badge { position: absolute; top: 10px; right: 10px; background: rgba(10, 25, 38, .72); color: #fff; font-size: .78rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 56px; height: 56px; border-radius: 50%; background: rgba(10, 25, 38, .65); color: #fff;
   display: flex; align-items: center; justify-content: center; font-size: 1.4rem; padding-left: 4px; }
+/* Karrusel i kortet, når et bidrag har flere billeder */
+.car-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; max-height: 460px; }
+.car-track::-webkit-scrollbar { display: none; }
+.car-slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; display: flex; align-items: center; justify-content: center; }
+.car-slide img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.car-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+.car-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .55); box-shadow: 0 0 2px rgba(0, 0, 0, .5); }
+.car-dots span.on { background: #fff; }
+.car-nav { position: absolute; top: 50%; translate: 0 -50%; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(10, 25, 38, .55); color: #fff;
+  font-size: 1.2rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.car-nav.prev { left: 8px; }
+.car-nav.next { right: 8px; }
+.tile:hover .car-nav, .car-nav:focus-visible { opacity: 1; }
+@media (hover: none) { .car-nav { display: none; } }
+.tile:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
 .tile-body { padding: 14px 16px 16px; }
 .tile-body h3 { font-size: 1.08rem; margin: 0 0 6px; }
 .tile-body p { margin: 0; font-size: .93rem; color: #3b464e; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
