@@ -1503,13 +1503,15 @@ async function adminResult(request, env, id) {
   }
   await env.DB.prepare(
     `UPDATE items SET status = 'ready', error = '', stored_bytes = ?, full_key = ?, display_key = ?, thumb_key = ?, poster_key = ?, width = ?, height = ?,
-       duration = ?, taken_at = ?, camera = ?, lat = ?, lon = ?, metadata = ?, archive_path = COALESCE(?, archive_path),
+       duration = ?, taken_at = ?, camera = ?,
+       -- Har filen ingen GPS, beholdes en placering, som en admin allerede har sat.
+       lat = CASE WHEN ? IS NULL THEN lat ELSE ? END, lon = CASE WHEN ? IS NULL THEN lon ELSE ? END, metadata = ?, archive_path = COALESCE(?, archive_path),
        processed_at = ?, nsfw = ?
      WHERE id = ?`,
   )
     .bind(
       Math.max(0, Math.round(num(b.storedBytes) || 0)), b.fullKey || null, b.displayKey || null, b.thumbKey || null, b.posterKey || null, num(b.width), num(b.height), num(b.duration),
-      b.takenAt || null, clean(b.camera, 200) || null, num(b.lat), num(b.lon),
+      b.takenAt || null, clean(b.camera, 200) || null, num(b.lat), num(b.lat), num(b.lon), num(b.lon),
       b.metadata ? JSON.stringify(b.metadata) : null, b.archivePath || null,
       new Date().toISOString(), nsfw, id,
     )
