@@ -526,6 +526,14 @@
    [
     "person",
     "Finn Johannessen"
+   ],
+   [
+    "company",
+    "Øxenbjerg Dampmølle"
+   ],
+   [
+    "place",
+    "Øxenbjerg"
    ]
   ]
  },
@@ -785,6 +793,10 @@
    [
     "person",
     "Claus E. Hansen"
+   ],
+   [
+    "building",
+    "Svendborg Banegård"
    ]
   ]
  },
