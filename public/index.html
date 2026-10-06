@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Siloerne på Østre Kaj">
   <meta property="og:url" content="https://sloev.github.io/svendborg-skyline/">
-  <meta property="og:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=2">
+  <meta property="og:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=3">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Siloerne på Østre Kaj set fra luften">
@@ -22,7 +22,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Siloerne på Østre Kaj – del dine billeder og minder">
   <meta name="twitter:description" content="Hjælp med at samle billeder, videoer og historier om siloerne på Svendborg Havn, nu hvor en epoke på havnen slutter.">
-  <meta name="twitter:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=2">
+  <meta name="twitter:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=3">
   <link rel="canonical" href="https://sloev.github.io/svendborg-skyline/">
   <meta name="theme-color" content="#14324a">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20261006j">
+  <link rel="stylesheet" href="style.css?v=20261006k">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -38,7 +38,7 @@
 
   <header class="topbar">
     <a class="brand" href="#top" aria-label="Til toppen" data-i18n-aria="brand.aria">
-      <svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38V14h10v24M14 38V6h14v32M30 38V18h8v20M40 38V10h12v28M54 38V20h8v18" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 100 48.5" aria-hidden="true"><path d="M0.6 43.5 L0.6 2.9 L6.7 2.9 L6.7 0.6 L8.6 0.6 L8.6 2.9 L15.3 2.9 L15.3 0.6 L17.2 0.6 L17.2 2.9 L18.2 2.9 L18.2 10.3 L42.4 10.3 L42.4 12.1 L49.5 12.1 L49.5 9.5 L52.5 9.5 L52.5 12.1 L54.4 12.1 L54.4 35.1 L57 35.1 L57 31.2 L58.9 31.2 L58.9 35.1 L68.8 35.1 L68.8 19 L74.9 19 L74.9 14.1 L79.9 14.1 L79.9 9.5 L82.2 9.5 L82.2 12.9 L88.7 12.9 L88.7 12.3 L96.6 12.3 L96.6 35.8 L99.4 35.8 L99.4 43.5 Z" fill="currentColor"/><path d="M0 46.1H100" stroke="currentColor" stroke-width="1.6" stroke-dasharray="14 4 22 4 30 4"/></svg>
       <span>Siloerne på Østre Kaj</span>
     </a>
     <nav aria-label="Hovedmenu" data-i18n-aria="nav.aria">
@@ -59,7 +59,8 @@
 
   <main id="indhold">
     <section class="hero" id="top">
-      <img class="hero-img" src="img/havnen-luftfoto.webp" data-i18n-alt="hero.alt" alt="Luftfoto af Svendborg Havn med de store hvide og røde silobygninger på Østre Kaj">
+      <img class="hero-img" src="img/hero-1920.webp" srcset="img/hero-1000.webp 1000w, img/hero-1920.webp 1920w" sizes="100vw" width="1920" height="1440" data-i18n-alt="hero.alt" alt="Den hvide FAF-silo og den røde silo på Østre Kaj set over havnen, med fiskekuttere og gamle sejlskibe ved kajen, marts 2010">
+      <p class="photo-credit hero-credit"><a href="https://www.flickr.com/photos/larsrindsig/4465765438/" target="_blank" rel="noopener">📷 Lars Rindsig, 2010</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a></p>
       <div class="hero-inner">
         <p class="eyebrow">Svendborg Havn · Østre Kaj</p>
         <h1 data-i18n="hero.h1">Siloerne forsvinder snart.<br>Hjælp med at huske dem.</h1>
@@ -93,8 +94,9 @@
         <p class="muted" data-i18n="about.link">Læs også Svendborg Kommunes <a href="https://www.svendborg.dk/nyheder/open-call-om-fremtiden-for-siloerne-paa-oestre-kaj/" target="_blank" rel="noopener">open call om fremtiden for siloerne på Østre Kaj</a>.</p>
       </div>
       <figure class="about-photos">
-        <img src="img/siloerne-fra-vandet.webp" data-i18n-alt="about.img1" alt="Den hvide silo og de røde murstensbygninger set fra vandet en solskinsdag" loading="lazy">
-        <img src="img/silo-taet-paa.webp" data-i18n-alt="about.img2" alt="Tæt på den hvide silo med en blå fiskekutter ved kajen" loading="lazy">
+        <img src="img/about-1.webp" width="1200" height="790" data-i18n-alt="about.img1" alt="Den røde silo bag flydedokken med det store vægmaleri af søfolk, og en lille motorbåd i forgrunden, juli 2024" loading="lazy">
+        <img src="img/about-2.webp" width="1000" height="625" data-i18n-alt="about.img2" alt="Silotårnet på Østre Kaj set nedefra i sort-hvid, 1960" loading="lazy">
+        <figcaption class="photo-credit"><a href="https://www.flickr.com/photos/112793126@N06/53890388302/" target="_blank" rel="noopener">📷 Troels Loll, 2024</a> (public domain) · <a href="https://commons.wikimedia.org/wiki/File:Silo_Svendborg_Denmark_1960.jpg" target="_blank" rel="noopener">📷 Finn Johannessen, 1960</a> (CC0)</figcaption>
       </figure>
     </section>
 
@@ -370,9 +372,9 @@
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="config.js?v=20261006j"></script>
-  <script src="i18n.js?v=20261006j"></script>
-  <script src="editor.js?v=20261006j"></script>
-  <script src="app.js?v=20261006j" defer></script>
+  <script src="config.js?v=20261006k"></script>
+  <script src="i18n.js?v=20261006k"></script>
+  <script src="editor.js?v=20261006k"></script>
+  <script src="app.js?v=20261006k" defer></script>
 </body>
 </html>

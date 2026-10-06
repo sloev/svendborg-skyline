@@ -37,7 +37,7 @@ h3 { font-size: 1.25rem; }
 .topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px clamp(16px, 4vw, 40px); background: rgba(245, 241, 234, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--navy); text-decoration: none; font-family: var(--serif); font-weight: 800; font-size: 1.1rem; }
-.brand svg { width: 34px; height: 22px; color: var(--teal); flex: none; }
+.brand svg { width: 58px; height: 28px; color: var(--teal); flex: none; }
 .topbar nav { display: flex; align-items: center; gap: clamp(8px, 2vw, 22px); }
 .topbar nav a:not(.btn) { color: var(--ink); text-decoration: none; font-weight: 500; }
 .topbar nav a:not(.btn):hover { color: var(--teal); }
@@ -62,9 +62,19 @@ h3 { font-size: 1.25rem; }
 .link.danger { color: var(--danger); }
 
 /* ---------- hero */
-.hero { position: relative; min-height: min(88vh, 760px); display: flex; align-items: flex-end; color: #fff; overflow: hidden; }
-.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 30, 46, .15) 0%, rgba(10, 30, 46, .55) 45%, rgba(10, 30, 46, .92) 100%); }
+/* Fotoet fylder højre side og glider over i en mørk flade bag teksten, så siloerne ikke skjules af overskriften.
+   På smalle skærme står fotoet øverst, og teksten begynder under siloen. */
+.hero { position: relative; min-height: min(88vh, 760px); display: flex; align-items: flex-end; color: #fff; overflow: hidden; background: #0a1e2e; }
+.hero-img { position: absolute; top: 0; bottom: 0; left: 38%; width: 62%; height: 100%; object-fit: cover; object-position: 8% 40%; }
+.hero::after { content: ''; position: absolute; inset: 0; background:
+  linear-gradient(90deg, #0a1e2e 0%, #0a1e2e 38%, rgba(10, 30, 46, .55) 50%, rgba(10, 30, 46, 0) 66%),
+  linear-gradient(180deg, rgba(10, 30, 46, 0) 55%, rgba(10, 30, 46, .75) 100%); }
+@media (max-width: 899px) {
+  .hero { display: block; min-height: 0; }
+  .hero-img { left: 0; width: 100%; height: 56vh; bottom: auto; object-position: 28% 42%; }
+  .hero::after { background: linear-gradient(180deg, rgba(10, 30, 46, .05) 0, rgba(10, 30, 46, .1) 30vh, #0a1e2e 56vh); }
+  .hero .hero-inner { padding-top: 42vh; }
+}
 .hero-inner { position: relative; z-index: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 120px clamp(16px, 4vw, 40px) 48px; }
 .hero h1 { color: #fff; font-size: clamp(2.2rem, 6.2vw, 4.4rem); font-weight: 800; letter-spacing: -.01em; max-width: 16ch; }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .8rem; font-weight: 600; color: #bfe6dc; margin: 0 0 12px; }
@@ -83,8 +93,8 @@ h3 { font-size: 1.25rem; }
 .who { padding-left: 1.1em; }
 .who li { margin-bottom: .6em; }
 .about-photos { margin: 0; display: grid; gap: 14px; }
-.about-photos img { border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
-.about-photos img:last-child { width: 80%; margin-left: auto; margin-top: -60px; border: 6px solid var(--paper); }
+.about-photos img { border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+.about-photos img:nth-of-type(2) { width: 80%; margin-left: auto; margin-top: -60px; border: 6px solid var(--paper); }
 @media (max-width: 860px) { .about { grid-template-columns: 1fr; } }
 
 /* ---------- form */
@@ -477,3 +487,9 @@ body.view-insights .insights { display: block; min-height: 70vh; }
 
 /* Dokumenter (avisudklip, bøger, rapporter) får et lille mærke */
 .genre-tag { display: inline-block; margin: 0 0 6px; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--navy); font-size: .75rem; font-weight: 600; letter-spacing: .02em; }
+
+/* Fotokreditering for sidens egne billeder (kræves af CC BY) */
+.photo-credit { margin: 6px 0 0; font-size: .75rem; color: var(--muted); }
+.photo-credit a { color: inherit; }
+.hero-credit { position: absolute; right: 12px; top: 12px; z-index: 1; margin: 0; padding: 2px 8px; border-radius: 999px; background: rgba(10, 30, 46, .45); color: rgba(255, 255, 255, .85); }
+.about-photos figcaption { text-align: right; }
