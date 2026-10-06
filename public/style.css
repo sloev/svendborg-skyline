@@ -238,12 +238,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .viewer-facts dd { margin: 0; }
 .viewer-actions { display: flex; gap: 18px; font-size: .9rem; border-top: 1px solid var(--line); padding-top: 14px; }
 @media (max-width: 900px) {
-  .viewer { border-radius: 0; height: 100dvh; max-height: 100dvh; }
-  .viewer-inner { grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; max-height: 100dvh; height: 100dvh; }
+  .viewer { border-radius: 0; height: 100dvh; max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain; }
+  .viewer-inner { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; max-height: none; min-height: 100dvh; align-content: start; background: var(--paper); }
+  .viewer-close { position: fixed; }
   .viewer-media { max-height: 60dvh; min-height: 200px; }
   .viewer-media img, .viewer-media video { max-height: 60dvh; }
   .viewer-strip { grid-row: 3; }
-  .viewer-text { grid-row: 4; grid-column: 1; padding-top: 18px; }
+  .viewer-text { grid-row: 4; grid-column: 1; padding-top: 18px; overflow: visible; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
