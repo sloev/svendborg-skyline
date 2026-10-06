@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Plakat (A4) til opslagstavler. PDF'en public/plakat.pdf laves med: node pdf/build-plakat.mjs -->
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>Siloerne forsvinder snart – plakat</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 210mm; height: 297mm; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #fff; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; overflow: hidden; display: flex; flex-direction: column; }
+  .photo { position: relative; height: 128mm; background: #0a1e2e; }
+  .photo img { width: 100%; height: 100%; object-fit: cover; object-position: 30% 42%; display: block; }
+  .photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,30,46,0) 55%, #14324a 100%); }
+  .credit { position: absolute; top: 6mm; right: 6mm; z-index: 1; background: rgba(10,30,46,.75); border-radius: 2mm; padding: 1.6mm 3mm; font-size: 8.5pt; }
+  .text { background: #14324a; padding: 4mm 15mm 12mm; flex: 1; }
+  h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 800; font-size: 38pt; line-height: 1.04; letter-spacing: -.01em; margin: 0 0 7mm; }
+  .lead { font-size: 13.5pt; line-height: 1.55; margin: 0; color: #e8eef2; }
+  .cta { background: #fff; color: #14324a; display: flex; align-items: center; justify-content: space-between; gap: 10mm; padding: 9mm 15mm 11mm; }
+  h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 22pt; margin: 0 0 2mm; }
+  .url { font-family: 'Fraunces', Georgia, serif; font-weight: 800; font-size: 25pt; color: #1d8a74; margin: 0 0 4mm; }
+  .small { font-size: 10.5pt; line-height: 1.5; color: #5d6870; margin: 0; }
+  .qr { width: 48mm; height: 48mm; flex: none; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="photo">
+    <img src="../public/img/hero-1920.webp" alt="">
+    <div class="credit">Foto: Lars Rindsig, 2010 · CC BY 2.0</div>
+  </div>
+  <div class="text">
+    <h1>Siloerne forsvinder snart.<br>Hjælp med at huske dem.</h1>
+    <p class="lead">I årtier har siloerne på Østre Kaj været en del af Svendborgs skyline og af arbejdslivet på havnen. Nu holder de op med at fungere som siloer, og hvad der skal ske med bygningerne, er endnu ikke afgjort. Uanset hvad fremtiden bringer, samler vi billeder, videoer, lydoptagelser, historier og ting til et fælles arkiv, mens minderne stadig er friske.</p>
+  </div>
+  <div class="cta">
+    <div>
+      <h2>Del dine billeder og minder</h2>
+      <p class="url">havn.skifting.net</p>
+      <p class="small">Scan koden eller skriv adressen.<br>Gamle papirbilleder er også velkomne.</p>
+    </div>
+    <div class="qr"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" class="segno" role="img" aria-label="QR-kode til havn.skifting.net"><path transform="scale(10)" class="qrline" stroke="#0c1f2e" d="M0 0.5h7m1 0h1m3 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m5 0h1m1 0h1m2 0h2m5 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m2 0h1m3 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h4m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m4 0h1m1 0h4m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m6 0h1m4 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-17 1h1m2 0h1m-12 1h1m1 0h2m1 0h3m1 0h3m2 0h3m1 0h1m2 0h1m1 0h2m-25 1h6m1 0h4m2 0h1m2 0h1m2 0h1m3 0h1m-21 1h5m5 0h1m2 0h2m2 0h1m-20 1h2m1 0h2m1 0h2m2 0h1m1 0h1m1 0h3m1 0h4m-23 1h2m4 0h1m1 0h1m1 0h1m1 0h3m2 0h2m1 0h1m1 0h3m-22 1h1m4 0h1m1 0h2m2 0h3m1 0h3m3 0h1m-24 1h2m1 0h4m4 0h1m1 0h1m2 0h1m2 0h1m1 0h2m-24 1h1m2 0h1m4 0h1m2 0h1m2 0h1m4 0h2m3 0h1m-19 1h2m2 0h1m2 0h2m1 0h9m-17 1h4m3 0h2m3 0h1m1 0h1m1 0h1m-25 1h7m1 0h2m2 0h3m1 0h1m1 0h1m1 0h1m1 0h3m-25 1h1m5 0h1m1 0h1m2 0h2m1 0h3m3 0h1m2 0h2m-25 1h1m1 0h3m1 0h1m2 0h1m2 0h1m1 0h1m1 0h6m2 0h1m-25 1h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m1 0h4m1 0h5m-25 1h1m1 0h3m1 0h1m1 0h2m1 0h3m1 0h4m1 0h1m1 0h2m-24 1h1m5 0h1m5 0h2m3 0h2m1 0h1m1 0h1m-23 1h7m1 0h1m1 0h1m1 0h4m3 0h6"/></svg></div>
+  </div>
+</div>
+</body>
+</html>

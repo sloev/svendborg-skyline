@@ -79,7 +79,10 @@ h3 { font-size: 1.25rem; }
 .hero h1 { color: #fff; font-size: clamp(2.2rem, 6.2vw, 4.4rem); font-weight: 800; letter-spacing: -.01em; max-width: 16ch; }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: .8rem; font-weight: 600; color: #bfe6dc; margin: 0 0 12px; }
 .lead { font-size: clamp(1.05rem, 2.2vw, 1.25rem); max-width: 60ch; color: #e8eef2; }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 34px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 12px; }
+.hero-print { margin: 0 0 30px; font-size: .92rem; }
+.hero-print a { color: #e8eef2; text-decoration: underline; text-underline-offset: 3px; }
+.hero-print a:hover { color: #fff; }
 .hero .btn-ghost { color: #fff; }
 .hero .btn-ghost:hover { background: rgba(255, 255, 255, .12); }
 .stats { display: flex; flex-wrap: wrap; gap: 10px 36px; margin: 0; }
