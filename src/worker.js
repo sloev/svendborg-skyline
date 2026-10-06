@@ -202,13 +202,12 @@ export default {
 
 // ---------------------------------------------------------------- spending guard
 //
-// Cloudflare has no hard spending cap, so the worker enforces one. On the Free plan, Workers, D1
-// and Turnstile cannot cost anything (they stop at their limits). R2 is the only usage-billed part:
-//   storage  $0.015 / GB-month above 10 GB   → capped by STORAGE_LIMIT_GB
+// Cloudflare has no hard spending cap, so the worker enforces one. Workers Paid ($5/month) includes
+// 10M requests, 30M CPU-ms, 25B D1 rows read and 50M written per month; the daily ceilings below
+// (BUDGET) keep a 31-day month inside that. R2 is billed separately:
+//   storage  $0.015 / GB-month above 10 GB   → capped by STORAGE_LIMIT_GB (default: inside the free 10 GB)
 //   Class A  $4.50 / million above 1M/month  → capped by CLASS_A_MONTHLY_LIMIT (default: inside the free 1M)
-//   Class B  $0.36 / million above 10M/month → every read goes through this worker, which the Free
-//                                              plan limits to 100k requests/day (≈3M/month), so it stays free
-// With the defaults the worst case is (250 − 10) GB × $0.015 ≈ $3.60/month.
+//   Class B  $0.36 / million above 10M/month → every read goes through this worker and is capped by MEDIA_DAILY
 
 const GB = 1024 ** 3;
 
@@ -220,7 +219,7 @@ async function storageUsed(env) {
 }
 
 async function checkStorage(env, incoming) {
-  const limit = Number(env.STORAGE_LIMIT_GB || 9) * GB;
+  const limit = Number(env.STORAGE_LIMIT_GB || 9.5) * GB;
   if ((await storageUsed(env)) + incoming > limit) {
     throw new HttpError(507, 'archive_full');
   }
@@ -254,9 +253,7 @@ function budgetError() {
 
 // ---------------------------------------------------------------- forbrug, budget og adgang
 //
-// Gratisplanen giver pr. døgn 100.000 worker-forespørgsler, 5 mio. læste og 100.000 skrevne D1-rækker,
-// og R2 er gratis op til 10 mio. læsninger pr. måned. Overskrides D1-grænsen, holder databasen op med
-// at svare resten af døgnet. Derfor:
+// Workers Paid har ingen hårde grænser – alt over det inkluderede faktureres. Derfor:
 //  - alle offentlige læsninger svares fra et øjebliksbillede i hukommelsen/R2 (rebuildPublic), så et
 //    besøg normalt ikke rører D1;
 //  - hver D1-forespørgsel måles (rækker læst/skrevet), og tallene for døgnet gemmes løbende;
@@ -336,10 +333,10 @@ async function flushUsage(env, now = false) {
 }
 
 const BUDGET = {
-  d1r: (env) => Number(env.D1_DAILY_READS || 3_500_000),
-  d1w: (env) => Number(env.D1_DAILY_WRITES || 70_000),
-  media: (env) => Number(env.MEDIA_DAILY || 80_000),
-  req: (env) => Number(env.REQUESTS_DAILY || 90_000),
+  d1r: (env) => Number(env.D1_DAILY_READS || 20_000_000),
+  d1w: (env) => Number(env.D1_DAILY_WRITES || 500_000),
+  media: (env) => Number(env.MEDIA_DAILY || 250_000),
+  req: (env) => Number(env.REQUESTS_DAILY || 250_000),
 };
 function overBudget(env, k) {
   const t = USAGE.today.day === usageDay() ? USAGE.today[k] || 0 : 0;
@@ -1925,7 +1922,7 @@ async function adminList(env, url) {
   return json({
     usage: {
       storedGb: Math.round(((await storageUsed(env)) / GB) * 100) / 100,
-      storageLimitGb: Number(env.STORAGE_LIMIT_GB || 9),
+      storageLimitGb: Number(env.STORAGE_LIMIT_GB || 9.5),
       classA: usage ? usage.class_a : 0,
       classALimit: Number(env.CLASS_A_MONTHLY_LIMIT || 900000),
     },
