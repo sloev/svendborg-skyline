@@ -94,7 +94,7 @@
           new Date(s.created_at).toLocaleString('da-DK'),
           s.credit ? `Kreditering: ${s.credit}${s.show_credit ? ' (offentlig)' : ' (ikke offentlig)'}` : 'ingen kreditering',
           s.email ? `${s.email}${s.contact_ok ? ' – må kontaktes' : ''}` : '',
-          (cfg.genres || {})[s.genre] || s.genre,
+          ({ personlig: 'Personlig historie', dokument: 'Dokument', andet: 'Andet materiale' })[s.genre] || s.genre,
           s.relation,
           s.perspective,
           s.period,
