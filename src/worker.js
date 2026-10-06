@@ -431,9 +431,9 @@ async function getStats(env) {
        (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND length(x.story) >= 80 AND x.genre = 'personlig') AS stories,
        (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND (x.genre = 'dokument'
           OR EXISTS (SELECT 1 FROM items WHERE submission_id = x.id AND kind = 'document' AND status = 'ready'))) AS documents,
-       COUNT(CASE WHEN i.kind = 'image' THEN 1 END) AS images,
-       COUNT(CASE WHEN i.kind = 'video' THEN 1 END) AS videos,
-       COUNT(CASE WHEN i.kind = 'audio' THEN 1 END) AS audio
+       COUNT(CASE WHEN i.kind = 'image' AND s.genre != 'dokument' THEN 1 END) AS images,
+       COUNT(CASE WHEN i.kind = 'video' AND s.genre != 'dokument' THEN 1 END) AS videos,
+       COUNT(CASE WHEN i.kind = 'audio' AND s.genre != 'dokument' THEN 1 END) AS audio
      FROM items i JOIN submissions s ON s.id = i.submission_id
      WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'`,
   ).first();
@@ -491,7 +491,8 @@ async function listContributions(env, url) {
     params.push(yFrom || 0, yTo || 9999);
   }
   if (['image', 'video', 'audio'].includes(kind)) {
-    where.push(`EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = ? AND i.status = 'ready')`);
+    // Strengt: scannede avisudklip, bogsider o.l. er dokumenter og vises kun under Dokumenter.
+    where.push(`s.genre != 'dokument' AND EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = ? AND i.status = 'ready')`);
     params.push(kind);
   } else if (kind === 'document') {
     where.push(`(s.genre = 'dokument' OR EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = 'document' AND i.status = 'ready'))`);
@@ -765,10 +766,10 @@ async function buildSearchIndex(env) {
   const posts = [];
   const ents = new Map();
   subs.forEach((s, n) => {
-    let k = String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('');
-    if (s.genre === 'dokument' && !k.includes('d')) k += 'd';
+    // Dokumenter (avisudklip, bogsider, rapporter) tæller kun som dokumenter, ikke som billeder/video/lyd.
+    let k = s.genre === 'dokument' ? 'd' : String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('');
     if (s.genre === 'personlig' && String(s.story || '').length >= 80) k += 's';
-    posts.push([s.id, s.title || '', s.year_from, s.year_to, k, photos[s.id] || 0]);
+    posts.push([s.id, s.title || '', s.year_from, s.year_to, k, s.genre === 'dokument' ? 0 : photos[s.id] || 0]);
     let list = [];
     try {
       list = JSON.parse(s.entities || '[]');
