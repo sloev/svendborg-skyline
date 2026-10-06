@@ -155,7 +155,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 56px; height: 56px; border-radius: 50%; background: rgba(10, 25, 38, .65); color: #fff;
   display: flex; align-items: center; justify-content: center; font-size: 1.4rem; padding-left: 4px; }
 /* Karrusel i kortet, når et bidrag har flere billeder */
-.car-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; max-height: 460px; }
+.car-track { width: 100%; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; max-height: 460px; }
 .car-track::-webkit-scrollbar { display: none; }
 .car-slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; display: flex; align-items: center; justify-content: center; }
 .car-slide img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }

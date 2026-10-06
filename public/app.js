@@ -1110,7 +1110,8 @@
       ),
     );
     // Kortets højde følger det første billede (sat via CSSOM, da CSP ikke tillader style-attributter).
-    if (f.width && f.height) track.style.aspectRatio = `${f.width} / ${f.height}`;
+    // Meget høje billeder (fx avisspalter) begrænses til 3:4, ellers krymper karrusellen i bredden.
+    if (f.width && f.height) track.style.aspectRatio = String(Math.max(f.width / f.height, 0.75));
     const badge = el('span', { class: 'badge', text: `1/${slides.length}` });
     const dots = el('div', { class: 'car-dots', 'aria-hidden': 'true' }, slides.map((_, k) => el('span', { class: k === 0 ? 'on' : '' })));
     const at = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
