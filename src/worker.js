@@ -387,7 +387,8 @@ async function gate(request, env, url) {
   if (!share && !fromSite(request, env) && !(media && social)) return deny(403, 'forbidden');
   if (overBudget(env, 'req')) return deny(503, 'busy', { 'retry-after': '3600' });
   if (media && overBudget(env, 'media')) return deny(503, 'busy', { 'retry-after': '3600' });
-  const limiter = request.method === 'GET' || request.method === 'HEAD' ? env.RL_READ : env.RL_WRITE;
+  const read = request.method === 'GET' || request.method === 'HEAD';
+  const limiter = !read ? env.RL_WRITE : media ? env.RL_MEDIA || env.RL_READ : env.RL_READ;
   if (limiter) {
     const ip = request.headers.get('cf-connecting-ip') || 'ukendt';
     const { success } = await limiter.limit({ key: ip }).catch(() => ({ success: true }));

@@ -379,6 +379,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 /* ---------- kladder og autosave */
 .drafts { margin: 0 0 18px; }
 .drafts h3 { font-size: 1rem; font-family: var(--sans); color: var(--muted); margin: 0 0 8px; }
+/* Rækkerne må krympe (ellers gør et langt filnavn hele siden bredere end telefonen), og knapperne
+   lægger sig på deres egen linje, når der ikke er plads. */
+.upload-list > li { min-width: 0; }
+.draft-item { flex-wrap: wrap; row-gap: 8px; }
+.draft-item .upload-main { flex: 1 1 100px; }
 .draft-item { display: flex; align-items: center; gap: 12px; background: #fffdf8; border: 1.5px dashed #d6ccbb; border-radius: 12px; padding: 10px 14px; }
 .draft-item .btn-small { flex: none; }
 .draft-item .link { flex: none; font-size: .85rem; }

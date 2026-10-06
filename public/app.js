@@ -134,6 +134,17 @@
 
   // API base URL: empty when the worker also serves the site, else set in config.js (GitHub Pages).
   const API = String((window.SILO_CONFIG && window.SILO_CONFIG.apiBase) || '').replace(/\/+$/, '');
+  // Et billede fra arkivet, der ikke kunne hentes (fx et øjeblik med travlhed), prøves igen én gang.
+  document.addEventListener(
+    'error',
+    (e) => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement) || img.dataset.retried || !img.src || (API && !img.src.startsWith(API))) return;
+      img.dataset.retried = '1';
+      setTimeout(() => (img.src = `${img.src}${img.src.includes('?') ? '&' : '?'}igen=1`), 3000);
+    },
+    true,
+  );
 
   async function getJson(url, opts = {}) {
     const res = await fetch(API + url, opts);
