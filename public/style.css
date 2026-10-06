@@ -199,11 +199,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); outline: 
 .more-loading { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 14px auto 0; color: var(--muted); font-size: .9rem; }
 .more-loading[hidden] { display: none; }
 .more-bar { width: min(240px, 60vw); height: 4px; border-radius: 4px; background: rgba(20, 50, 74, .12); overflow: hidden; }
-.more-bar span { display: block; height: 100%; width: 0; background: var(--teal); border-radius: inherit; }
-.more-loading.counting .more-bar span { animation: more-fill 5s linear forwards; }
-.more-loading.busy .more-bar span { width: 40%; animation: more-busy 1s ease-in-out infinite alternate; }
-@keyframes more-fill { to { width: 100%; } }
-@keyframes more-busy { from { margin-left: 0; } to { margin-left: 60%; } }
+.more-bar span { display: block; height: 100%; width: 100%; background: var(--teal); border-radius: inherit; transform: scaleX(0); transform-origin: left center; will-change: transform; }
+/* Nedtællingen fylder baren jævnt (transform er glat, også på langsomme telefoner); mens bidragene
+   hentes, bliver den fyldt og pulserer roligt i stedet for at hoppe. */
+.more-loading.counting .more-bar span { animation: more-fill 4s linear forwards; }
+.more-loading.busy .more-bar span { transform: scaleX(1); animation: more-busy .8s ease-in-out infinite alternate; }
+@keyframes more-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes more-busy { from { opacity: 1; } to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .more-loading.counting .more-bar span, .more-loading.busy .more-bar span { animation: none; transform: scaleX(1); } }
 
 /* ---------- map */
 .map { height: min(70vh, 560px); border-radius: var(--radius); box-shadow: var(--shadow); background: #dfe7ea; }

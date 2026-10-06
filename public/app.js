@@ -1148,13 +1148,16 @@
   // Uendelig rulning: når "Vis flere" kommer til syne, vises en indikator i 5 sekunder (så man kan
   // nå at læse sidefoden), og så hentes de næste bidrag. Ruller man væk, afbrydes nedtællingen.
   const moreLoading = $('#more-loading');
-  const AUTO_MORE_MS = 5000;
+  const AUTO_MORE_MS = 4000; // samme tid som animationen .more-loading.counting i style.css
   let moreTimer = null;
   let loadingMore = false;
   function cancelAutoMore() {
     clearTimeout(moreTimer);
     moreTimer = null;
-    if (!loadingMore) moreLoading.hidden = true;
+    if (!loadingMore) {
+      moreLoading.hidden = true;
+      moreLoading.classList.remove('counting');
+    }
   }
   async function loadMore() {
     cancelAutoMore();
@@ -1190,6 +1193,14 @@
     })
     : null;
   if (moreObserver) moreObserver.observe(moreBtn);
+  // Skifter man fane eller app, nulstilles nedtællingen og starter forfra, når man kommer tilbage.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return cancelAutoMore();
+    if (moreObserver && !moreBtn.hidden) {
+      moreObserver.unobserve(moreBtn);
+      moreObserver.observe(moreBtn);
+    }
+  });
   moreBtn.addEventListener('click', () => loadMore());
   $('#kind-filter').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-kind]');
