@@ -474,3 +474,6 @@ body.view-insights .insights { display: block; min-height: 70vh; }
 .viewer-count { display: inline-block; min-width: 2.6em; margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: var(--navy); color: #fff; font: 600 .8rem/1.6 var(--sans); text-align: center; vertical-align: 1px; }
 .viewer-count:empty { display: none; }
 .stats > div[hidden] { display: none; }
+
+/* Dokumenter (avisudklip, bøger, rapporter) får et lille mærke */
+.genre-tag { display: inline-block; margin: 0 0 6px; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--navy); font-size: .75rem; font-weight: 600; letter-spacing: .02em; }

@@ -60,6 +60,11 @@ const PERSPECTIVES = {
   andet: 'Andet',
 };
 
+// Bidragets art. Folks egne bidrag er personlige; importeret materiale er dokumenter (avisudklip, bøger,
+// rapporter, arkivtekster) eller andet (fx billeder fra andre arkiver og fotodelingssider).
+const GENRES = { personlig: 'Personlig historie', dokument: 'Dokument', andet: 'Andet materiale' };
+const genreOf = (v, fallback) => (Object.hasOwn(GENRES, v) ? v : fallback);
+
 const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif', 'tif', 'tiff', 'bmp', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'raf', 'rw2'];
 const VIDEO_EXT = ['mp4', 'mov', 'm4v', 'avi', 'mkv', 'webm', '3gp', 'mts', 'm2ts', 'mpg', 'mpeg', 'wmv'];
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'amr', 'wma'];
@@ -409,6 +414,7 @@ function getConfig(env) {
       contactEmail: env.CONTACT_EMAIL || '',
       relations: RELATIONS,
       perspectives: PERSPECTIVES,
+      genres: GENRES,
       limits: LIMITS,
       shareBase: `${env.PUBLIC_ORIGIN}/s/`,
     },
@@ -421,13 +427,13 @@ async function getStats(env) {
   const row = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM submissions WHERE status = 'published' AND is_test = 0) AS contributions,
-       -- Historier: tekstbidrag uden filer og folks egne bidrag med en egentlig tekst (ikke billedtekster til importerede billeder).
-       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND length(x.story) >= 80
-          AND (coalesce(x.source_url, '') = '' OR NOT EXISTS (SELECT 1 FROM items WHERE submission_id = x.id))) AS stories,
+       -- Historier: personlige bidrag med en egentlig tekst. Dokumenter: bidrag af arten dokument og PDF'er.
+       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND length(x.story) >= 80 AND x.genre = 'personlig') AS stories,
+       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND (x.genre = 'dokument'
+          OR EXISTS (SELECT 1 FROM items WHERE submission_id = x.id AND kind = 'document' AND status = 'ready'))) AS documents,
        COUNT(CASE WHEN i.kind = 'image' THEN 1 END) AS images,
        COUNT(CASE WHEN i.kind = 'video' THEN 1 END) AS videos,
-       COUNT(CASE WHEN i.kind = 'audio' THEN 1 END) AS audio,
-       COUNT(CASE WHEN i.kind = 'document' THEN 1 END) AS documents
+       COUNT(CASE WHEN i.kind = 'audio' THEN 1 END) AS audio
      FROM items i JOIN submissions s ON s.id = i.submission_id
      WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'`,
   ).first();
@@ -484,11 +490,13 @@ async function listContributions(env, url) {
     where.push('s.year_from IS NOT NULL AND s.year_to >= ? AND s.year_from <= ?');
     params.push(yFrom || 0, yTo || 9999);
   }
-  if (['image', 'video', 'audio', 'document'].includes(kind)) {
+  if (['image', 'video', 'audio'].includes(kind)) {
     where.push(`EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = ? AND i.status = 'ready')`);
     params.push(kind);
+  } else if (kind === 'document') {
+    where.push(`(s.genre = 'dokument' OR EXISTS (SELECT 1 FROM items i WHERE i.submission_id = s.id AND i.kind = 'document' AND i.status = 'ready'))`);
   } else if (kind === 'story') {
-    where.push(`length(s.story) >= 80`);
+    where.push(`length(s.story) >= 80 AND s.genre = 'personlig'`);
   }
 
   const { results } = await env.DB.prepare(
@@ -590,6 +598,7 @@ function publicSubmission(env, s, items) {
     perspectiveLabel: PERSPECTIVES[s.perspective] || '',
     relation: s.relation,
     relationLabel: RELATIONS[s.relation] || '',
+    genre: s.genre || 'personlig',
     credit: s.show_credit ? s.credit : '',
     source: s.source_url ? { url: s.source_url, license: s.license, licenseUrl: s.license_url } : null,
     items: items.filter((i) => i.status === 'ready').map((i) => publicItem(env, i)),
@@ -714,6 +723,7 @@ async function adminSetMeta(request, env, ctx, id) {
   if (typeof b.story === 'string') {
     await env.DB.prepare(`UPDATE submissions SET story = ? WHERE id = ?`).bind(clean(b.story, LIMITS.story, true), id).run();
   }
+  if (Object.hasOwn(GENRES, b.genre)) await env.DB.prepare(`UPDATE submissions SET genre = ? WHERE id = ?`).bind(b.genre, id).run();
   // Datoer pr. fil: { <fil-id>: '1975' | '1975-06' | '1975-06-21' | '' }
   if (b.dates && typeof b.dates === 'object') {
     for (const [itemId, v] of Object.entries(b.dates).slice(0, 50)) {
@@ -739,11 +749,11 @@ async function adminReindex(env) {
   return json({ ok: true, submissions: results.length, posts: index.posts.length, entities: index.entities.length });
 }
 
-// Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=historie), antal billeder],
+// Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=personlig historie), antal billeder],
 // entities = [type, navn, [indeks i posts …]]. Kun offentlige bidrag.
 async function buildSearchIndex(env) {
   const { results: subs } = await env.DB.prepare(
-    `SELECT id, title, story, year_from, year_to, entities FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
+    `SELECT id, title, story, year_from, year_to, entities, genre FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
   ).all();
   const { results: kinds } = await env.DB.prepare(
     `SELECT i.submission_id AS id, GROUP_CONCAT(DISTINCT i.kind) AS k, SUM(i.kind = 'image') AS n FROM items i JOIN submissions s ON s.id = i.submission_id
@@ -755,7 +765,9 @@ async function buildSearchIndex(env) {
   const posts = [];
   const ents = new Map();
   subs.forEach((s, n) => {
-    const k = String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('') + (String(s.story || '').length >= 80 ? 's' : '');
+    let k = String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('');
+    if (s.genre === 'dokument' && !k.includes('d')) k += 'd';
+    if (s.genre === 'personlig' && String(s.story || '').length >= 80) k += 's';
     posts.push([s.id, s.title || '', s.year_from, s.year_to, k, photos[s.id] || 0]);
     let list = [];
     try {
@@ -1648,6 +1660,7 @@ async function adminEdit(request, env, id) {
     )
     .run();
   if (Array.isArray(b.entities)) await env.DB.prepare(`UPDATE submissions SET entities = ? WHERE id = ?`).bind(JSON.stringify(cleanEntities(b.entities)), id).run();
+  if (Object.hasOwn(GENRES, b.genre)) await env.DB.prepare(`UPDATE submissions SET genre = ? WHERE id = ?`).bind(b.genre, id).run();
   for (const it of Array.isArray(b.items) ? b.items.slice(0, 50) : []) {
     // (årstallene genberegnes efter løkken)
     const taken = takenValue(it.taken_at);
@@ -1844,12 +1857,12 @@ async function adminImport(request, env) {
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, credit, show_credit,
-         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test, source_url, license, license_url)
-       VALUES (?, ?, 'review', ?, ?, ?, ?, ?, '', ?, 1, '', 1, 0, ?, 'import', 'import', '', 0, ?, ?, ?)`,
+         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test, source_url, license, license_url, genre)
+       VALUES (?, ?, 'review', ?, ?, ?, ?, ?, '', ?, 1, '', 1, 0, ?, 'import', 'import', '', 0, ?, ?, ?, ?)`,
     ).bind(
       subId, now, clean(b.title, LIMITS.title), clean(b.story, LIMITS.story, true), clean(b.period, LIMITS.period),
       clean(b.place, LIMITS.place), Object.hasOwn(PERSPECTIVES, b.perspective) ? b.perspective : '',
-      clean(b.credit, LIMITS.credit) || 'Ukendt', randomHex(24), sourceUrl, license, licenseUrl,
+      clean(b.credit, LIMITS.credit) || 'Ukendt', randomHex(24), sourceUrl, license, licenseUrl, genreOf(b.genre, 'andet'),
     ),
     ...items.map((it) =>
       env.DB.prepare(

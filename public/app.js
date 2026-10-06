@@ -1031,6 +1031,9 @@
     }
   }
 
+  // Dokumenter (avisudklip, bøger, rapporter) mærkes, så de ikke forveksles med folks egne historier.
+  const genreTag = (c) => (c.genre === 'dokument' ? el('span', { class: 'genre-tag', text: `📄 ${t('genre.dokument')}` }) : null);
+
   function tile(c) {
     const first = c.items.find((i) => i.thumb) || c.items[0];
     const excerpt = c.story ? window.SiloKit.plain(c.story).slice(0, 400) : '';
@@ -1060,6 +1063,7 @@
         el(
           'div',
           { class: 'tile-body tile-body-quote' },
+          genreTag(c),
           c.title ? el('h3', { text: c.title }) : null,
           el('span', { class: 'byline', text: byline }),
           processingNote(c),
@@ -1069,6 +1073,7 @@
       body = el(
         'div',
         { class: 'tile-body' },
+        genreTag(c),
         c.title ? el('h3', { text: c.title }) : null,
         excerpt ? el('p', { text: excerpt }) : null,
         byline ? el('span', { class: 'byline', text: byline }) : null,
@@ -1580,7 +1585,7 @@
   function openViewer(c, i) {
     current = c;
     $('#viewer-title').textContent = c.title || (c.items.length ? t('v.contribution') : t('v.story'));
-    $('#viewer-meta').textContent = [c.credit ? t('v.credit', { credit: c.credit }) : t('v.creditHidden'), c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
+    $('#viewer-meta').textContent = [c.genre === 'dokument' ? `📄 ${t('genre.dokument')}` : '', c.credit ? t('v.credit', { credit: c.credit }) : t('v.creditHidden'), c.publishedAt ? fmtDate.format(new Date(c.publishedAt)) : ''].filter(Boolean).join(' · ');
     window.SiloKit.render(c.story || '', $('#viewer-story'));
     const tags = $('#viewer-tags');
     tags.textContent = '';

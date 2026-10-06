@@ -94,6 +94,7 @@
           new Date(s.created_at).toLocaleString('da-DK'),
           s.credit ? `Kreditering: ${s.credit}${s.show_credit ? ' (offentlig)' : ' (ikke offentlig)'}` : 'ingen kreditering',
           s.email ? `${s.email}${s.contact_ok ? ' – må kontaktes' : ''}` : '',
+          (cfg.genres || {})[s.genre] || s.genre,
           s.relation,
           s.perspective,
           s.period,
@@ -328,6 +329,7 @@
           input('Hvor fra', 'place', s.place, { maxlength: L.place }),
           select('Perspektiv', 'perspective', s.perspective, cfg.perspectives),
           select('Tilknytning', 'relation', s.relation, cfg.relations),
+          select('Art (personlig historie, dokument eller andet)', 'genre', s.genre, cfg.genres),
           input('Kreditering / ophavsret', 'credit', s.credit, { maxlength: L.credit }),
           input('E-mail', 'email', s.email, { type: 'email', maxlength: L.email }),
         ),
@@ -383,7 +385,7 @@
         const f = form.elements;
         const body = {
           title: f.title.value, story: f.story.value, period: f.period.value, place: f.place.value,
-          perspective: f.perspective.value, relation: f.relation.value, credit: f.credit.value, email: f.email.value,
+          perspective: f.perspective.value, relation: f.relation.value, genre: f.genre.value, credit: f.credit.value, email: f.email.value,
           show_credit: f.show_credit.checked, contact_ok: f.contact_ok.checked,
           source_url: f.source_url.value, license: f.license.value, license_url: f.license_url.value,
           entities: f.entities.value.split('\n').map((l) => l.match(/^\s*([^:]+?)\s*:\s*(.+?)\s*$/)).filter(Boolean)
