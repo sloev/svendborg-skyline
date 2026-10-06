@@ -702,12 +702,18 @@
 
   $('#new-item').addEventListener('click', () => openForm());
   for (const b of $$('[data-cancel]', form)) b.addEventListener('click', closeForm);
-  for (const b of $$('[data-back]', form)) b.addEventListener('click', () => goStep(step - 1));
+  // Trinene er forskellig lange. Står man nederst på et langt trin og går videre, ville siden ellers
+  // ende i afsnittene under formularen – så vi ruller op til starten af det nye trin.
+  function toFormTop() {
+    if (form.getBoundingClientRect().top < 0) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  for (const b of $$('[data-back]', form)) b.addEventListener('click', () => (goStep(step - 1), toFormTop()));
   for (const b of $$('[data-next]', form)) {
     b.addEventListener('click', () => {
       const err = validateStep(step);
       if (err) return showError(err);
       goStep(step + 1);
+      toFormTop();
     });
   }
   $('#story-only').addEventListener('click', () => {
