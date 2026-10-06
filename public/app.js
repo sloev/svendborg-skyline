@@ -261,7 +261,7 @@
     loadArchive();
   }
 
-  // Hele arkivet som PDF (bygges dagligt af en GitHub Action, kun når der er nyt).
+  // Hele arkivet som PDF (bygges ugentligt af en GitHub Action, kun når der er nyt).
   async function loadArchive() {
     try {
       const a = await getJson('/api/archive');

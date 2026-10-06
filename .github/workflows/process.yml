@@ -4,8 +4,10 @@ name: Behandl uploads
 # PDF → Ghostscript) og fjerner al metadata (dato, kamera og GPS gemmes kun i databasen). Workeren sletter originalerne.
 # Billeder, videoer og PDF'er tjekkes for nøgenhed/porno (NSFW); mistænkte bidrag markeres i admin.
 #
-# Startes af workeren lige efter en upload (repository_dispatch), hver time som sikkerhedsnet,
-# eller i hånden fra Actions-fanen.
+# Startes af workeren (repository_dispatch): lige efter en upload – højst én gang hvert 10. minut,
+# da én kørsel tømmer hele køen – og af workerens kvarterstjek, når der ligger filer og venter.
+# Der er ingen timeplan her, så der bruges ingen GitHub-maskintid, når der intet er at lave.
+# Kan også startes i hånden fra Actions-fanen.
 #
 # Hemmeligheder: ADMIN_TOKEN, CLOUDFLARE_API_TOKEN og CLOUDFLARE_ACCOUNT_ID (bruges kun til at
 # finde workerens adresse; ellers sæt variablen WORKER_URL).
@@ -15,8 +17,6 @@ name: Behandl uploads
 on:
   repository_dispatch:
     types: [process-media]
-  schedule:
-    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       strip_existing:

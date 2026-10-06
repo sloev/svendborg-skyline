@@ -1,6 +1,6 @@
 name: Hele arkivet som PDF
 
-# Bygger dagligt én PDF med alle offentlige bidrag (tekst, billeder, overskrifter, beskrivelser,
+# Bygger hver søndag nat én PDF med alle offentlige bidrag (tekst, billeder, overskrifter, beskrivelser,
 # datoer og øvrige felter), sorteret ældst først efter EXIF-dato, skrevet dato eller upload-dato.
 # Bygges kun, hvis der er sket noget siden sidst. PDF'en hentes fra knappen på siden.
 #
@@ -9,7 +9,7 @@ name: Hele arkivet som PDF
 
 on:
   schedule:
-    - cron: '41 2 * * *'
+    - cron: '41 2 * * 0'
   workflow_dispatch:
     inputs:
       force:

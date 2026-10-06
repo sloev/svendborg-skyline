@@ -4,16 +4,14 @@ name: Test af upload (headless browser)
 # omkodningen, tjekker visning, sprog, delelink, forhåndsbillede og sikkerhed, og sletter
 # derefter testbidraget igen. Testbidrag vises aldrig offentligt.
 #
-# Kører efter hver udgivelse af hjemmesiden, hver mandag, og i hånden fra Actions-fanen.
+# Kører hver mandag og i hånden fra Actions-fanen (ikke efter hver udgivelse – det bruger for meget
+# GitHub-maskintid; start den i hånden efter større ændringer).
 # Hemmeligheder: ADMIN_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (eller variablen WORKER_URL).
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '23 6 * * 1'
-  workflow_run:
-    workflows: ['Udgiv hjemmeside (GitHub Pages)']
-    types: [completed]
 
 concurrency:
   group: e2e
@@ -24,7 +22,6 @@ permissions:
 
 jobs:
   test:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

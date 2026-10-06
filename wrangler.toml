@@ -2,9 +2,10 @@ name = "silo-arkiv"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 
-# Daglig oprydning i uploads, der aldrig blev gjort færdige.
 [triggers]
-crons = ["23 3 * * *"]
+# Dagligt kl. 3.23 (UTC) ryddes op; hvert kvarter tjekkes, om der ligger filer og venter på omkodning
+# (se DAILY_CRON i src/worker.js). Workerens timeplan er gratis, GitHubs koster maskintid.
+crons = ["23 3 * * *", "*/15 * * * *"]
 
 [[d1_databases]]
 binding = "DB"

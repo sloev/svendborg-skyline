@@ -188,7 +188,11 @@ export default {
 
   // Daily (see [triggers] in wrangler.toml): clean up uploads that were started but never finished,
   // so their parts stop taking up (billable) space.
+  // Hvert kvarter: ligger der filer og venter, startes omkodningen på GitHub (højst hvert 10. minut).
+  // Det erstatter GitHubs egen timeplan, så der ikke bruges GitHub-maskintid, når der intet er at lave.
   async scheduled(event, env, ctx) {
+    ctx.waitUntil(processIfQueued(env).catch((e) => console.error('queue', e.message)));
+    if (event.cron !== DAILY_CRON) return;
     ctx.waitUntil(abandonUploads(env, `created_at < ?`, [isoAgo(48 * 3600)], 'submissions'));
     // Kommentarer: den hashede IP-adresse bruges kun mod spam og ryddes efter 30 dage.
     ctx.waitUntil(env.DB.prepare(`UPDATE comments SET ip_hash = '' WHERE ip_hash != '' AND created_at < ?`).bind(isoAgo(30 * 86400)).run());
@@ -844,7 +848,7 @@ async function getMap(env) {
   return json({ points }, 200, { 'cache-control': 'public, max-age=300' });
 }
 
-// Hele arkivet som én PDF. Bygges dagligt af GitHub Actions (.github/workflows/pdf.yml), kun når der
+// Hele arkivet som én PDF. Bygges hver søndag af GitHub Actions (.github/workflows/pdf.yml), kun når der
 // er sket noget siden sidst, og lægges i R2 under media/arkiv/ sammen med info.json.
 const ARCHIVE_PDF = 'media/arkiv/siloerne.pdf';
 const ARCHIVE_INFO = 'media/arkiv/info.json';
@@ -1628,8 +1632,21 @@ async function adminCommentDelete(env, id) {
   return json({ ok: true });
 }
 
+// Omkodningen kører på GitHub Actions og tømmer hele køen i én kørsel, så den startes højst én gang
+// hvert 10. minut – ikke én gang pr. fil. Filer, der kommer ind imens, samles op af kvarterstjekket.
+const DAILY_CRON = '23 3 * * *';
+const DISPATCH_GAP_S = 600;
 async function triggerProcessing(env) {
   if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return;
+  const now = Math.floor(Date.now() / 1000);
+  const claimed = await env.DB.prepare(
+    `INSERT INTO counters (name, n) VALUES ('gh_dispatch', ?)
+     ON CONFLICT(name) DO UPDATE SET n = excluded.n WHERE counters.n < ?
+     RETURNING n`,
+  )
+    .bind(now, now - DISPATCH_GAP_S)
+    .first();
+  if (!claimed) return; // startet for nylig
   const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/dispatches`, {
     method: 'POST',
     headers: {
@@ -1793,7 +1810,7 @@ async function serveMedia(request, env, url) {
   headers.set('etag', obj.httpEtag);
   headers.set('accept-ranges', 'bytes');
   if (key.startsWith('media/arkiv/')) {
-    // Overskrives dagligt, så kun kort cache.
+    // Overskrives jævnligt, så kun kort cache.
     headers.set('cache-control', 'public, max-age=300');
     if (key === ARCHIVE_PDF) headers.set('content-disposition', `attachment; filename="siloerne-paa-oestre-kaj-${obj.uploaded.toISOString().slice(0, 10)}.pdf"`);
   } else if (!open) {
@@ -2027,6 +2044,11 @@ async function deleteOriginal(env, id) {
 }
 
 const CLAIMABLE = `(status = 'pending' OR (status = 'processing' AND claimed_at < ?)) AND attempts < 3`;
+
+async function processIfQueued(env) {
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM items WHERE ${CLAIMABLE}`).bind(isoAgo(3 * 3600)).first();
+  if (row.n > 0) await triggerProcessing(env);
+}
 
 async function adminQueueSize(env) {
   const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM items WHERE ${CLAIMABLE}`).bind(isoAgo(3 * 3600)).first();
