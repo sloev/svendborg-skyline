@@ -1,5 +1,350 @@
 [
  {
+  "id": "809384b3-d255-4d77-8c88-2caf6ea028b2",
+  "title": "Kongeskibet Dannebrog i Svendborg med siloerne bagved, april 2014",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ]
+  ]
+ },
+ {
+  "id": "01994886-c650-459c-8b3d-fc56d70c9ae6",
+  "title": "DLG-siloen og den røde silo bag Nordre Kaj, juni 2017",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Nordre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "7f103228-70ec-40dc-bd6d-bae2e6c8d26b",
+  "title": "Svendborg Havn på film og tv – kan du få øje på siloerne?",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "ORION-FILM"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Havnepladsen"
+   ]
+  ]
+ },
+ {
+  "id": "96d697f8-ea54-4392-b02a-952e4e780197",
+  "title": "Havnen i Svendborg 1952 – fra et privat fotoalbum",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ]
+  ]
+ },
+ {
+  "id": "ef4808f9-2682-4ce7-b227-422e54aa4aae",
+  "title": "Damptog foran kornsiloerne i Svendborg, 1975–1979",
+  "entities": []
+ },
+ {
+  "id": "d4ec0d76-89c2-46a8-9489-958dc65e2d4e",
+  "title": "Ærøfærgerne og siloerne ved Svendborg Havn, 3.–4. september 1962",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ]
+  ]
+ },
+ {
+  "id": "f1660b86-9b64-417b-8151-13aeac00d669",
+  "title": "FAF's silovogne ved pakhusene på Østre Havnevej, 1987–1994",
+  "entities": [
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "SFvJ – Syd-Fyenske Veteranjernbane"
+   ],
+   [
+    "place",
+    "Østre Havnevej"
+   ],
+   [
+    "vehicle",
+    "Köf 275"
+   ],
+   [
+    "vehicle",
+    "FAF-silovognene"
+   ],
+   [
+    "ship",
+    "Ærøsund (færge)"
+   ],
+   [
+    "person",
+    "Claus E. Hansen"
+   ]
+  ]
+ },
+ {
+  "id": "876c9b48-1279-45e6-b2e3-3b749793a61a",
+  "title": "Flere af arkivets billeder af siloerne og Østre Havn, 1898–1985",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "Svendborg Gasværk"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "Nordisk Kellogg's"
+   ],
+   [
+    "company",
+    "Svendborg Boghvede- og Havremølle"
+   ],
+   [
+    "company",
+    "Svendborg Dampmølle"
+   ],
+   [
+    "company",
+    "Petersen & Jensen"
+   ],
+   [
+    "company",
+    "Svendborg Skibsværft"
+   ],
+   [
+    "company",
+    "A.E. Sørensen"
+   ],
+   [
+    "company",
+    "Svendborg Havn (havnevæsenet)"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Jessens Mole"
+   ],
+   [
+    "place",
+    "Nordre Havn"
+   ],
+   [
+    "place",
+    "Odense"
+   ],
+   [
+    "person",
+    "Thorvald Schleimann"
+   ],
+   [
+    "person",
+    "Eyvind Jensen"
+   ],
+   [
+    "person",
+    "Roland Petersen"
+   ]
+  ]
+ },
+ {
+  "id": "9cf2abdb-7408-4e34-9051-68820a85c654",
+  "title": "Frederiksø og flydedokkene med siloerne bagved, juni 2024",
+  "entities": [
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ]
+  ]
+ },
+ {
+  "id": "fcb3ec95-05ee-43e2-82b3-98071a33137e",
+  "title": "Østre Havn og DLG-siloerne set skråt fra luften",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Havn"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "event",
+    "Debatten om nedrivning"
+   ]
+  ]
+ },
+ {
+  "id": "d1125bd7-eb33-407b-8b03-50c9687234be",
+  "title": "DLG-siloen med skibe ved kajen – da foderfabrikken lukkede, 2014",
+  "entities": [
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "DLG"
+   ]
+  ]
+ },
+ {
+  "id": "fbbae7ed-747b-4bc0-9668-ae428d3498b4",
+  "title": "Siloerne i pressen 2014–2026: lukningen, forfaldet, beslutningen og et sidste forsøg",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "building",
+    "Petersen & Jensens silopakhus (1901)"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "company",
+    "Fyns Amts Avis"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "event",
+    "Debatten om nedrivning"
+   ]
+  ]
+ },
+ {
+  "id": "21e7f249-30f9-4149-8eb2-6d04c114dc60",
+  "title": "Siloerne i videoer på YouTube, 2011–2026",
+  "entities": [
+   [
+    "building",
+    "FAF-siloen"
+   ],
+   [
+    "building",
+    "DLG-siloen"
+   ],
+   [
+    "company",
+    "FAF – Fyns Andels Foderstofforretning"
+   ],
+   [
+    "company",
+    "DLG"
+   ],
+   [
+    "place",
+    "Østre Kaj"
+   ],
+   [
+    "place",
+    "Frederiksø"
+   ],
+   [
+    "place",
+    "Svendborgsund"
+   ],
+   [
+    "place",
+    "Tåsinge"
+   ]
+  ]
+ },
+ {
   "id": "beefe0ec-16a5-402b-ad4f-3350a932c154",
   "title": "Lyt: »Svendborg Havn – byens blå hjerte« – og havnearbejderen, der bar 150 kg foder på ryggen",
   "entities": [
