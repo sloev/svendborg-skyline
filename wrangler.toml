@@ -17,6 +17,17 @@ migrations_dir = "migrations"
 binding = "BUCKET"
 bucket_name = "silo-arkiv"
 
+# Loft pr. IP-adresse pr. minut (Cloudflares indbyggede rate limiting; koster ikke noget).
+[[ratelimits]]
+name = "RL_READ"
+namespace_id = "1001"
+simple = { limit = 300, period = 60 }
+
+[[ratelimits]]
+name = "RL_WRITE"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
 [vars]
 # Offentlig Turnstile-nøgle (lokalt bruges testnøglen 1x00000000000000000000AA via .dev.vars).
 TURNSTILE_SITE_KEY = "0x4AAAAAAFNXcGxm9JQyNYTX"
@@ -33,13 +44,20 @@ MODERATION = "pre"
 MEDIA_BASE_URL = ""
 # Repo hvis "Behandl uploads"-workflow omkoder filerne (kræver GITHUB_TOKEN-hemmeligheden).
 GITHUB_REPO = "sloev/svendborg-skyline"
-# Udgiftsloft (se src/worker.js). Værst tænkelige: (250 − 10) GB × $0,015 ≈ $3,60 pr. måned.
-STORAGE_LIMIT_GB = "250"
+# Udgiftsloft (se src/worker.js). Værst tænkelige: (60 − 10) GB × $0,015 ≈ $0,75 pr. måned.
+STORAGE_LIMIT_GB = "60"
 CLASS_A_MONTHLY_LIMIT = "900000"
-# Den eneste side der må sende bidrag (CORS, afsender-tjek og Turnstile-hostname), kommasepareret.
-ALLOWED_ORIGINS = "https://sloev.github.io"
+# De eneste sider, der må bruge API'et og filerne (CORS, afsender-tjek og Turnstile-hostname),
+# kommasepareret. Kun det rigtige domæne og lokal udvikling.
+ALLOWED_ORIGINS = "https://havn.skifting.net,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8787"
 # Hjemmesidens adresse (delelinks og alt der ikke er API sendes hertil).
-SITE_URL = "https://sloev.github.io/svendborg-skyline/"
+SITE_URL = "https://havn.skifting.net/"
+# Døgnloft (se »døgnbudget« i src/worker.js). Under Free-planens grænser, så siden aldrig går helt i stå:
+# læste/skrevne D1-rækker, filer hentet fra R2 og forespørgsler i alt.
+D1_DAILY_READS = "3500000"
+D1_DAILY_WRITES = "70000"
+MEDIA_DAILY = "80000"
+REQUESTS_DAILY = "90000"
 # Vises i afsnittet om privatliv.
 CONTACT_EMAIL = "fremmedartet@gmail.com"
 

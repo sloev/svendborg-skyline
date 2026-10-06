@@ -55,6 +55,6 @@ jobs:
       - name: Kør testen
         working-directory: tests
         env:
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          SITE_URL: https://havn.skifting.net/
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: node e2e.mjs

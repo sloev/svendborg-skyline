@@ -11,8 +11,8 @@
   <meta property="og:description" content="Hjælp med at samle billeder, videoer og historier om siloerne på Svendborg Havn, nu hvor en epoke på havnen slutter.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Siloerne på Østre Kaj">
-  <meta property="og:url" content="https://sloev.github.io/svendborg-skyline/">
-  <meta property="og:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=3">
+  <meta property="og:url" content="https://havn.skifting.net/">
+  <meta property="og:image" content="https://havn.skifting.net/og.jpg?v=3">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Siloerne på Østre Kaj set fra luften">
@@ -22,15 +22,16 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Siloerne på Østre Kaj – del dine billeder og minder">
   <meta name="twitter:description" content="Hjælp med at samle billeder, videoer og historier om siloerne på Svendborg Havn, nu hvor en epoke på havnen slutter.">
-  <meta name="twitter:image" content="https://sloev.github.io/svendborg-skyline/og.jpg?v=3">
-  <link rel="canonical" href="https://sloev.github.io/svendborg-skyline/">
+  <meta name="twitter:image" content="https://havn.skifting.net/og.jpg?v=3">
+  <meta name="robots" content="noai, noimageai">
+  <link rel="canonical" href="https://havn.skifting.net/">
   <meta name="theme-color" content="#14324a">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20261006k">
+  <link rel="stylesheet" href="style.css?v=20261006l">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -149,6 +150,12 @@
           <div class="picked" id="picked"></div>
           <p class="hint prefill-note" id="prefill-note" hidden data-i18n="prefill.note">✨ Vi har foreslået overskrift og beskrivelse ud fra filen. Ret dem gerne.</p>
           <p class="req-legend"><span class="req-star">*</span> <span data-i18n="req.legend">skal udfyldes</span></p>
+          <fieldset class="field genre-pick">
+            <legend><span data-i18n="f.genre">Hvad deler du?</span><span class="req-star">*</span></legend>
+            <label class="radio"><input type="radio" name="genre" value="personlig" checked> <span data-i18n="f.genre.personlig"><strong>Mine egne billeder, videoer eller minder</strong> – noget du selv har taget, optaget eller oplevet.</span></label>
+            <label class="radio"><input type="radio" name="genre" value="dokument"> <span data-i18n="f.genre.dokument"><strong>Et dokument</strong> – avisudklip, brev, bog, arbejdsseddel, tegning eller lignende. Et foto af et dokument er også et dokument.</span></label>
+            <label class="radio"><input type="radio" name="genre" value="andet"> <span data-i18n="f.genre.andet"><strong>Andres billeder eller materiale</strong> – fx noget du har fundet i et arkiv, en bog eller på nettet.</span></label>
+          </fieldset>
           <label class="field" data-field="title">
             <span><span data-label></span><span class="req-star" hidden>*</span></span>
             <input type="text" name="title" maxlength="120" data-i18n-ph="f.title.ph" placeholder="F.eks. Solnedgang over havnen, juni 2024">
@@ -372,9 +379,9 @@
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="config.js?v=20261006k"></script>
-  <script src="i18n.js?v=20261006k"></script>
-  <script src="editor.js?v=20261006k"></script>
-  <script src="app.js?v=20261006k" defer></script>
+  <script src="config.js?v=20261006l"></script>
+  <script src="i18n.js?v=20261006l"></script>
+  <script src="editor.js?v=20261006l"></script>
+  <script src="app.js?v=20261006l" defer></script>
 </body>
 </html>

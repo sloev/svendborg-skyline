@@ -81,6 +81,9 @@ const SPAM_WORDS =
 // Fejl sendes som { code, params, error }. Siden oversætter ud fra code; error er den danske tekst
 // (bruges af admin-siden og som reserve).
 const ERRORS = {
+  busy: 'Der er travlt på arkivet lige nu. Prøv igen senere.',
+  forbidden: 'Adgang nægtet.',
+  rate: 'For mange forespørgsler på kort tid. Vent et øjeblik og prøv igen.',
   admin_not_configured: 'ADMIN_TOKEN er ikke sat op (mindst 32 tegn).',
   comment_links: 'Links, e-mailadresser og telefonnumre er ikke tilladt i kommentarer.',
   comment_pow: 'Spam-tjekket blev ikke færdigt. Prøv igen.',
@@ -154,20 +157,33 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Media URLs in API responses are absolute, so a site hosted elsewhere (GitHub Pages) can use them.
-    env = { ...env, PUBLIC_ORIGIN: url.origin };
+    // Alle D1-forespørgsler måles (rækker læst/skrevet), så workeren selv kan holde sig inden for budgettet.
+    env = { ...env, PUBLIC_ORIGIN: url.origin, RAW_DB: env.DB, DB: meteredDb(env.DB) };
     env.IS_TEST = await isTestRequest(request, env);
-    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/media/')) {
-      const cors = corsHeaders(request, env);
-      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-      const res = await handle(request, env, ctx, url);
-      const out = new Response(res.body, res);
-      for (const [k, v] of Object.entries({ ...SECURITY_HEADERS, ...cors })) if (!out.headers.has(k) || k in cors) out.headers.set(k, v);
-      return out;
+    try {
+      if (url.pathname === '/robots.txt') {
+        // Workeren er kun et API for hjemmesiden; intet her skal indekseres eller skrabes.
+        return new Response('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain', 'cache-control': 'public, max-age=86400' } });
+      }
+      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/media/')) {
+        const cors = corsHeaders(request, env);
+        if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+        const blocked = await gate(request, env, url);
+        const res = blocked || (await handle(request, env, ctx, url));
+        const out = new Response(res.body, res);
+        for (const [k, v] of Object.entries({ ...SECURITY_HEADERS, ...cors })) if (!out.headers.has(k) || k in cors) out.headers.set(k, v);
+        return out;
+      }
+      const share = url.pathname.match(/^\/s\/([\w-]{36})\/?$/);
+      if (share && ['GET', 'HEAD'].includes(request.method)) {
+        const blocked = await gate(request, env, url);
+        return blocked || (await sharePage(env, share[1]));
+      }
+      // Workeren viser ikke selv hjemmesiden: alt andet sendes videre til den rigtige side.
+      return Response.redirect(siteUrl(env), 301);
+    } finally {
+      ctx.waitUntil(flushUsage(env).catch((e) => console.error('usage', e.message)));
     }
-    const share = url.pathname.match(/^\/s\/([\w-]{36})\/?$/);
-    if (share && ['GET', 'HEAD'].includes(request.method)) return sharePage(env, share[1]);
-    // Workeren viser ikke selv hjemmesiden: alt andet sendes videre til den rigtige side.
-    return Response.redirect(siteUrl(env), 301);
   },
 
   // Daily (see [triggers] in wrangler.toml): clean up uploads that were started but never finished,
@@ -178,6 +194,9 @@ export default {
     ctx.waitUntil(env.DB.prepare(`UPDATE comments SET ip_hash = '' WHERE ip_hash != '' AND created_at < ?`).bind(isoAgo(30 * 86400)).run());
     // Besøgstælleren: dagens hashes bruges kun til at undgå dobbelttælling og slettes efter to dage.
     ctx.waitUntil(env.DB.prepare(`DELETE FROM visit_hashes WHERE day < ?`).bind(isoAgo(2 * 86400).slice(0, 10)).run());
+    // Forbrugstællerne (se meteredDb) gemmes i 40 dage; det offentlige øjebliksbillede bygges igen for en sikkerheds skyld.
+    ctx.waitUntil(env.DB.prepare(`DELETE FROM counters WHERE name LIKE 'use:%' AND name < ?`).bind(`use:${isoAgo(40 * 86400).slice(0, 10)}`).run());
+    ctx.waitUntil(rebuildPublic(env).catch((e) => console.error('snapshot', e.message)));
   },
 };
 
@@ -231,6 +250,240 @@ async function chargeClassA(env, n, dryRun = false) {
 
 function budgetError() {
   return new HttpError(503, 'monthly_limit');
+}
+
+// ---------------------------------------------------------------- forbrug, budget og adgang
+//
+// Gratisplanen giver pr. døgn 100.000 worker-forespørgsler, 5 mio. læste og 100.000 skrevne D1-rækker,
+// og R2 er gratis op til 10 mio. læsninger pr. måned. Overskrides D1-grænsen, holder databasen op med
+// at svare resten af døgnet. Derfor:
+//  - alle offentlige læsninger svares fra et øjebliksbillede i hukommelsen/R2 (rebuildPublic), så et
+//    besøg normalt ikke rører D1;
+//  - hver D1-forespørgsel måles (rækker læst/skrevet), og tallene for døgnet gemmes løbende;
+//  - nærmer døgnet sig grænsen, slås de offentlige funktioner, der skriver til D1, midlertidigt fra
+//    (»travlt«), mens resten af siden kører videre fra øjebliksbilledet;
+//  - kun hjemmesiden (ALLOWED_ORIGINS) må hente data og filer, kendte skrabere og AI-crawlere afvises,
+//    og hver IP-adresse har et loft over antal forespørgsler pr. minut.
+
+const USAGE = { pending: { d1r: 0, d1w: 0, media: 0, req: 0 }, today: { day: '', d1r: 0, d1w: 0, media: 0, req: 0 }, lastFlush: 0 };
+const usageDay = () => new Date().toISOString().slice(0, 10);
+
+function meterResult(r) {
+  const m = r && r.meta;
+  if (!m) return;
+  USAGE.pending.d1r += Number(m.rows_read) || 0;
+  USAGE.pending.d1w += Number(m.rows_written) || 0;
+}
+
+function meteredStmt(st) {
+  return {
+    __raw: st,
+    bind: (...a) => meteredStmt(st.bind(...a)),
+    all: async () => {
+      const r = await st.all();
+      meterResult(r);
+      return r;
+    },
+    run: async () => {
+      const r = await st.run();
+      meterResult(r);
+      return r;
+    },
+    raw: (o) => st.raw(o),
+    first: async (col) => {
+      // first() giver ikke forbrugstal, så den kører som all() (D1's first() læser alligevel hele svaret).
+      const r = await st.all();
+      meterResult(r);
+      const row = r.results[0];
+      if (!row) return null;
+      return col ? (row[col] ?? null) : row;
+    },
+  };
+}
+
+function meteredDb(db) {
+  if (!db) return db;
+  return {
+    prepare: (q) => meteredStmt(db.prepare(q)),
+    batch: async (stmts) => {
+      const res = await db.batch(stmts.map((x) => (x && x.__raw) || x));
+      res.forEach(meterResult);
+      return res;
+    },
+    exec: (q) => db.exec(q),
+  };
+}
+
+// Gemmer døgnets forbrug i tabellen counters (højst hvert minut pr. worker-instans) og henter
+// samtidig de samlede tal for døgnet, så alle instanser kender budgettet.
+async function flushUsage(env, now = false) {
+  if (!now && Date.now() - USAGE.lastFlush < 60_000) return;
+  USAGE.lastFlush = Date.now();
+  const db = env.RAW_DB || env.DB;
+  const day = usageDay();
+  const p = USAGE.pending;
+  USAGE.pending = { d1r: 0, d1w: 0, media: 0, req: 0 };
+  const stmts = Object.entries(p)
+    .filter(([, n]) => n > 0)
+    .map(([k, n]) =>
+      db.prepare(`INSERT INTO counters (name, n) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET n = n + excluded.n`).bind(`use:${day}:${k}`, n),
+    );
+  stmts.push(db.prepare(`SELECT name, n FROM counters WHERE name >= ? AND name < ?`).bind(`use:${day}:`, `use:${day};`));
+  const res = await db.batch(stmts);
+  const today = { day, d1r: 0, d1w: 0, media: 0, req: 0 };
+  for (const r of res[res.length - 1].results || []) today[r.name.split(':')[2]] = r.n;
+  USAGE.today = today;
+}
+
+const BUDGET = {
+  d1r: (env) => Number(env.D1_DAILY_READS || 3_500_000),
+  d1w: (env) => Number(env.D1_DAILY_WRITES || 70_000),
+  media: (env) => Number(env.MEDIA_DAILY || 80_000),
+  req: (env) => Number(env.REQUESTS_DAILY || 90_000),
+};
+function overBudget(env, k) {
+  const t = USAGE.today.day === usageDay() ? USAGE.today[k] || 0 : 0;
+  return t + (USAGE.pending[k] || 0) >= BUDGET[k](env);
+}
+// Offentlige funktioner, der skriver til D1, slås fra, når døgnets budget er ved at være brugt.
+function requireBudget(env) {
+  if (!env.IS_TEST && (overBudget(env, 'd1r') || overBudget(env, 'd1w'))) throw new HttpError(503, 'busy');
+}
+
+// Delingsforhåndsvisninger (Facebook, Messenger, Slack …) må hente billedet til et delt bidrag.
+const SOCIAL_BOTS = /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|WhatsApp|Pinterest|Mastodon|Bluesky|redditbot|SkypeUriPreview|Iframely|Embedly|vkShare/i;
+// Skrabere, AI-crawlere, SEO-robotter og programmer uden browser.
+const SCRAPERS = /GPTBot|ChatGPT|OAI-SearchBot|CCBot|ClaudeBot|Claude-Web|anthropic-ai|Bytespider|Amazonbot|PerplexityBot|Perplexity-User|meta-externalagent|meta-externalfetcher|FacebookBot|Google-Extended|GoogleOther|Googlebot|bingbot|Applebot|cohere|Diffbot|ImagesiftBot|Omgili|PetalBot|AhrefsBot|SemrushBot|MJ12bot|DotBot|DataForSeo|BLEXBot|YandexBot|Baiduspider|Sogou|serpstat|SeznamBot|Timpibot|VelenPublic|Scrapy|python|aiohttp|httpx|Go-http-client|node-fetch|undici|axios|curl|Wget|libwww|Java\/|okhttp|HeadlessChrome|PhantomJS|Puppeteer|Playwright|zgrab|masscan|nuclei|HTTrack|^node$|^Mozilla\/5\.0$/i;
+
+function fromSite(request, env) {
+  const allowed = allowedOrigins(env);
+  const origin = request.headers.get('origin');
+  if (origin && allowed.includes(origin)) return true;
+  const ref = request.headers.get('referer');
+  if (!ref) return false;
+  try {
+    return allowed.includes(new URL(ref).origin);
+  } catch {
+    return false;
+  }
+}
+
+const deny = (status, code, extra = {}) =>
+  json({ error: ERRORS[code] || code, code }, status, { 'cache-control': 'no-store', ...extra });
+
+// Første kontrol af alle offentlige forespørgsler – billig: ingen D1, ingen R2.
+async function gate(request, env, url) {
+  USAGE.pending.req++;
+  const path = url.pathname;
+  // Admin (adgangskode) og den automatiske test har deres egen kontrol. Værktøjer med adgangskoden
+  // (PDF-udtrækket, processoren) må også hente offentlige data og filer uden om kontrollen.
+  if (path.startsWith('/api/admin/') || env.IS_TEST) return null;
+  const bearer = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (bearer && String(env.ADMIN_TOKEN || '').length >= 32 && safeEqual(bearer, env.ADMIN_TOKEN)) return null;
+  const ua = request.headers.get('user-agent') || '';
+  const social = SOCIAL_BOTS.test(ua);
+  if (!ua || (SCRAPERS.test(ua) && !social)) return deny(403, 'forbidden');
+  const share = path.startsWith('/s/');
+  const media = path.startsWith('/media/');
+  // Kun hjemmesiden må bruge API'et og filerne. Delingslinks (/s/) er åbne, og forhåndsvisninger
+  // på sociale medier må hente billederne.
+  if (!share && !fromSite(request, env) && !(media && social)) return deny(403, 'forbidden');
+  if (overBudget(env, 'req')) return deny(503, 'busy', { 'retry-after': '3600' });
+  if (media && overBudget(env, 'media')) return deny(503, 'busy', { 'retry-after': '3600' });
+  const limiter = request.method === 'GET' || request.method === 'HEAD' ? env.RL_READ : env.RL_WRITE;
+  if (limiter) {
+    const ip = request.headers.get('cf-connecting-ip') || 'ukendt';
+    const { success } = await limiter.limit({ key: ip }).catch(() => ({ success: true }));
+    if (!success) return deny(429, 'rate', { 'retry-after': '60' });
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------- offentligt øjebliksbillede
+//
+// Alle offentlige data (godkendte bidrag med filer) i én JSON-fil i R2. Den bygges kun, når noget
+// ændres (admin, færdigbehandlede filer, dagligt for en sikkerheds skyld), og holdes i hukommelsen i
+// to minutter ad gangen. Filen ligger uden for media/ og kan derfor ikke hentes udefra.
+const PUBLIC_SNAPSHOT = 'cache/public.json';
+const SNAP = { data: null, at: 0 };
+
+function prepSnapshot(raw) {
+  const byId = new Map();
+  const items = new Set();
+  for (const s of raw.subs) {
+    byId.set(s.id, s);
+    for (const i of s.items) items.add(i.id);
+  }
+  return { ...raw, byId, items };
+}
+
+async function snapshot(env) {
+  if (SNAP.data && Date.now() - SNAP.at < 120_000) return SNAP.data;
+  const obj = await env.BUCKET.get(PUBLIC_SNAPSHOT);
+  if (obj) {
+    SNAP.data = prepSnapshot(await obj.json());
+    SNAP.at = Date.now();
+    return SNAP.data;
+  }
+  return (await rebuildPublic(env)).snap;
+}
+
+async function rebuildPublic(env) {
+  const { results: subs } = await env.DB.prepare(
+    `SELECT id, published_at, title, story, period, place, perspective, relation, genre, credit, show_credit, source_url, license, license_url,
+            entities, year_from, year_to FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
+  ).all();
+  const { results: items } = await env.DB.prepare(
+    `SELECT i.id, i.submission_id, i.position, i.kind, i.status, i.display_key, i.full_key, i.thumb_key, i.poster_key, i.width, i.height,
+            i.duration, i.taken_at, i.camera, i.lat, i.lon, i.caption
+       FROM items i JOIN submissions s ON s.id = i.submission_id
+      WHERE s.status = 'published' AND s.is_test = 0 AND i.status IN ('ready', 'pending', 'processing')
+      ORDER BY i.submission_id, i.position`,
+  ).all();
+  const bySub = new Map();
+  for (const i of items) {
+    if (!bySub.has(i.submission_id)) bySub.set(i.submission_id, []);
+    bySub.get(i.submission_id).push(i);
+  }
+  const raw = {
+    v: 1,
+    built: new Date().toISOString(),
+    subs: subs.map((s) => ({ ...s, credit: s.show_credit ? s.credit : '', items: bySub.get(s.id) || [] })),
+  };
+  const index = searchIndexFrom(raw.subs);
+  await Promise.all([
+    env.BUCKET.put(PUBLIC_SNAPSHOT, JSON.stringify(raw), { httpMetadata: { contentType: 'application/json' } }),
+    env.BUCKET.put(SEARCH_INDEX, JSON.stringify(index), { httpMetadata: { contentType: 'application/json' } }),
+  ]);
+  SNAP.data = prepSnapshot(raw);
+  SNAP.at = Date.now();
+  return { snap: SNAP.data, index };
+}
+// Bygges i baggrunden, når admin ændrer noget. Kommer der flere ændringer, mens den bygges, bygges
+// den én gang til bagefter (ikke én gang pr. ændring).
+const REBUILD = { running: null, again: false };
+function rebuildLater(env, ctx) {
+  if (REBUILD.running) REBUILD.again = true;
+  else {
+    REBUILD.running = (async () => {
+      do {
+        REBUILD.again = false;
+        await rebuildPublic(env);
+      } while (REBUILD.again);
+    })()
+      .catch((e) => console.error('snapshot', e.message))
+      .finally(() => (REBUILD.running = null));
+  }
+  ctx.waitUntil(REBUILD.running);
+}
+
+// Et offentligt bidrag (med filer) – fra øjebliksbilledet, eller fra D1 for den automatiske test.
+async function publicSub(env, id) {
+  if (!env.IS_TEST) return (await snapshot(env)).byId.get(id) || null;
+  const sub = await env.DB.prepare(`SELECT * FROM submissions WHERE id = ? AND status = 'published'`).bind(id).first();
+  if (!sub) return null;
+  const { results } = await env.DB.prepare(`SELECT * FROM items WHERE submission_id = ? ORDER BY position`).bind(id).all();
+  return { ...sub, items: results };
 }
 
 async function abandonUploads(env, where, params, scope = 'items') {
@@ -299,7 +552,7 @@ async function isTestRequest(request, env) {
   return safeEqual(token, await sha256(`e2e:${env.ADMIN_TOKEN}`));
 }
 
-// ALLOWED_ORIGINS: comma separated list of sites allowed to call the API, e.g. "https://sloev.github.io".
+// ALLOWED_ORIGINS: comma separated list of sites allowed to call the API, e.g. "https://havn.skifting.net".
 function corsHeaders(request, env) {
   const origin = request.headers.get('origin');
   const allowed = allowedOrigins(env);
@@ -353,19 +606,24 @@ async function adminApi(request, env, url, path, method, ctx) {
   let m;
   if (path === '/api/admin/submissions' && method === 'GET') return adminList(env, url);
   if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)$/))) {
-    // Søgeindekset bygges igen i baggrunden, når et bidrag ændres.
-    const done = (res) => (ctx.waitUntil(buildSearchIndex(env).catch((e) => console.error('index', e.message))), res);
+    // Øjebliksbilledet og søgeindekset bygges igen i baggrunden, når et bidrag ændres.
+    const done = (res) => (rebuildLater(env, ctx), res);
     if (method === 'PATCH') return done(await adminSetStatus(request, env, m[1]));
     if (method === 'PUT') return done(await adminEdit(request, env, m[1]));
     if (method === 'DELETE') return done(await adminDelete(env, m[1]));
   }
   if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/retry$/)) && method === 'POST') return adminRetry(env, m[1]);
-  if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/location$/)) && method === 'PATCH') return adminSetLocation(request, env, m[1]);
+  if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/location$/)) && method === 'PATCH') return adminSetLocation(request, env, ctx, m[1]);
   if (path === '/api/admin/map' && method === 'GET') return adminMap(env);
   if ((m = path.match(/^\/api\/admin\/submissions\/([\w-]+)\/meta$/)) && method === 'PATCH') return adminSetMeta(request, env, ctx, m[1]);
   if (path === '/api/admin/reindex' && method === 'POST') return adminReindex(env);
-  if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/result$/)) && method === 'POST') return adminResult(request, env, m[1]);
+  if ((m = path.match(/^\/api\/admin\/items\/([\w-]+)\/result$/)) && method === 'POST') return adminResult(request, env, ctx, m[1]);
   if (path === '/api/admin/queue-size' && method === 'GET') return adminQueueSize(env);
+  if (path === '/api/admin/usage' && method === 'GET') {
+    await flushUsage(env, true);
+    const budget = Object.fromEntries(Object.entries(BUDGET).map(([k, f]) => [k, f(env)]));
+    return json({ today: USAGE.today, budget, busy: ['d1r', 'd1w', 'req'].some((k) => overBudget(env, k)) });
+  }
   if (path === '/api/admin/queue/claim' && method === 'POST') return adminClaim(request, env);
   if (path === '/api/admin/export' && method === 'GET') return adminExport(env);
   if (path === '/api/admin/comments' && method === 'GET') return adminComments(env, url);
@@ -423,22 +681,25 @@ function getConfig(env) {
   );
 }
 
+// Besøgstallet hentes højst hvert femte minut pr. worker-instans.
+const VISITORS = { n: 0, at: 0 };
 async function getStats(env) {
-  const row = await env.DB.prepare(
-    `SELECT
-       (SELECT COUNT(*) FROM submissions WHERE status = 'published' AND is_test = 0) AS contributions,
-       -- Historier: personlige bidrag med en egentlig tekst. Dokumenter: bidrag af arten dokument og PDF'er.
-       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND length(x.story) >= 80 AND x.genre = 'personlig') AS stories,
-       (SELECT COUNT(*) FROM submissions x WHERE x.status = 'published' AND x.is_test = 0 AND (x.genre = 'dokument'
-          OR EXISTS (SELECT 1 FROM items WHERE submission_id = x.id AND kind = 'document' AND status = 'ready'))) AS documents,
-       COUNT(CASE WHEN i.kind = 'image' AND s.genre != 'dokument' THEN 1 END) AS images,
-       COUNT(CASE WHEN i.kind = 'video' AND s.genre != 'dokument' THEN 1 END) AS videos,
-       COUNT(CASE WHEN i.kind = 'audio' AND s.genre != 'dokument' THEN 1 END) AS audio
-     FROM items i JOIN submissions s ON s.id = i.submission_id
-     WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'`,
-  ).first();
-  const visits = await env.DB.prepare(`SELECT n FROM counters WHERE name = 'visitors'`).first();
-  return json({ ...row, visitors: visits ? visits.n : 0 }, 200, { 'cache-control': 'public, max-age=60' });
+  if (Date.now() - VISITORS.at > 300_000) {
+    const row = await env.DB.prepare(`SELECT n FROM counters WHERE name = 'visitors'`).first();
+    VISITORS.n = row ? row.n : 0;
+    VISITORS.at = Date.now();
+  }
+  const { subs } = await snapshot(env);
+  // Historier: personlige bidrag med en egentlig tekst. Dokumenter: bidrag af arten dokument og PDF'er.
+  const out = { contributions: subs.length, stories: 0, documents: 0, images: 0, videos: 0, audio: 0 };
+  const plural = { image: 'images', video: 'videos', audio: 'audio' };
+  for (const s of subs) {
+    const ready = s.items.filter((i) => i.status === 'ready');
+    if (s.genre === 'personlig' && String(s.story || '').length >= 80) out.stories++;
+    if (s.genre === 'dokument' || ready.some((i) => i.kind === 'document')) out.documents++;
+    if (s.genre !== 'dokument') for (const i of ready) if (plural[i.kind]) out[plural[i.kind]]++;
+  }
+  return json({ ...out, visitors: VISITORS.n }, 200, { 'cache-control': 'public, max-age=300' });
 }
 
 // Unikke besøgende uden cookies: siden kalder dette én gang pr. browser (den husker kun, at den har
@@ -447,7 +708,7 @@ async function getStats(env) {
 const BOTS = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor|curl|wget|python|node-fetch/i;
 async function countVisit(request, env) {
   const ua = request.headers.get('user-agent') || '';
-  if (!ua || BOTS.test(ua)) return json({ ok: true });
+  if (!ua || BOTS.test(ua) || overBudget(env, 'd1w') || overBudget(env, 'd1r')) return json({ ok: true });
   const day = new Date().toISOString().slice(0, 10);
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const hash = (await sha256(`${env.IP_SALT || ''}:visit:${day}:${ip}:${ua}`)).slice(0, 32);
@@ -456,7 +717,49 @@ async function countVisit(request, env) {
   return json({ ok: true });
 }
 
+// Filtrene i listContributionsDb, men på øjebliksbilledet (ingen D1).
 async function listContributions(env, url) {
+  if (env.IS_TEST) return listContributionsDb(env, url);
+  const limit = clamp(Number(url.searchParams.get('limit')) || 24, 1, 60);
+  const q = url.searchParams;
+  const before = q.get('before');
+  const kind = q.get('kind') || '';
+  const relation = RELATIONS[q.get('relation')] ? q.get('relation') : '';
+  const perspective = PERSPECTIVES[q.get('perspective')] ? q.get('perspective') : '';
+  const ids = q.has('ids') ? new Set((q.get('ids') || '').split(',').filter((x) => /^[\w-]{36}$/.test(x)).slice(0, 90)) : null;
+  if (ids && !ids.size) return json({ contributions: [], next: null });
+  const yFrom = Number(q.get('from')) || null;
+  const yTo = Number(q.get('to')) || null;
+  const has = (s, k) => s.items.some((i) => i.kind === k && i.status === 'ready');
+  const keep = (s) =>
+    (!before || s.published_at < before) &&
+    (!relation || s.relation === relation) &&
+    (!perspective || s.perspective === perspective) &&
+    (!ids || ids.has(s.id)) &&
+    (!(yFrom || yTo) || (s.year_from != null && s.year_to >= (yFrom || 0) && s.year_from <= (yTo || 9999))) &&
+    (['image', 'video', 'audio'].includes(kind)
+      ? s.genre !== 'dokument' && has(s, kind) // strengt: scannede avisudklip o.l. vises kun under Dokumenter
+      : kind === 'document'
+        ? s.genre === 'dokument' || has(s, 'document')
+        : kind === 'story'
+          ? s.genre === 'personlig' && String(s.story || '').length >= 80
+          : true);
+  const subs = [];
+  for (const s of (await snapshot(env)).subs) {
+    if (!keep(s)) continue;
+    subs.push(s);
+    if (subs.length > limit) break;
+  }
+  const more = subs.length > limit;
+  const page = subs.slice(0, limit);
+  return json(
+    { contributions: page.map((s) => publicSubmission(env, s, s.items)), next: more ? page[page.length - 1].published_at : null },
+    200,
+    { 'cache-control': 'public, max-age=60' },
+  );
+}
+
+async function listContributionsDb(env, url) {
   const limit = clamp(Number(url.searchParams.get('limit')) || 24, 1, 60);
   const before = url.searchParams.get('before');
   const kind = url.searchParams.get('kind') || '';
@@ -516,39 +819,31 @@ async function listContributions(env, url) {
 }
 
 async function getContribution(env, id) {
-  const sub = await env.DB.prepare(`SELECT * FROM submissions WHERE id = ? AND status = 'published' AND (is_test = 0 OR ?)`)
-    .bind(id, env.IS_TEST ? 1 : 0)
-    .first();
+  const sub = await publicSub(env, id);
   if (!sub) throw new HttpError(404, 'contribution_gone');
-  const [out] = await withItems(env, [sub]);
-  return json(out, 200, { 'cache-control': 'public, max-age=30' });
+  return json(publicSubmission(env, sub, sub.items), 200, { 'cache-control': 'public, max-age=120' });
 }
 
 async function getMap(env) {
-  const { results } = await env.DB.prepare(
-    `SELECT i.*, s.title AS s_title, s.period AS s_period, s.story AS s_story FROM items i JOIN submissions s ON s.id = i.submission_id
-     WHERE s.status = 'published' AND s.is_test = 0 AND i.status = 'ready'
-       AND i.lat IS NOT NULL AND i.lon IS NOT NULL
-     ORDER BY s.published_at DESC LIMIT 2000`,
-  ).all();
-  return json(
-    {
-      points: results.map((i) => ({
-        submissionId: i.submission_id,
+  const points = [];
+  for (const s of (await snapshot(env)).subs) {
+    for (const i of s.items) {
+      if (i.status !== 'ready' || i.lat == null || i.lon == null || points.length >= 2000) continue;
+      points.push({
+        submissionId: s.id,
         itemId: i.id,
         kind: i.kind,
         lat: i.lat,
         lon: i.lon,
-        title: i.s_title,
-        period: i.s_period,
+        title: s.title,
+        period: s.period,
         caption: i.caption || '',
-        excerpt: truncate(plainText(i.s_story), 160),
+        excerpt: truncate(plainText(s.story), 160),
         thumb: mediaUrl(env, i.thumb_key),
-      })),
-    },
-    200,
-    { 'cache-control': 'public, max-age=60' },
-  );
+      });
+    }
+  }
+  return json({ points }, 200, { 'cache-control': 'public, max-age=300' });
 }
 
 // Hele arkivet som én PDF. Bygges dagligt af GitHub Actions (.github/workflows/pdf.yml), kun når der
@@ -739,7 +1034,7 @@ async function adminSetMeta(request, env, ctx, id) {
       await env.DB.prepare(`UPDATE items SET caption = ? WHERE id = ? AND submission_id = ?`).bind(clean(caption, LIMITS.caption), itemId, id).run();
     }
   }
-  ctx.waitUntil(buildSearchIndex(env).catch((e) => console.error('index', e.message)));
+  rebuildLater(env, ctx);
   return json(out);
 }
 
@@ -753,23 +1048,20 @@ async function adminReindex(env) {
 // Indekset: posts = [id, titel, år fra, år til, typer (i=billede v=video a=lyd d=dokument s=personlig historie), antal billeder],
 // entities = [type, navn, [indeks i posts …]]. Kun offentlige bidrag.
 async function buildSearchIndex(env) {
-  const { results: subs } = await env.DB.prepare(
-    `SELECT id, title, story, year_from, year_to, entities, genre FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at DESC`,
-  ).all();
-  const { results: kinds } = await env.DB.prepare(
-    `SELECT i.submission_id AS id, GROUP_CONCAT(DISTINCT i.kind) AS k, SUM(i.kind = 'image') AS n FROM items i JOIN submissions s ON s.id = i.submission_id
-     WHERE s.status = 'published' AND i.status = 'ready' GROUP BY i.submission_id`,
-  ).all();
-  const kindOf = Object.fromEntries(kinds.map((r) => [r.id, r.k]));
-  const photos = Object.fromEntries(kinds.map((r) => [r.id, r.n || 0]));
+  return (await rebuildPublic(env)).index;
+}
+
+// subs: øjebliksbilledets bidrag (nyeste først) med deres filer.
+function searchIndexFrom(subs) {
   const letter = { image: 'i', video: 'v', audio: 'a', document: 'd' };
   const posts = [];
   const ents = new Map();
   subs.forEach((s, n) => {
+    const ready = s.items.filter((i) => i.status === 'ready');
     // Dokumenter (avisudklip, bogsider, rapporter) tæller kun som dokumenter, ikke som billeder/video/lyd.
-    let k = s.genre === 'dokument' ? 'd' : String(kindOf[s.id] || '').split(',').filter(Boolean).map((x) => letter[x] || '').join('');
+    let k = s.genre === 'dokument' ? 'd' : [...new Set(ready.map((i) => letter[i.kind] || ''))].join('');
     if (s.genre === 'personlig' && String(s.story || '').length >= 80) k += 's';
-    posts.push([s.id, s.title || '', s.year_from, s.year_to, k, s.genre === 'dokument' ? 0 : photos[s.id] || 0]);
+    posts.push([s.id, s.title || '', s.year_from, s.year_to, k, s.genre === 'dokument' ? 0 : ready.filter((i) => i.kind === 'image').length]);
     let list = [];
     try {
       list = JSON.parse(s.entities || '[]');
@@ -781,45 +1073,37 @@ async function buildSearchIndex(env) {
     }
   });
   const entities = [...ents.values()].sort((a, b) => b[2].length - a[2].length || a[1].localeCompare(b[1], 'da'));
-  const index = { v: 1, built: new Date().toISOString(), types: ENTITY_TYPES, posts, entities };
-  await env.BUCKET.put(SEARCH_INDEX, JSON.stringify(index), { httpMetadata: { contentType: 'application/json' } });
-  return index;
+  return { v: 1, built: new Date().toISOString(), types: ENTITY_TYPES, posts, entities };
 }
 
 async function getSearchIndex(env, ctx) {
   const obj = await env.BUCKET.get(SEARCH_INDEX);
   const body = obj ? await obj.text() : JSON.stringify(await buildSearchIndex(env));
   return new Response(body, {
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=120' },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=300' },
   });
 }
 
 // Hele det offentlige arkiv som ét datasæt: gzippet JSON med alle tekster, metadata og entiteter.
 // Billeder, video, lyd og PDF'er er permanente links (de tunge filer ligger ikke i selve filen).
 async function exportArchive(env) {
-  const { results: subs } = await env.DB.prepare(
-    `SELECT * FROM submissions WHERE status = 'published' AND is_test = 0 ORDER BY published_at`,
-  ).all();
+  const subs = [...(await snapshot(env)).subs].reverse(); // ældste først
   const out = [];
-  for (let i = 0; i < subs.length; i += 90) {
-    const part = subs.slice(i, i + 90);
-    const items = await withItems(env, part);
-    part.forEach((s, n) => {
-      const p = items[n];
-      let entities = [];
-      try {
-        entities = JSON.parse(s.entities || '[]');
-      } catch {}
-      out.push({
-        id: p.id, title: p.title, story: p.story, period: p.period, years: [s.year_from, s.year_to], place: p.place,
-        perspective: p.perspective, relation: p.relation, credit: p.credit, source: p.source, publishedAt: p.publishedAt,
-        entities: entities.map(([type, name]) => ({ type, name })),
-        url: env.SITE_URL ? `${env.SITE_URL}#bidrag/${p.id}` : null,
-        files: p.items.map((f) => ({ kind: f.kind, url: f.full || f.src, web: f.src, thumb: f.thumb, poster: f.poster, width: f.width, height: f.height,
-          duration: f.duration, takenAt: f.takenAt, camera: f.camera, lat: f.lat, lon: f.lon, caption: f.caption })),
-      });
+  subs.forEach((s) => {
+    const p = publicSubmission(env, s, s.items);
+    let entities = [];
+    try {
+      entities = JSON.parse(s.entities || '[]');
+    } catch {}
+    out.push({
+      id: p.id, title: p.title, story: p.story, period: p.period, years: [s.year_from, s.year_to], place: p.place,
+      perspective: p.perspective, relation: p.relation, credit: p.credit, source: p.source, publishedAt: p.publishedAt,
+      entities: entities.map(([type, name]) => ({ type, name })),
+      url: env.SITE_URL ? `${env.SITE_URL}#bidrag/${p.id}` : null,
+      files: p.items.map((f) => ({ kind: f.kind, url: f.full || f.src, web: f.src, thumb: f.thumb, poster: f.poster, width: f.width, height: f.height,
+        duration: f.duration, takenAt: f.takenAt, camera: f.camera, lat: f.lat, lon: f.lon, caption: f.caption })),
     });
-  }
+  });
   const data = {
     name: 'Siloerne på Østre Kaj – fællesarkiv',
     site: env.SITE_URL || null,
@@ -843,6 +1127,7 @@ async function exportArchive(env) {
 // ---------------------------------------------------------------- public: write
 
 async function createSubmission(request, env) {
+  requireBudget(env);
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const body = await readJson(request, 200_000);
 
@@ -960,12 +1245,14 @@ async function createSubmission(request, env) {
   const stmts = [
     env.DB.prepare(
       `INSERT INTO submissions (id, created_at, status, title, story, period, place, perspective, relation, credit, show_credit,
-         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test)
-       VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         email, share_location, contact_ok, upload_token, ip_hash, user_agent, text_hash, is_test, genre)
+       VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       subId, now, title, story, period, place, perspective, relation, credit, body.showCredit === true ? 1 : 0,
       email, 1 /* GPS vises altid */, body.contactOk === true && email ? 1 : 0,
       uploadToken, ipHash, clean(request.headers.get('user-agent'), 300), textHash, env.IS_TEST ? 1 : 0,
+      // Bidragyderen vælger selv arten (egne billeder/minder, dokument eller andres materiale).
+      genreOf(body.genre, 'personlig'),
     ),
     ...items.map((it) =>
       env.DB.prepare(
@@ -1064,12 +1351,14 @@ async function completeSubmission(request, env, ctx, subId) {
     .bind(status, new Date().toISOString(), subId)
     .run();
 
+  if (status === 'published' && !sub.is_test) rebuildLater(env, ctx);
   // Ask GitHub Actions to process the files now (and refresh the Drive backup).
   ctx.waitUntil(triggerProcessing(env));
   return json({ ok: true, status, pending: counts.pending });
 }
 
 async function reportContribution(request, env, subId) {
+  requireBudget(env);
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const ipHash = await sha256(`${env.IP_SALT || ''}:${ip}`);
   const body = await readJson(request, 10_000).catch(() => ({}));
@@ -1148,13 +1437,17 @@ async function ipHashOf(request, env) {
 }
 
 async function publishedSubmission(env, id) {
+  if (!env.IS_TEST) return (await snapshot(env)).byId.get(id) || null;
   return env.DB.prepare(`SELECT id FROM submissions WHERE id = ? AND status = 'published' AND (is_test = 0 OR ?)`)
     .bind(id, env.IS_TEST ? 1 : 0)
     .first();
 }
 
 async function listComments(env, subId) {
-  if (!(await publishedSubmission(env, subId))) throw new HttpError(404, 'contribution_gone');
+  const sub = await publishedSubmission(env, subId);
+  if (!sub) throw new HttpError(404, 'contribution_gone');
+  // Er døgnets D1-budget brugt, vises bidraget stadig – bare uden kommentarer.
+  if (!env.IS_TEST && overBudget(env, 'd1r')) return json({ comments: [] }, 200, { 'cache-control': 'no-store' });
   const { results } = await env.DB.prepare(
     `SELECT id, name, body, created_at FROM comments
      WHERE submission_id = ? AND status = 'published' AND (is_test = 0 OR ?)
@@ -1179,6 +1472,7 @@ async function commentTicket(request, env, url) {
 }
 
 async function createComment(request, env, subId) {
+  requireBudget(env);
   if (!commentsOpen(env)) throw new HttpError(403, 'comments_closed');
   const body = await readJson(request, 20_000);
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
@@ -1264,6 +1558,7 @@ async function createComment(request, env, subId) {
 }
 
 async function reportComment(request, env, id) {
+  requireBudget(env);
   const ipHash = await ipHashOf(request, env);
   const c = await env.DB.prepare(`SELECT id FROM comments WHERE id = ? AND status = 'published'`).bind(id).first();
   if (!c) throw new HttpError(404, 'not_found');
@@ -1372,11 +1667,9 @@ async function verifyTurnstile(env, token, ip, request, action = 'bidrag') {
 // kort på Facebook, Messenger, X, LinkedIn, Slack osv. Mennesker sendes videre til hjemmesiden.
 async function sharePage(env, id) {
   const site = siteUrl(env);
-  const sub = await env.DB.prepare(`SELECT * FROM submissions WHERE id = ? AND status = 'published' AND (is_test = 0 OR ?)`)
-    .bind(id, env.IS_TEST ? 1 : 0)
-    .first();
+  const sub = await publicSub(env, id);
   if (!sub) return Response.redirect(site, 302);
-  const { results: items } = await env.DB.prepare(`SELECT * FROM items WHERE submission_id = ? AND status = 'ready' ORDER BY position`).bind(id).all();
+  const items = sub.items.filter((i) => i.status === 'ready');
   const target = `${site}#bidrag/${id}`;
   const shareUrl = `${env.PUBLIC_ORIGIN}/s/${id}`;
 
@@ -1462,6 +1755,7 @@ function escapeHtml(str) {
 // ---------------------------------------------------------------- media
 
 async function isPublicItem(env, itemId) {
+  if (!env.IS_TEST) return (await snapshot(env)).items.has(itemId);
   const row = await env.DB.prepare(
     `SELECT 1 FROM items i JOIN submissions s ON s.id = i.submission_id WHERE i.id = ? AND s.status = 'published'`,
   )
@@ -1492,6 +1786,7 @@ async function serveMedia(request, env, url) {
   const itemId = key.split('/')[1];
   const open = itemId === 'arkiv' || (await isPublicItem(env, itemId));
   if (!open && !(await validMediaSig(env, itemId, url))) throw new HttpError(404, 'not_found');
+  USAGE.pending.media++;
   const obj = await env.BUCKET.get(key, { range: request.headers, onlyIf: request.headers });
   if (!obj) throw new HttpError(404, 'not_found');
 
@@ -1506,8 +1801,8 @@ async function serveMedia(request, env, url) {
   } else if (!open) {
     headers.set('cache-control', 'private, no-store');
   } else {
-    // Kort cache: skjules et bidrag senere, skal filerne forsvinde hurtigt.
-    headers.set('cache-control', 'public, max-age=3600');
+    // Filerne ændres sjældent, så browseren må gemme dem i 12 timer (og spørger derefter med etag).
+    headers.set('cache-control', 'public, max-age=43200');
     if (key.endsWith('.pdf')) headers.set('content-disposition', 'attachment; filename="dokument.pdf"');
   }
   if (!('body' in obj)) return new Response(null, { status: 304, headers });
@@ -1549,7 +1844,7 @@ async function requireAdmin(request, env) {
 }
 
 // Sæt (eller fjern) placeringen på én fil – bruges af kortet med nålen i admin.
-async function adminSetLocation(request, env, id) {
+async function adminSetLocation(request, env, ctx, id) {
   const b = await readJson(request, 1000);
   const lat = num(b.lat);
   const lon = num(b.lon);
@@ -1558,6 +1853,7 @@ async function adminSetLocation(request, env, id) {
   const r = (v) => (v === null ? null : Math.round(v * 1e6) / 1e6);
   const res = await env.DB.prepare(`UPDATE items SET lat = ?, lon = ? WHERE id = ?`).bind(r(lat), r(lon), id).run();
   if (!res.meta.changes) throw new HttpError(404, 'not_found');
+  rebuildLater(env, ctx);
   return json({ ok: true, lat: r(lat), lon: r(lon) });
 }
 
@@ -1770,7 +2066,7 @@ async function adminClaim(request, env) {
 // Grænse for automatisk NSFW-mistanke (0–1, fra billedgenkendelsen i processor/process.mjs).
 const NSFW_FLAG = 0.5;
 
-async function adminResult(request, env, id) {
+async function adminResult(request, env, ctx, id) {
   const b = await request.json();
   const nsfw = num(b.nsfw) === null ? null : Math.min(1, Math.max(0, num(b.nsfw)));
   if (!b.ok) {
@@ -1807,9 +2103,15 @@ async function adminResult(request, env, id) {
       .run();
   }
   // Filens optagedato kan give bidraget et årstal, hvis "Hvornår" ikke gør.
-  const owner = await env.DB.prepare(`SELECT submission_id FROM items WHERE id = ?`).bind(id).first();
+  const owner = await env.DB.prepare(
+    `SELECT i.submission_id, s.status, s.is_test FROM items i JOIN submissions s ON s.id = i.submission_id WHERE i.id = ?`,
+  )
+    .bind(id)
+    .first();
   if (owner) await syncYears(env, owner.submission_id);
   await deleteOriginal(env, id);
+  // Var bidraget offentligt (eller blev det lige taget af), skal øjebliksbilledet med.
+  if (owner && !owner.is_test && (owner.status === 'published' || nsfw >= NSFW_FLAG)) rebuildLater(env, ctx);
   return json({ ok: true });
 }
 

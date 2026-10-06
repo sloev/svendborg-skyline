@@ -493,3 +493,9 @@ body.view-insights .insights { display: block; min-height: 70vh; }
 .photo-credit a { color: inherit; }
 .hero-credit { position: absolute; right: 12px; top: 12px; z-index: 1; margin: 0; padding: 2px 8px; border-radius: 999px; background: rgba(10, 30, 46, .45); color: rgba(255, 255, 255, .85); }
 .about-photos figcaption { text-align: right; }
+
+/* Valg af bidragets art i upload-formularen */
+.genre-pick { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px 6px; margin: 0 0 16px; }
+.genre-pick legend { font-weight: 600; padding: 0 6px; }
+.genre-pick .radio { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; line-height: 1.4; cursor: pointer; }
+.genre-pick .radio input { margin-top: .25em; flex: none; width: 1.1em; height: 1.1em; accent-color: var(--teal); }

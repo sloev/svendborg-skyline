@@ -384,7 +384,7 @@
   // ------------------------------------------------------------------ kladder på enheden
 
   const Kit = window.SiloKit;
-  const DRAFT_FIELDS = ['title', 'story', 'period', 'place', 'perspective', 'relation', 'credit', 'showCredit', 'email', 'contactOk'];
+  const DRAFT_FIELDS = ['genre', 'title', 'story', 'period', 'place', 'perspective', 'relation', 'credit', 'showCredit', 'email', 'contactOk'];
   let draftId = null;
   let saveTimer = null;
   const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -518,6 +518,8 @@
     draft.kind = draft.files[0].kind;
     draft.missing = null;
     if (fresh) prefill(draft.files[0].file, draft.kind);
+    // En PDF er næsten altid et dokument; det foreslås, men kan ændres.
+    if (fresh && draft.files.every((f) => f.kind === 'document')) form.elements.genre.value = 'dokument';
     goStep(2);
     if (errors.length) showError(errors.join(' '));
     saveDraftNow();
@@ -808,6 +810,7 @@
         place: FIELDS[kind].place ? d.get('place') : '',
         perspective: FIELDS[kind].perspective ? d.get('perspective') : '',
         relation: d.get('relation'),
+        genre: d.get('genre') || 'personlig',
         credit: String(d.get('credit') || '').trim(),
         showCredit: !!d.get('showCredit'),
         email: d.get('email'),

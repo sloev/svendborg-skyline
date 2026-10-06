@@ -425,7 +425,18 @@
     }
   });
 
+  // Døgnets forbrug i forhold til workerens loft (se »døgnbudget« i src/worker.js).
+  async function showUsage() {
+    const u = await api('GET', '/api/admin/usage').catch(() => null);
+    if (!u) return;
+    const pct = (k) => `${Math.round((100 * (u.today[k] || 0)) / u.budget[k])} %`;
+    $('#usage').textContent =
+      `Forbrug i dag (UTC): D1 læst ${pct('d1r')} · D1 skrevet ${pct('d1w')} · filer ${pct('media')} · forespørgsler ${pct('req')} af døgnloftet.` +
+      (u.busy ? ' Loftet er nået – offentlige indsendelser og kommentarer er sat på pause til midnat (UTC).' : '');
+  }
+
   async function start() {
+    showUsage();
     await load(true);
     $('#login').hidden = true;
     $('#panel').hidden = false;

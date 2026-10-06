@@ -23,7 +23,7 @@ import { chromium } from 'playwright';
 
 const WORKER_URL = (process.env.WORKER_URL || '').replace(/\/+$/, '');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-const SITE_URL = (process.env.SITE_URL || 'https://sloev.github.io/svendborg-skyline/').replace(/\/*$/, '/');
+const SITE_URL = (process.env.SITE_URL || 'https://havn.skifting.net/').replace(/\/*$/, '/');
 const OUT = process.env.OUT || '';
 const FORCE = process.env.FORCE === '1' || process.env.FORCE === 'true';
 // Hæves, når layoutet ændres, så PDF'en bygges igen, selv om indholdet er det samme.
@@ -81,6 +81,12 @@ const browser = await chromium.launch();
 let pdf;
 try {
   const page = await browser.newPage();
+  // Billederne hentes fra workeren, som kun svarer hjemmesiden og værktøjer med adgangskoden.
+  if (ADMIN_TOKEN) {
+    await page.route(`${WORKER_URL}/**`, (route) =>
+      route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${ADMIN_TOKEN}` } }),
+    );
+  }
   await page.setContent(html(), { waitUntil: 'domcontentloaded' });
   await page.addScriptTag({ path: path.join(here, '..', 'public', 'editor.js') });
   await page.evaluate((list) => {
@@ -283,8 +289,9 @@ ${sorted.map((c, i) => article(c, i + 1)).join('\n')}
 
 // ---------------------------------------------------------------- worker
 
+// Workeren svarer kun hjemmesiden – og værktøjer med adgangskoden.
 async function getJson(p) {
-  const res = await fetch(WORKER_URL + p);
+  const res = await fetch(WORKER_URL + p, { headers: ADMIN_TOKEN ? { authorization: `Bearer ${ADMIN_TOKEN}` } : {} });
   if (!res.ok) throw new Error(`GET ${p}: ${res.status}`);
   return res.json();
 }

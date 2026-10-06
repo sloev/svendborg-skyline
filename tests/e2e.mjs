@@ -5,7 +5,7 @@
 // Testbidrag genkendes af workeren på et token afledt af ADMIN_TOKEN: de springer Turnstile over
 // og vises aldrig offentligt. Repoet er offentligt, så der logges kun id'er og resultater.
 //
-//   SITE_URL     https://sloev.github.io/svendborg-skyline/
+//   SITE_URL     https://havn.skifting.net/
 //   WORKER_URL   https://silo-arkiv.<subdomæne>.workers.dev
 //   ADMIN_TOKEN  samme som workerens
 //   WAIT_MINUTES hvor længe der ventes på omkodning (standard 20)
@@ -18,6 +18,12 @@ const WORKER = must('WORKER_URL').replace(/\/+$/, '');
 const ADMIN = must('ADMIN_TOKEN');
 const WAIT_MS = Number(process.env.WAIT_MINUTES || 20) * 60_000;
 const E2E = createHash('sha256').update(`e2e:${ADMIN}`).digest('hex');
+// Workeren svarer kun hjemmesiden (Origin/Referer) og afviser programmer som Node. Testens egne kald
+// sender derfor testtokenet – undtagen dem med anon: true, der lader som en almindelig browser.
+const realFetch = globalThis.fetch;
+globalThis.fetch = (url, { anon, ...opts } = {}) =>
+  !String(url).startsWith(WORKER) || anon ? realFetch(url, opts) : realFetch(url, { ...opts, headers: { 'x-e2e-token': E2E, ...(opts.headers || {}) } });
+const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 const marker = `Automatisk test ${new Date().toISOString()} ${randomUUID().slice(0, 8)} – siloerne set fra kajen.`;
 
 let browser;
@@ -109,7 +115,7 @@ try {
   }
 
   step('Venter på godkendelse');
-  const pub = await fetch(`${WORKER}/api/contributions/${subId}`);
+  const pub = await fetch(`${WORKER}/api/contributions/${subId}`, { anon: true, headers: { 'user-agent': BROWSER_UA, origin: new URL(SITE).origin } });
   check(pub.status === 404, 'testbidraget kan ikke ses uden testtoken');
   const notYet = await fetch(`${WORKER}/api/contributions/${subId}`, { headers: { 'x-e2e-token': E2E } });
   check(notYet.status === 404, 'bidraget er ikke offentligt, før en admin har godkendt det');
@@ -204,7 +210,7 @@ try {
   const ogImg = await fetch(og('og:image'));
   check(ogImg.ok && ogImg.headers.get('content-type') === 'image/jpeg', 'forhåndsbilledet kan hentes');
   check(html.includes('name="twitter:card" content="summary_large_image"'), 'delesiden har Twitter/X-kort');
-  const shareAnon = await fetch(`${WORKER}/s/${subId}`, { redirect: 'manual' });
+  const shareAnon = await fetch(`${WORKER}/s/${subId}`, { anon: true, headers: { 'user-agent': BROWSER_UA }, redirect: 'manual' });
   check(shareAnon.status === 302, 'delesiden for et testbidrag er skjult for offentligheden');
 
   step('Sikkerhed');
@@ -212,6 +218,12 @@ try {
   check(noOrigin.status === 403, 'indsendelse uden hjemmesidens Origin afvises');
   const evil = await fetch(`${WORKER}/api/submissions`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{}' });
   check(evil.status === 403, 'indsendelse fra fremmed side afvises');
+  const scraper = await fetch(`${WORKER}/api/contributions`, { anon: true, headers: { 'user-agent': 'python-requests/2.32', origin: new URL(SITE).origin } });
+  check(scraper.status === 403, 'skrabere afvises');
+  const foreign = await fetch(`${WORKER}/api/contributions`, { anon: true, headers: { 'user-agent': BROWSER_UA, origin: 'https://evil.example' } });
+  check(foreign.status === 403, 'andre sider kan ikke hente arkivets data');
+  const bareApi = await fetch(`${WORKER}/api/stats`, { anon: true, headers: { 'user-agent': BROWSER_UA } });
+  check(bareApi.status === 403, 'API\'et kan ikke hentes direkte uden om hjemmesiden');
   const root = await fetch(`${WORKER}/`, { redirect: 'manual' });
   check([301, 302].includes(root.status), 'workeren viser ikke selv hjemmesiden');
   check(pageErrors.length === 0, `ingen JavaScript-fejl på siden${pageErrors.length ? `: ${pageErrors.join('; ')}` : ''}`);
