@@ -1737,7 +1737,7 @@
     if (e.key === 'ArrowLeft') showItem((index - 1 + current.items.length) % current.items.length);
   });
   // Delelinket peger på workerens /s/<id>, som giver et pænt forhåndsvisningskort på sociale medier.
-  const shareUrl = (c) => (config.shareBase ? `${config.shareBase}${c.id}` : `${location.origin}${location.pathname}#bidrag/${c.id}`);
+  const shareUrl = (c) => (config.shareBase ? `${config.shareBase}${c.id}/` : `${location.origin}${location.pathname}#bidrag/${c.id}`);
 
   function renderShare(c) {
     const box = $('#viewer-sharebar');
