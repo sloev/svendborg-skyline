@@ -4,3 +4,4 @@ node_modules/
 processor/work/
 *.log
 .DS_Store
+public/s/

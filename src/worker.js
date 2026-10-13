@@ -39,6 +39,8 @@
 //   PATCH  /api/admin/comments/:id           { status }
 //   DELETE /api/admin/comments/:id           delete a comment
 
+import { shareHtml, plainText, truncate } from './share-html.js';
+
 const CHUNK_SIZE = 16 * 1024 * 1024; // R2 multipart part size (min 5 MiB, max ~95 MiB on Workers)
 
 const RELATIONS = {
@@ -192,6 +194,7 @@ export default {
   // Det erstatter GitHubs egen timeplan, så der ikke bruges GitHub-maskintid, når der intet er at lave.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(processIfQueued(env).catch((e) => console.error('queue', e.message)));
+    ctx.waitUntil(rebuildSiteIfDirty(env).catch((e) => console.error('site', e.message)));
     if (event.cron !== DAILY_CRON) return;
     ctx.waitUntil(abandonUploads(env, `created_at < ?`, [isoAgo(48 * 3600)], 'submissions'));
     // Kommentarer: den hashede IP-adresse bruges kun mod spam og ryddes efter 30 dage.
@@ -477,6 +480,8 @@ function rebuildLater(env, ctx) {
       .finally(() => (REBUILD.running = null));
   }
   ctx.waitUntil(REBUILD.running);
+  // Delesiderne på hjemmesiden skal også følge med.
+  ctx.waitUntil(markSiteDirty(env).catch((e) => console.error('site', e.message)));
 }
 
 // Et offentligt bidrag (med filer) – fra øjebliksbilledet, eller fra D1 for den automatiske test.
@@ -676,7 +681,7 @@ function getConfig(env) {
       perspectives: PERSPECTIVES,
       genres: GENRES,
       limits: LIMITS,
-      shareBase: `${env.PUBLIC_ORIGIN}/s/`,
+      shareBase: `${siteUrl(env)}s/`,
     },
     200,
     { 'cache-control': 'public, max-age=300' },
@@ -1636,17 +1641,42 @@ async function adminCommentDelete(env, id) {
 // hvert 10. minut – ikke én gang pr. fil. Filer, der kommer ind imens, samles op af kvarterstjekket.
 const DAILY_CRON = '23 3 * * *';
 const DISPATCH_GAP_S = 600;
-async function triggerProcessing(env) {
-  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return;
-  const now = Math.floor(Date.now() / 1000);
-  const claimed = await env.DB.prepare(
-    `INSERT INTO counters (name, n) VALUES ('gh_dispatch', ?)
+const nowS = () => Math.floor(Date.now() / 1000);
+// Sætter tidsstemplet `name` til nu, hvis det er mere end DISPATCH_GAP_S gammelt. Svarer true, hvis det lykkedes.
+async function claimSlot(env, name) {
+  const now = nowS();
+  const row = await env.DB.prepare(
+    `INSERT INTO counters (name, n) VALUES (?, ?)
      ON CONFLICT(name) DO UPDATE SET n = excluded.n WHERE counters.n < ?
      RETURNING n`,
   )
-    .bind(now, now - DISPATCH_GAP_S)
+    .bind(name, now, now - DISPATCH_GAP_S)
     .first();
-  if (!claimed) return; // startet for nylig
+  return !!row;
+}
+async function triggerProcessing(env) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return;
+  if (!(await claimSlot(env, 'gh_dispatch'))) return; // startet for nylig
+  await dispatchGithub(env, 'process-media');
+}
+
+// Hjemmesiden har en statisk delesider pr. offentligt bidrag (tools/delesider.mjs), så den udgives
+// igen, når noget offentligt ændres: højst hvert 10. minut, og kvarterstjekket tager resten.
+async function markSiteDirty(env) {
+  await env.DB.prepare(`INSERT INTO counters (name, n) VALUES ('site_dirty', ?) ON CONFLICT(name) DO UPDATE SET n = excluded.n`)
+    .bind(nowS())
+    .run();
+  await rebuildSiteIfDirty(env);
+}
+async function rebuildSiteIfDirty(env) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return;
+  const { results } = await env.DB.prepare(`SELECT name, n FROM counters WHERE name IN ('site_dirty', 'gh_site')`).all();
+  const v = Object.fromEntries(results.map((r) => [r.name, r.n]));
+  if (!v.site_dirty || v.site_dirty <= (v.gh_site || 0)) return;
+  if (await claimSlot(env, 'gh_site')) await dispatchGithub(env, 'site-rebuild');
+}
+
+async function dispatchGithub(env, type) {
   const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/dispatches`, {
     method: 'POST',
     headers: {
@@ -1655,7 +1685,7 @@ async function triggerProcessing(env) {
       'content-type': 'application/json',
       'user-agent': 'silo-arkiv-worker',
     },
-    body: JSON.stringify({ event_type: 'process-media' }),
+    body: JSON.stringify({ event_type: type }),
   });
   if (!res.ok) console.error('GitHub dispatch failed', res.status, await res.text());
 }
@@ -1685,9 +1715,6 @@ async function sharePage(env, id) {
   const sub = await publicSub(env, id);
   if (!sub) return Response.redirect(site, 302);
   const items = sub.items.filter((i) => i.status === 'ready');
-  const target = `${site}#bidrag/${id}`;
-  const shareUrl = `${env.PUBLIC_ORIGIN}/s/${id}`;
-
   let image = `${site}og.jpg`;
   let video = null;
   const first = items.find((i) => i.kind === 'image' || i.kind === 'video');
@@ -1697,45 +1724,10 @@ async function sharePage(env, id) {
     image = mediaUrl(env, has ? og : first.poster_key || first.display_key);
     if (first.kind === 'video') video = mediaUrl(env, first.display_key);
   }
-  const counts = items.reduce((m, i) => ((m[i.kind] = (m[i.kind] || 0) + 1), m), {});
-  const what = [
-    counts.image && `${counts.image} ${counts.image === 1 ? 'billede' : 'billeder'}`,
-    counts.video && `${counts.video} ${counts.video === 1 ? 'video' : 'videoer'}`,
-    counts.audio && `${counts.audio} lydoptagelse${counts.audio === 1 ? '' : 'r'}`,
-  ].filter(Boolean).join(', ');
-  const story = plainText(sub.story);
-  const title = sub.title || (story ? truncate(story, 70) : 'Et bidrag om siloerne');
-  const desc = truncate(
-    [story, what && `(${what})`, sub.show_credit && sub.credit ? `– ${sub.credit}` : ''].filter(Boolean).join(' ') ||
-      'Billeder, videoer og historier om siloerne på Østre Kaj i Svendborg.',
-    200,
-  );
-  const e = escapeHtml;
-  const html = `<!doctype html>
-<html lang="da">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${e(title)} – Siloerne på Østre Kaj</title>
-<meta name="description" content="${e(desc)}">
-<link rel="canonical" href="${e(target)}">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="Siloerne på Østre Kaj">
-<meta property="og:locale" content="da_DK">
-<meta property="og:title" content="${e(title)}">
-<meta property="og:description" content="${e(desc)}">
-<meta property="og:url" content="${e(shareUrl)}">
-<meta property="og:image" content="${e(image)}">
-<meta property="og:image:alt" content="${e(title)}">
-${video ? `<meta property="og:video" content="${e(video)}">\n<meta property="og:video:type" content="video/mp4">\n` : ''}<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${e(title)}">
-<meta name="twitter:description" content="${e(desc)}">
-<meta name="twitter:image" content="${e(image)}">
-<meta http-equiv="refresh" content="0; url=${e(target)}">
-<style>body{font:16px/1.5 system-ui,sans-serif;background:#f5f1ea;color:#14324a;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px;text-align:center}a{color:#1d8a74}</style>
-</head>
-<body><p><a href="${e(target)}">Se bidraget om siloerne på Østre Kaj →</a></p></body>
-</html>`;
+  const html = shareHtml({
+    title: sub.title, story: sub.story, credit: sub.show_credit ? sub.credit : '', kinds: items.map((i) => i.kind),
+    image, video, target: `${site}#bidrag/${id}`, shareUrl: `${site}s/${id}/`,
+  });
   return new Response(html, {
     headers: {
       'content-type': 'text/html; charset=utf-8',
@@ -1745,26 +1737,6 @@ ${video ? `<meta property="og:video" content="${e(video)}">\n<meta property="og:
       'referrer-policy': 'strict-origin-when-cross-origin',
     },
   });
-}
-
-// Historier gemmes som simpel Markdown (fed, kursiv, overskrifter, lister, links). Uden tegnene:
-function plainText(md) {
-  return String(md || '')
-    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(?!\s)(.+?)\*/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^>\s?/gm, '')
-    .replace(/^([-*•]|\d+[.)])\s+/gm, '');
-}
-
-function truncate(str, max) {
-  str = String(str || '').replace(/\s+/g, ' ').trim();
-  return str.length > max ? `${str.slice(0, max - 1).trimEnd()}…` : str;
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
 // ---------------------------------------------------------------- media

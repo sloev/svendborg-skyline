@@ -2,11 +2,15 @@ name: Udgiv hjemmeside (GitHub Pages)
 
 # Udgiver public/ på GitHub Pages. API'et ligger på Cloudflare-workeren; config.js skrives,
 # så siden ved hvor den er (variablen WORKER_URL, eller slået op med Cloudflare-hemmelighederne).
+# Der lægges også en statisk delesider pr. offentligt bidrag (tools/delesider.mjs). Workeren starter
+# derfor en ny udgivelse (repository_dispatch), når noget offentligt er ændret – højst hvert 10. minut.
 
 on:
   push:
     branches: [master]
     paths: ['public/**', '.github/workflows/pages.yml']
+  repository_dispatch:
+    types: [site-rebuild]
   workflow_dispatch:
 
 permissions:
@@ -39,6 +43,14 @@ jobs:
           cat public/config.js
           # Ny version i filnavnene ved hver udgivelse, så browsere ikke bruger gamle CSS/JS-filer.
           sed -i -E "s/\?v=[0-9a-z]+\"/?v=${GITHUB_SHA::10}\"/g" public/*.html
+
+      - name: Delesider til sociale medier
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          export WORKER_URL=$(sed -n 's/.*apiBase: "\(.*\)".*/\1/p' public/config.js)
+          export SITE_URL=$(grep -m1 '^SITE_URL' wrangler.toml | cut -d'"' -f2)
+          node tools/delesider.mjs
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
