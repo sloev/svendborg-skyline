@@ -1,16 +1,11 @@
 name: Udgiv hjemmeside (GitHub Pages)
 
-# Udgiver public/ på GitHub Pages. API'et ligger på Cloudflare-workeren; config.js skrives,
-# så siden ved hvor den er (variablen WORKER_URL, eller slået op med Cloudflare-hemmelighederne).
-# Der lægges også en statisk delesider pr. offentligt bidrag (tools/delesider.mjs). Workeren starter
-# derfor en ny udgivelse (repository_dispatch), når noget offentligt er ændret – højst hvert 10. minut.
+# Arkivet er lukket: siden viser kun en besked. Slå GitHub Pages fra under Settings → Pages for at fjerne den helt.
 
 on:
   push:
     branches: [master]
     paths: ['public/**', '.github/workflows/pages.yml']
-  repository_dispatch:
-    types: [site-rebuild]
   workflow_dispatch:
 
 permissions:
@@ -30,28 +25,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Skriv config.js
-        env:
-          WORKER_URL: ${{ vars.WORKER_URL }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          url=$(.github/scripts/worker-url.sh)
-          if [ -z "$url" ]; then echo "::error::Kunne ikke finde workerens adresse (tjek CLOUDFLARE_*-secrets eller sæt variablen WORKER_URL)"; exit 1; fi
-          printf "window.SILO_CONFIG = { apiBase: %s };\n" "$(jq -Rn --arg u "$url" '$u')" > public/config.js
-          cat public/config.js
-          # Ny version i filnavnene ved hver udgivelse, så browsere ikke bruger gamle CSS/JS-filer.
-          sed -i -E "s/\?v=[0-9a-z]+\"/?v=${GITHUB_SHA::10}\"/g" public/*.html
-
-      - name: Delesider til sociale medier
-        env:
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-        run: |
-          export WORKER_URL=$(sed -n 's/.*apiBase: "\(.*\)".*/\1/p' public/config.js)
-          export SITE_URL=$(grep -m1 '^SITE_URL' wrangler.toml | cut -d'"' -f2)
-          node tools/delesider.mjs
-
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
